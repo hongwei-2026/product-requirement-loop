@@ -7,10 +7,21 @@
 
 ## 你要 Fork 哪些仓库？
 
-按优先级：
+你已 Fork 到账号 **hongwei-2026**（2026-08-30 确认）：
 
-| 优先级 | 仓库 | 为什么要 Fork |
-|--------|------|----------------|
+| 优先级 | 你的 Fork 地址 |
+|--------|----------------|
+| **主输入·日志** | https://github.com/hongwei-2026/quanttide-journal-of-product-development |
+| **Loop·执行器** | https://github.com/hongwei-2026/quanttide-profile-of-agent-engineering |
+| **输出格式** | https://github.com/hongwei-2026/quanttide-profile-of-product-development |
+| **参考·认知** | https://github.com/hongwei-2026/quanttide-journal-of-cognitive-engineering |
+
+上游仍为 `quanttide/*`；你 Fork 后可在自己账号下改、对照，合适时再向上游 PR。
+
+若尚未 Fork，按下面「官方原名」在 GitHub 点 Fork：
+
+| 优先级 | 官方仓库 | 为什么要 Fork |
+|--------|----------|----------------|
 | **必 Fork** | [quanttide-journal-of-product-development](https://github.com/quanttide/quanttide-journal-of-product-development) | **主输入**：产品研发日志，导师指定来源 |
 | **必 Fork** | [quanttide-profile-of-agent-engineering](https://github.com/quanttide/quanttide-profile-of-agent-engineering) | Loop 范式、`devops-code/implementation.py`、yaml 模板 |
 | **建议 Fork** | [quanttide-profile-of-product-development](https://github.com/quanttide/quanttide-profile-of-product-development) | `requirement.json` / `requirement.md`，输出格式对齐 |

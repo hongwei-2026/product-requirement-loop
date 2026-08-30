@@ -26,6 +26,8 @@ cd "D:\量潮科技\课题申请-product-requirement-loop"
 gh repo create product-requirement-loop --public --source=. --remote=origin --push
 ```
 
+仓库将位于：`https://github.com/hongwei-2026/product-requirement-loop`
+
 若仓库名已占用，换一个名字，例如 `quanttide-product-requirement-loop`。
 
 ## 4. 不用 gh 的替代做法

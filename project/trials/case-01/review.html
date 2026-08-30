@@ -128,6 +128,18 @@
 
   <footer>验收用页面 · 关键词见 复核关键词卡-case01.md</footer>
 
+  <!-- 双击打开 review.html 时浏览器禁止 fetch 本地文件，用内嵌副本兜底（与 input/journal-raw.md 同步） -->
+  <script type="text/plain" id="journal-embedded">我现在已经确定了一个初步的想法：我们的日志摘取档案这一步，实际上就是从原始的零碎话语中去捕捉用户故事。首先，要捕捉出来一个格式。
+然后，要根据人类的理解和 AI 的判断去划分它的层级，即它是用户活动、用户任务还是用户故事细节。要把它在图上找到一个合适的位置。这个过程可能是 AI 辅助，然后由人去调整，这个过程也要处理。最后是确认这个格式对不对。
+
+我觉得这个要代替旧的用户故事地图，变成一个新的用户故事地图，也就是需求梳理的部分。
+
+在没有更准确的生成步骤之前，像这样从原始语音去摘取，其实效率不是很高，但也足够用了。为了能把初步的结果垫出来，然后再不断精进。
+
+对，我觉得这个 intention 很关键，能够把整个过程做出来。也就是说，怎么才是一个更符合人机交互范式理解的东西？
+
+我们能不能不断地从碎片之中产生一个最小单元，然后再和大的图进行融合？</script>
+
   <script>
     let rawText = '';
     let reviseCode = null;
@@ -170,12 +182,23 @@
       },
     };
 
-    fetch('input/journal-raw.md').then(r => r.text()).then(t => {
-      rawText = t;
-      document.getElementById('source-text').textContent = t;
-    }).catch(() => {
-      document.getElementById('source-text').textContent = '无法加载 input/journal-raw.md，请用文件管理器打开同目录文件。';
-    });
+    function loadSource(text) {
+      rawText = text;
+      document.getElementById('source-text').textContent = text;
+    }
+
+    fetch('input/journal-raw.md')
+      .then(r => { if (!r.ok) throw new Error('fetch failed'); return r.text(); })
+      .then(loadSource)
+      .catch(() => {
+        const fb = document.getElementById('journal-embedded');
+        if (fb && fb.textContent.trim()) {
+          loadSource(fb.textContent.trim());
+        } else {
+          document.getElementById('source-text').textContent =
+            '无法加载日志。请用浏览器直接打开本文件，或从 case-01 目录启动本地服务。';
+        }
+      });
 
     document.querySelectorAll('.kw').forEach(btn => {
       btn.addEventListener('click', () => {
