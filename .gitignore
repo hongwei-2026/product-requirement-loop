@@ -1,0 +1,26 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+
+# Node
+node_modules/
+screenshots/node_modules/
+
+# IDE / OS
+.idea/
+.vscode/settings.json.local
+Thumbs.db
+.DS_Store
+
+# Build / temp
+*.log
+dist/
+output/
+project/trials/case-01/output/
+
+# Secrets
+*.pem
+credentials.json

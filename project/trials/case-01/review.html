@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>case-01 验收对照页</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", sans-serif; background: #f4f5f7; color: #1a1a1a; }
+    header { background: #fff; border-bottom: 1px solid #ddd; padding: 16px 20px; }
+    header h1 { margin: 0 0 6px; font-size: 1.2rem; }
+    header p { margin: 0; color: #555; font-size: 0.9rem; }
+    .warn { background: #eef5ff; border-left: 4px solid #1677ff; padding: 10px 14px; margin: 12px 20px 0; font-size: 0.9rem; }
+    .keys { padding: 0 20px 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .keys span { font-size: 0.85rem; color: #666; margin-right: 4px; }
+    .kw { border: 1px solid #91caff; background: #e6f4ff; color: #0958d9; border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 0.85rem; }
+    .kw:hover { background: #bae0ff; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 12px 20px; }
+    .panel { background: #fff; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; }
+    .panel h2 { margin: 0; padding: 12px 14px; font-size: 1rem; background: #f8f9fb; border-bottom: 1px solid #eee; }
+    .content { padding: 14px; white-space: pre-wrap; line-height: 1.8; font-size: 0.92rem; max-height: 380px; overflow: auto; }
+    mark { background: #fff566; padding: 0 2px; border-radius: 2px; }
+    .story { border: 1px solid #e8e8e8; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+    .tag { display: inline-block; font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; margin-right: 6px; }
+    .task { background: #f6ffed; color: #389e0d; }
+    .storylv { background: #fff7e6; color: #d46b08; }
+    .quote { margin-top: 8px; padding: 8px; background: #fafafa; border-left: 3px solid #1677ff; font-size: 0.85rem; }
+    .actions { padding: 12px 20px; background: #fff; border-top: 1px solid #ddd; }
+    .actions h3 { margin: 0 0 10px; font-size: 1rem; }
+    .btnrow { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    button { border: 1px solid #d9d9d9; background: #fff; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 0.9rem; }
+    button.ok { background: #f6ffed; border-color: #95de64; }
+    button.bad { background: #fff2f0; border-color: #ffccc7; }
+    button.bad.selected { border-color: #ff4d4f; box-shadow: 0 0 0 2px #ffccc7; }
+    button.primary { background: #1677ff; color: #fff; border-color: #1677ff; }
+    button:hover { filter: brightness(0.98); }
+    #reason { width: 100%; padding: 10px; font-size: 0.92rem; border: 1px solid #d9d9d9; border-radius: 8px; margin-bottom: 8px; font-family: inherit; }
+    #reason.missing { border-color: #ff4d4f; background: #fff2f0; }
+    #cmd { width: 100%; padding: 10px; font-family: Consolas, monospace; font-size: 0.9rem; border: 1px solid #d9d9d9; border-radius: 8px; background: #fafafa; }
+    .template-chip { border: 1px dashed #91caff; background: #fafafa; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 0.85rem; text-align: left; }
+    .template-chip:hover { background: #e6f4ff; }
+    .builder { display: none; margin-bottom: 10px; padding: 12px; background: #fafafa; border: 1px solid #eee; border-radius: 8px; }
+    .builder label { font-size: 0.85rem; color: #555; display: block; margin-bottom: 6px; }
+    .builder-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .builder-row input { flex: 1; min-width: 120px; padding: 6px 8px; border: 1px solid #d9d9d9; border-radius: 6px; }
+    .builder-row span { font-size: 0.9rem; }
+    .status { padding: 8px 20px 16px; font-size: 0.85rem; color: #555; }
+    footer { padding: 12px 20px; color: #666; font-size: 0.85rem; border-top: 1px solid #ddd; background: #fff; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>case-01 验收对照页（非产品 UI）</h1>
+    <p>点关键词看左边原文 → 对右边 → 通过就点 ✓；发现问题点 ✗ 并写一句为什么。</p>
+  </header>
+
+  <div class="warn">
+    <strong>打叉必须写原因。</strong>例如：「右边写了飞书，原文没有」。不填原因，生成不了 revise 指令。
+    已通过的内容会锁定，重跑只改当前步。详见 <code>人机确认操作指南.md</code>。
+  </div>
+
+  <div class="keys">
+    <span>点关键词在左边搜：</span>
+    <button class="kw" data-kw="捕捉用户故事">捕捉用户故事</button>
+    <button class="kw" data-kw="捕捉出来一个格式">捕捉出来一个格式</button>
+    <button class="kw" data-kw="用户活动">用户活动</button>
+    <button class="kw" data-kw="用户任务">用户任务</button>
+    <button class="kw" data-kw="故事细节">故事细节</button>
+    <button class="kw" data-kw="AI 辅助">AI 辅助</button>
+    <button class="kw" data-kw="人去调整">人去调整</button>
+    <button class="kw" data-kw="零碎话语">零碎话语</button>
+    <button class="kw" data-kw="需求梳理">需求梳理</button>
+  </div>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>左：原始日志</h2>
+      <div class="content" id="source-text">加载中…</div>
+    </section>
+    <section class="panel">
+      <h2>右：用户故事（示例，阶段4后替换为真实 output）</h2>
+      <div class="content" id="stories">
+        <div class="story" data-id="s1">
+          <span class="tag task">任务</span><strong>用户要从零碎话语中捕捉用户故事</strong>
+          <div class="quote">来源：「从原始的零碎话语中去捕捉用户故事」</div>
+        </div>
+        <div class="story" data-id="s2">
+          <span class="tag task">任务</span><strong>用户要先捕捉出一个用户故事格式</strong>
+          <div class="quote">来源：「首先，要捕捉出来一个格式」</div>
+        </div>
+        <div class="story" data-id="s3">
+          <span class="tag storylv">故事</span><strong>用户要借助 AI 划分活动、任务、故事细节</strong>
+          <div class="quote">来源：「划分它的层级，即它是用户活动、用户任务还是用户故事细节」</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="actions">
+    <h3>人确认</h3>
+    <div class="btnrow">
+      <button class="ok" onclick="pickOk()">✓ 通过（锁定本步）</button>
+      <button class="bad" data-code="编造" onclick="pickRevise(this)">✗ 编造</button>
+      <button class="bad" data-code="分层" onclick="pickRevise(this)">✗ 分层错</button>
+      <button class="bad" data-code="漏了" onclick="pickRevise(this)">✗ 漏了</button>
+      <button class="bad" data-code="格式" onclick="pickRevise(this)">✗ 格式</button>
+      <button class="bad" data-code="其他" onclick="pickRevise(this)">✗ 其他</button>
+    </div>
+    <p class="hint" id="revise-hint" style="display:none;">已选问题类型：<strong id="picked-code"></strong></p>
+    <div class="builder" id="builder">
+      <label><strong>不知道咋写？</strong>点下面一句（几乎不用改），或只填【】里的一个词：</label>
+      <div class="btnrow" id="template-chips"></div>
+      <div id="inline-builder"></div>
+    </div>
+    <textarea id="reason" rows="2" placeholder="点上面的句式会自动填到这里，你也可以改几个字" style="display:none;"></textarea>
+    <div class="btnrow" id="revise-actions" style="display:none;">
+      <button class="primary" onclick="buildRevise()">生成 revise 指令</button>
+    </div>
+    <p class="hint">复制下面这行到终端（或给帮你跑 Loop 的人）：</p>
+    <input id="cmd" readonly value="ok" />
+    <div class="btnrow" style="margin-top:8px;">
+      <button onclick="copyCmd()">复制指令</button>
+      <button onclick="setCmd('unlock:step1')">解锁 Step1（仅当你想改已通过的）</button>
+    </div>
+  </section>
+
+  <div class="status" id="status">当前：未锁定。通过后本步锁定；打叉须写原因，只重跑当前步。</div>
+
+  <footer>验收用页面 · 关键词见 复核关键词卡-case01.md</footer>
+
+  <script>
+    let rawText = '';
+    let reviseCode = null;
+    let lastKeyword = '';
+
+    const TEMPLATES = {
+      编造: {
+        chips: [
+          '右边多了一条，原文里搜不到',
+          '右边写了某个功能，左边全文没有提到',
+        ],
+        builder: { before: '右边写了「', after: '」，原文没有', placeholder: '填右边多出来的词，如：飞书' },
+      },
+      分层: {
+        chips: [
+          '这条应该是任务，不是故事',
+          '这条应该是故事，不是任务',
+          '这条应该是活动，不是任务',
+          '层级和左边那句话的意思对不上',
+        ],
+      },
+      漏了: {
+        chips: [
+          '左边有一句重要的话，右边完全没有对应条目',
+        ],
+        builder: { before: '左边「', after: '」右边没有对应条目', placeholder: '填左边那句关键词', defaultFromKeyword: true },
+      },
+      格式: {
+        chips: [
+          '这条没用「用户要」开头',
+          '这条句式不像用户故事',
+        ],
+      },
+      其他: {
+        chips: [
+          '右边和左边对不上，我说不清属于哪一类',
+          '右边这条读起来不对，但具体原因我描述不好',
+        ],
+        builder: { before: '右边第', after: '条和左边对不上', placeholder: '填第几条，如：2' },
+      },
+    };
+
+    fetch('input/journal-raw.md').then(r => r.text()).then(t => {
+      rawText = t;
+      document.getElementById('source-text').textContent = t;
+    }).catch(() => {
+      document.getElementById('source-text').textContent = '无法加载 input/journal-raw.md，请用文件管理器打开同目录文件。';
+    });
+
+    document.querySelectorAll('.kw').forEach(btn => {
+      btn.addEventListener('click', () => {
+        lastKeyword = btn.dataset.kw;
+        highlight(lastKeyword);
+      });
+    });
+
+    function highlight(kw) {
+      if (!rawText) return;
+      const esc = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const html = rawText.replace(new RegExp(esc, 'g'), m => '<mark>' + m + '</mark>');
+      document.getElementById('source-text').innerHTML = html;
+      const el = document.querySelector('mark');
+      if (el) el.scrollIntoView({ block: 'center' });
+    }
+
+    function fillReason(text) {
+      document.getElementById('reason').value = text;
+      document.getElementById('reason').classList.remove('missing');
+    }
+
+    function renderTemplates() {
+      const cfg = TEMPLATES[reviseCode] || {};
+      const chipsEl = document.getElementById('template-chips');
+      const inlineEl = document.getElementById('inline-builder');
+      chipsEl.innerHTML = '';
+      inlineEl.innerHTML = '';
+
+      (cfg.chips || []).forEach(text => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'template-chip';
+        b.textContent = '「' + text + '」';
+        b.onclick = () => {
+          fillReason(text);
+          document.getElementById('status').textContent = '已填入句式，可直接生成；也可改几个字。';
+        };
+        chipsEl.appendChild(b);
+      });
+
+      if (cfg.builder) {
+        const row = document.createElement('div');
+        row.className = 'builder-row';
+        const input = document.createElement('input');
+        input.placeholder = cfg.builder.placeholder;
+        if (cfg.builder.defaultFromKeyword && lastKeyword) input.value = lastKeyword;
+        const go = document.createElement('button');
+        go.type = 'button';
+        go.textContent = '拼成一句';
+        go.onclick = () => {
+          const mid = input.value.trim();
+          if (!mid) {
+            input.focus();
+            document.getElementById('status').textContent = '填一下【】里的词就行，不用写整句。';
+            return;
+          }
+          fillReason(cfg.builder.before + mid + cfg.builder.after);
+          document.getElementById('status').textContent = '已拼好一句，可生成 revise。';
+        };
+        row.appendChild(document.createElement('span')).textContent = cfg.builder.before;
+        row.appendChild(input);
+        row.appendChild(document.createElement('span')).textContent = cfg.builder.after;
+        row.appendChild(go);
+        inlineEl.appendChild(row);
+      }
+    }
+
+    function pickOk() {
+      reviseCode = null;
+      document.querySelectorAll('button.bad').forEach(b => b.classList.remove('selected'));
+      document.getElementById('revise-hint').style.display = 'none';
+      document.getElementById('builder').style.display = 'none';
+      document.getElementById('reason').style.display = 'none';
+      document.getElementById('revise-actions').style.display = 'none';
+      document.getElementById('reason').classList.remove('missing');
+      setCmd('ok');
+    }
+
+    function pickRevise(btn) {
+      reviseCode = btn.dataset.code;
+      document.querySelectorAll('button.bad').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      document.getElementById('picked-code').textContent = reviseCode;
+      document.getElementById('revise-hint').style.display = 'block';
+      document.getElementById('builder').style.display = 'block';
+      document.getElementById('reason').style.display = 'block';
+      document.getElementById('revise-actions').style.display = 'flex';
+      document.getElementById('reason').value = '';
+      renderTemplates();
+      document.getElementById('status').textContent =
+        '已选「' + reviseCode + '」— 点一句现成的，或只填一个词，再生成 revise。';
+    }
+
+    function buildRevise() {
+      const reason = document.getElementById('reason').value.trim();
+      const ta = document.getElementById('reason');
+      if (!reviseCode) {
+        document.getElementById('status').textContent = '请先点一个问题类型（编造、分层错等）。';
+        return;
+      }
+      if (!reason) {
+        ta.classList.add('missing');
+        document.getElementById('status').textContent = '点上面一句现成的，或填一个词后点「拼成一句」。';
+        ta.focus();
+        return;
+      }
+      ta.classList.remove('missing');
+      const cmd = 'revise:' + reviseCode + ':' + reason;
+      setCmd(cmd);
+      document.getElementById('status').textContent = '已生成 revise。只重跑当前步，已锁定内容不会动。';
+    }
+
+    function setCmd(v) {
+      document.getElementById('cmd').value = v;
+      const st = document.getElementById('status');
+      if (v === 'ok') st.textContent = '已选：通过并锁定。重跑时不会重复确认本步。';
+      else if (v.startsWith('unlock:')) st.textContent = '已选：解锁后才会重新确认该步。';
+    }
+
+    function copyCmd() {
+      const i = document.getElementById('cmd');
+      if (!i.value) {
+        document.getElementById('status').textContent = '还没有可复制的指令。通过点 ✓；打叉须先写原因并生成。';
+        return;
+      }
+      i.select();
+      document.execCommand('copy');
+    }
+  </script>
+</body>
+</html>

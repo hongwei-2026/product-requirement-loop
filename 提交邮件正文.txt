@@ -1,0 +1,16 @@
+主题：实训基地课题申请｜Agent 工程｜产品需求梳理智能体
+
+老师好，
+
+我提交实训基地课题申请（详见附件 课题申请.md）。
+
+【故事】
+产研负责人从研发日志（工作日志/零碎会议记录）里整理用户故事，产品云需求已定义流程（AI 辅助 + 人工调整 + 禁止编造），但 Agent 工程的 product-requirement 循环仅有说明、无可执行实现。
+
+【课题】
+实现 product-requirement Loop：日志文件输入 → 需求说明 → 用户故事 JSON（对齐官方 requirement.json），含 source_quote 溯源与覆盖率检查；复用官方 LangGraph implementation.py；trials 试点对比有/无 Loop。
+
+【对接】
+本期文件级对齐产品云 requirement.json；不接飞书/UI/API。
+
+谢谢。

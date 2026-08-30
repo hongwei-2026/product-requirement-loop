@@ -1,0 +1,60 @@
+# product-requirement — 产品需求梳理循环
+# 对齐 devops-code 字段；SQL 阶段 deferred
+name: product-requirement
+description: 研发日志 → 需求故事（Markdown）→ 用户故事 JSON → 人工定稿
+
+entry: 人类提供产品研发日志文本（文件路径）
+exit: 人类确认 accepted.json 定稿，且 check.py 全部通过
+
+steps:
+  - name: 整理需求故事
+    actor: ai
+    note: 先把零碎日志整理成一件完整的事（全局故事），再拆背景/要做什么/不做/待确认/原文摘录
+    artifact: output/requirement-story.md
+    check: 读起来是一件完整的事；含原文摘录；不新增原文没有的需求点
+
+  - name: 提取用户故事 JSON
+    actor: ai
+    note: 严格遵循 requirement-story.md 语义；禁止编造；text 以「用户要」开头
+    artifact: output/stories.json
+    check: 每条含 level、text、source_quote、reason；level 为 activity|task|story
+
+  - name: 人工评审定稿
+    actor: human
+    note: 人确认或 revise；定稿写入 accepted.json 并带 approved 与 revisions
+    artifact: output/accepted.json
+    check: 每条 story.approved=true；revisions 记录完整
+
+feedback:
+  - after: 整理需求故事
+    actor: human
+    ask: 故事是否读得通？格式可否进入 JSON 提取？输入 ok 或 revise:…
+  - after: 提取用户故事 JSON
+    actor: human
+    ask: 有无多余、遗漏或分层错误？输入 ok 或 revise:…
+
+loop:
+  condition: |
+    revise:<code> → 只重跑当前 step，不从头跑。
+    已锁定产物（output/locked/ 或 story.approved=true）不被 AI 覆盖。
+    快捷码：编造|分层|漏了|格式|其他；revise 时 comment 必填（一句人话即可）。
+    unlock:step1 → 仅当人要改已通过的 Step1 时使用。
+  exit: 人类确认 accepted.json 且 check.py 通过
+
+locking:
+  on_ok_step1: 复制 requirement-story.md → output/locked/step1-requirement-story.md
+  on_ok_story: 该条 approved=true，重跑 step2 时跳过
+  preserve_approved: true
+
+metrics:
+  - rounds
+  - time
+  - corrections
+  - rework
+
+acceptance:
+  fabrication_count: 0
+  source_quote_pass_rate: 1.0
+  sentence_coverage_rate: 1.0
+  feedback_triggered: true
+  min_rounds: 1

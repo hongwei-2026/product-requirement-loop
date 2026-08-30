@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "product-requirement accepted output",
+  "type": "object",
+  "required": ["meta", "stories", "coverage", "review"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["source_file", "loop", "round", "finalized_at", "finalized_by"],
+      "properties": {
+        "source_file": { "type": "string" },
+        "loop": { "type": "string", "const": "product-requirement" },
+        "round": { "type": "integer", "minimum": 1 },
+        "finalized_at": { "type": "string" },
+        "finalized_by": { "type": "string" }
+      }
+    },
+    "stories": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "level", "text", "source_quote", "reason", "approved", "revisions"],
+        "properties": {
+          "id": { "type": "string" },
+          "level": { "enum": ["activity", "task", "story"] },
+          "text": { "type": "string", "pattern": "^用户要" },
+          "source_quote": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "approved": { "type": "boolean", "const": true },
+          "revisions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["round", "action", "at"],
+              "properties": {
+                "round": { "type": "integer" },
+                "action": { "type": "string", "enum": ["created", "revised", "approved"] },
+                "code": { "type": "string" },
+                "comment": { "type": "string", "minLength": 1 },
+                "at": { "type": "string" }
+              },
+              "allOf": [
+                {
+                  "if": { "properties": { "action": { "const": "revised" } } },
+                  "then": { "required": ["comment", "code"] }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": ["total_sentences", "covered_sentences", "coverage_rate", "uncovered"],
+      "properties": {
+        "total_sentences": { "type": "integer", "minimum": 0 },
+        "covered_sentences": { "type": "integer", "minimum": 0 },
+        "coverage_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "uncovered": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": ["approved", "approved_at", "approver"],
+      "properties": {
+        "approved": { "type": "boolean", "const": true },
+        "approved_at": { "type": "string" },
+        "approver": { "type": "string" },
+        "comments": { "type": "string" }
+      }
+    }
+  }
+}
