@@ -1,68 +1,63 @@
-# 阶段 0 本地启动（PowerShell）
-# 用法：在项目根目录执行  .\scripts\start_stage0.ps1
+# Stage 0 launcher - reads Chinese paths from launcher-files.json (UTF-8)
+# Run: powershell -File scripts\start_stage0.ps1
 
-$ErrorActionPreference = "Stop"
-$Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-Set-Location $Root
+$ErrorActionPreference = 'Continue'
+$Root = Split-Path -Parent $PSScriptRoot
+Set-Location -LiteralPath $Root
 
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  阶段 0 验收环境启动" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "项目文件夹：" -ForegroundColor Yellow
-Write-Host "  $Root"
-Write-Host ""
+function Open-RelPath {
+    param(
+        [Parameter(Mandatory)][string]$RelPath,
+        [Parameter(Mandatory)][string]$Label,
+        [switch]$Required
+    )
+    $full = [System.IO.Path]::GetFullPath((Join-Path $Root ($RelPath -replace '/', '\')))
+    if (-not (Test-Path -LiteralPath $full)) {
+        $tag = if ($Required) { 'FAIL' } else { 'SKIP' }
+        Write-Host "[$tag] $Label : $full" -ForegroundColor $(if ($Required) { 'Red' } else { 'Yellow' })
+        return $false
+    }
+    try {
+        Invoke-Item -LiteralPath $full
+        Write-Host "[OK]   $Label" -ForegroundColor Green
+        return $true
+    }
+    catch {
+        Write-Host "[WARN] $Label : $($_.Exception.Message)" -ForegroundColor Yellow
+        return (-not $Required)
+    }
+}
 
-# 1. 验收对照页（核心）
-$Review = Join-Path $Root "project\trials\case-01\review.html"
-if (-not (Test-Path $Review)) {
-    Write-Host "[错误] 找不到 review.html" -ForegroundColor Red
+Write-Host ''
+Write-Host '========================================' -ForegroundColor Cyan
+Write-Host ' Stage 0 launcher' -ForegroundColor Cyan
+Write-Host " Root: $Root"
+Write-Host '========================================' -ForegroundColor Cyan
+
+$manifestPath = Join-Path $Root 'launcher-files.json'
+if (-not (Test-Path -LiteralPath $manifestPath)) {
+    Write-Host '[FAIL] launcher-files.json missing' -ForegroundColor Red
     exit 1
 }
-Write-Host "[1/4] 正在用浏览器打开「验收对照页」..." -ForegroundColor Green
-Start-Process $Review
 
-Start-Sleep -Seconds 1
+$json = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
-# 2. 图文预览
-$Preview = Join-Path $Root "图文预览.html"
-if (Test-Path $Preview) {
-    Write-Host "[2/4] 正在打开「图文预览」（文档里的截图）..." -ForegroundColor Green
-    Start-Process $Preview
+$reviewOk = Open-RelPath -RelPath $json.review_html -Label 'review.html' -Required
+Start-Sleep -Milliseconds 500
+$null = Open-RelPath -RelPath $json.preview_html -Label 'image-preview.html'
+Start-Sleep -Milliseconds 500
+$null = Open-RelPath -RelPath $json.acceptance_manual_md -Label 'acceptance-manual.md'
+
+Write-Host ''
+if (Get-Command python -ErrorAction SilentlyContinue) {
+    Write-Host 'verify_stage0.py ...' -ForegroundColor DarkGray
+    & python (Join-Path $Root 'scripts\verify_stage0.py')
 }
 
-Start-Sleep -Seconds 1
-
-# 3. 验收手册（用系统默认方式打开 md）
-$Manual = Join-Path $Root "阶段0验收操作手册.md"
-if (Test-Path $Manual) {
-    Write-Host "[3/4] 正在打开「验收操作手册」..." -ForegroundColor Green
-    Start-Process $Manual
+Write-Host ''
+if ($reviewOk) {
+    Write-Host '[DONE] Check browser: review.html' -ForegroundColor Green
+    exit 0
 }
-
-Write-Host ""
-Write-Host "[4/4] 可选：跑自动检查（需要已安装 Python）" -ForegroundColor Green
-Write-Host "  机器层： python scripts\verify_stage0.py"
-Write-Host "  体验层： node scripts\verify_stage0_ux.mjs"
-Write-Host ""
-
-# 尝试跑机器层自测
-$python = Get-Command python -ErrorAction SilentlyContinue
-if ($python) {
-    Write-Host "正在跑机器层自测..." -ForegroundColor DarkGray
-    & python (Join-Path $Root "scripts\verify_stage0.py")
-    Write-Host ""
-} else {
-    Write-Host "未检测到 Python，跳过自动检查。你仍可手动验收。" -ForegroundColor DarkYellow
-}
-
-Write-Host "----------------------------------------" -ForegroundColor Cyan
-Write-Host "接下来请你：" -ForegroundColor White
-Write-Host "  1. 看浏览器里有没有打开「case-01 验收对照页」"
-Write-Host "  2. 左边应能看到日志文字（不是「加载中」）"
-Write-Host "  3. 跟着「阶段0验收操作手册」从【第 0 步】开始做"
-Write-Host "----------------------------------------" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "按任意键关闭本窗口..." -ForegroundColor DarkGray
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+Write-Host '[FAIL] Use 打开验收页.bat as fallback' -ForegroundColor Red
+exit 1

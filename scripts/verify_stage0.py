@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -193,6 +194,38 @@ def main() -> int:
             bool(re.search(r"screenshots/stage0/", mtext)),
             "含 stage0 验收截图路径",
         )
+
+    # --- 启动器 ---
+    bat = ROOT / "启动阶段0验收.bat"
+    run("P01", "启动 bat 存在", "双击启动入口", bat.exists(), "启动阶段0验收.bat")
+    fallback = ROOT / "打开验收页.bat"
+    run("P02", "备用打开 bat", "主启动失败时兜底", fallback.exists(), "打开验收页.bat")
+    ps1 = ROOT / "scripts" / "start_stage0.ps1"
+    run("P03", "启动 ps1 存在", "bat 调用的脚本", ps1.exists(), "scripts/start_stage0.ps1")
+    syntax_ok = False
+    syntax_detail = "未检测"
+    test_ps1 = ROOT / "scripts" / "test_launcher_syntax.ps1"
+    if test_ps1.exists():
+        try:
+            r = subprocess.run(
+                ["powershell", "-NoProfile", "-File", str(test_ps1)],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=str(ROOT),
+            )
+            syntax_ok = r.returncode == 0
+            syntax_detail = (r.stdout or r.stderr or "").strip().split("\n")[-1][:80]
+        except Exception as e:
+            syntax_detail = str(e)
+    run("P04", "ps1 语法合法", "避免双击闪退", syntax_ok, syntax_detail)
+    manifest = ROOT / "launcher-files.json"
+    run("P05", "launcher-files.json", "中文路径清单", manifest.exists(), "launcher-files.json")
+    if manifest.exists():
+        mf = json.loads(manifest.read_text(encoding="utf-8"))
+        for key in ("review_html", "preview_html", "acceptance_manual_md"):
+            p = ROOT / mf.get(key, "").replace("/", "\\")
+            run(f"P06-{key[:6]}", f"清单路径存在 {key}", "启动器能打开文件", p.exists(), str(p.name))
 
     # --- 自测报告 ---
     print(f"\n合计: {len(results)} 项, 通过 {len(results) - failed}, 失败 {failed}")
