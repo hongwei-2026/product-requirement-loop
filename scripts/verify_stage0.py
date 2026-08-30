@@ -198,6 +198,18 @@ def main() -> int:
     # --- 启动器 ---
     bat = ROOT / "启动阶段0验收.bat"
     run("P01", "启动 bat 存在", "双击启动入口", bat.exists(), "启动阶段0验收.bat")
+    open_review = ROOT / "open-review.bat"
+    run("P01b", "open-review.bat", "纯英文兜底启动", open_review.exists(), "open-review.bat")
+    if open_review.exists():
+        text = open_review.read_text(encoding="utf-8")
+        non_ascii = [c for c in text if ord(c) > 127]
+        run(
+            "P01c",
+            "open-review 纯 ASCII",
+            "避免 cmd 乱码",
+            len(non_ascii) == 0,
+            f"非 ASCII 字符数={len(non_ascii)}（应为 0）",
+        )
     fallback = ROOT / "打开验收页.bat"
     run("P02", "备用打开 bat", "主启动失败时兜底", fallback.exists(), "打开验收页.bat")
     ps1 = ROOT / "scripts" / "start_stage0.ps1"

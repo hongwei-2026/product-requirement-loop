@@ -18,7 +18,7 @@ function Open-RelPath {
         return $false
     }
     try {
-        Invoke-Item -LiteralPath $full
+        Start-Process -FilePath $full | Out-Null
         Write-Host "[OK]   $Label" -ForegroundColor Green
         return $true
     }
@@ -59,5 +59,5 @@ if ($reviewOk) {
     Write-Host '[DONE] Check browser: review.html' -ForegroundColor Green
     exit 0
 }
-Write-Host '[FAIL] Use 打开验收页.bat as fallback' -ForegroundColor Red
+Write-Host '[FAIL] Run open-review.bat as fallback' -ForegroundColor Red
 exit 1
