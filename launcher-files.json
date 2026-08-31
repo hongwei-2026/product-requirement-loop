@@ -1,5 +1,7 @@
 {
-  "preview_html": "图文预览.html",
-  "acceptance_manual_md": "阶段0验收操作手册.md",
-  "review_html": "project/trials/case-01/review.html"
+  "preview_html": "docs/阶段0/图文预览.html",
+  "acceptance_manual_md": "docs/阶段0/阶段0验收操作手册.md",
+  "review_html": "project/trials/case-01/review.html",
+  "stage1_report_md": "docs/阶段1/阶段1实现报告.md",
+  "roadmap_md": "docs/申请/项目实现流程报告.md"
 }

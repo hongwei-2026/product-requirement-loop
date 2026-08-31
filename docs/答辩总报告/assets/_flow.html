@@ -1,0 +1,25 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>阶段流程图</title>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+</script>
+<style>
+  body{font-family:"Segoe UI","PingFang SC",sans-serif;margin:0;padding:32px;background:#f7f5f0}
+  h1{font-size:22px;margin:0 0 8px}
+  p{color:#555;margin:0 0 24px}
+  .box{background:#fff;border:1px solid #ddd;padding:24px}
+</style></head><body>
+<h1>课题实施：阶段 0 → 7</h1>
+<p>从读资料到可答辩演示的完整施工顺序</p>
+<div class="box"><pre class="mermaid">
+flowchart LR
+  S0["0 读资料"] --> S1["1 搭环境"]
+  S1 --> S2["2 定 yaml"]
+  S2 --> S3["3 写提示词"]
+  S3 --> S4["4 跑闭环"]
+  S4 --> S5["5 check"]
+  S5 --> S6["6 试点报告"]
+  S6 --> S7["7 整理提交"]
+</pre></div>
+</body></html>

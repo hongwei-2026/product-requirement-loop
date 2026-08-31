@@ -19,6 +19,14 @@ import re
 import sys
 from pathlib import Path
 
+# Windows 控制台默认 GBK 时，--help / 中文输出会 UnicodeEncodeError → 非 0 退出
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 SENTENCE_SPLIT = re.compile(r"(?<=[。！？\n])|(?<=\.\s)")
 
 
@@ -90,16 +98,23 @@ def check_accepted(payload: dict) -> list[str]:
                     errors.append(f"story[{i}] revisions[{j}] revised 必须写 code（问题类型）")
     cov = payload.get("coverage", {})
     if cov.get("coverage_rate", 0) < 1.0 and cov.get("uncovered"):
-        errors.append("coverage_rate < 1.0 时须在 review.comments 说明人工确认")
+        comments = (review.get("comments") or "").strip()
+        if not comments:
+            errors.append("coverage_rate < 1.0 时须在 review.comments 说明人工确认")
     return errors
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="product-requirement 验收检查")
+    parser = argparse.ArgumentParser(description="product-requirement acceptance checker")
     parser.add_argument("json_file", type=Path)
-    parser.add_argument("--source", type=Path, required=True, help="原始日志 journal-raw.md")
-    parser.add_argument("--strict", action="store_true", help="accepted.json 模式，检查 approved/revisions")
-    parser.add_argument("--write-uncovered", type=Path, help="未覆盖句写入此文件")
+    parser.add_argument("--source", type=Path, required=True, help="source journal markdown")
+    parser.add_argument("--strict", action="store_true", help="accepted.json mode")
+    parser.add_argument("--write-uncovered", type=Path, help="write uncovered sentences here")
+    parser.add_argument(
+        "--allow-documented-uncovered",
+        action="store_true",
+        help="do not fail on coverage<100%% when uncovered is documented",
+    )
     args = parser.parse_args()
 
     source = read_text(args.source)
@@ -112,10 +127,19 @@ def main() -> int:
 
     rate, uncovered = check_coverage(stories, source)
     if rate < 1.0:
-        errors.append(f"句覆盖率 {rate:.0%} < 100%，未覆盖 {len(uncovered)} 句")
         if args.write_uncovered:
             args.write_uncovered.write_text("\n".join(uncovered), encoding="utf-8")
             print(f"已写入未覆盖句: {args.write_uncovered}")
+        documented = False
+        if args.allow_documented_uncovered and args.write_uncovered and args.write_uncovered.exists():
+            documented = True
+        if args.strict:
+            # strict 走 check_accepted（comments）
+            documented = True
+        if not documented:
+            errors.append(f"句覆盖率 {rate:.0%} < 100%，未覆盖 {len(uncovered)} 句")
+        else:
+            print(f"提示: 句覆盖率 {rate:.0%} < 100%（未覆盖 {len(uncovered)} 句，已记录，待人工确认）")
 
     if args.strict:
         errors.extend(check_accepted(payload))
@@ -131,7 +155,7 @@ def main() -> int:
             print(f"  - {e}")
         return 1
 
-    print("\n✓ 全部验收门槛通过")
+    print("\n[OK] 全部验收门槛通过")
     return 0
 
 

@@ -20,14 +20,15 @@ parts = [
 ]
 for title, fn in imgs:
     parts.append(
-        f'<h2>{title}</h2><p><code>./screenshots/{fn}</code></p>'
-        f'<img src="./screenshots/{fn}" alt="{title}" />'
+        f'<h2>{title}</h2><p><code>../../screenshots/{fn}</code></p>'
+        f'<img src="../../screenshots/{fn}" alt="{title}" />'
     )
 parts.append(
     '<hr><p>更多文档：'
     '<a href="阶段0实现报告.md">阶段0实现报告.md</a> · '
     '<a href="人机确认操作指南.md">人机确认操作指南.md</a></p></body></html>'
 )
-out = base / "图文预览.html"
+out = base / "docs" / "阶段0" / "图文预览.html"
+out.parent.mkdir(parents=True, exist_ok=True)
 out.write_text("".join(parts), encoding="utf-8")
 print(f"wrote {out} ({out.stat().st_size} bytes)")

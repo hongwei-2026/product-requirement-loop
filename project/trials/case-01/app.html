@@ -1,0 +1,2462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>产品需求梳理智能体 · QuantTide</title>
+<style>
+:root {
+  --primary: #1677ff;
+  --primary-bg: #e6f4ff;
+  --primary-border: #91caff;
+  --success: #52c41a;
+  --success-bg: #f6ffed;
+  --warning: #faad14;
+  --warning-bg: #fffbe6;
+  --error: #ff4d4f;
+  --error-bg: #fff2f0;
+  --text: rgba(0,0,0,.88);
+  --text2: rgba(0,0,0,.65);
+  --text3: rgba(0,0,0,.45);
+  --border: #f0f0f0;
+  --bg: #f0f2f5;
+  --card: #fff;
+  --sidebar: #001529;
+  --font: "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  --mono: Consolas,"Cascadia Code",monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px}
+button{font-family:inherit;cursor:pointer}
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{height:56px;flex-shrink:0;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:100}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
+.logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#1677ff,#0958d9);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.meta{font-size:12px;color:var(--text3)}
+.body{display:flex;flex:1;min-height:0;overflow:hidden}
+.sidebar{width:240px;background:var(--sidebar);color:rgba(255,255,255,.85);padding:16px 0;flex-shrink:0;overflow-y:auto;display:flex;flex-direction:column}
+.sidebar-nav{flex:1;overflow-y:auto}
+.sidebar-foot{padding:12px 16px;border-top:1px solid rgba(255,255,255,.12);margin-top:auto}
+.sidebar-foot .who{font-size:12px;color:rgba(255,255,255,.65);margin-bottom:8px}
+.sidebar-foot .btn{width:100%;background:transparent;border-color:rgba(255,255,255,.35);color:rgba(255,255,255,.85);margin-bottom:6px}
+.sidebar-foot .btn:hover{border-color:#fff;color:#fff}
+.sidebar-foot .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.sidebar h3{margin:0 0 12px;padding:0 16px;font-size:12px;color:rgba(255,255,255,.45);font-weight:500}
+.step-item{display:flex;gap:10px;padding:12px 16px;cursor:pointer;border-left:3px solid transparent;transition:.15s}
+.step-item:hover{background:rgba(255,255,255,.06)}
+.step-item.active{background:rgba(22,119,255,.15);border-left-color:var(--primary)}
+.step-item.done .dot{background:var(--success)}
+.dot{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.step-item.active .dot{background:var(--primary);color:#fff}
+.step-title{font-size:13px;font-weight:600}
+.step-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px}
+.main{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0;overflow:hidden}
+.metrics{display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0}
+.metric{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:100px}
+.metric b{display:block;font-size:18px;color:var(--primary)}
+.metric span{font-size:11px;color:var(--text2)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;min-height:0;overflow:hidden}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;overflow:hidden;min-height:0;height:100%}
+.panel-head{padding:10px 14px;background:#fafafa;border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.panel-head .scroll-hint{font-weight:400;font-size:11px;color:var(--text3)}
+.panel-body{padding:14px;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;line-height:1.75;font-size:13px;overscroll-behavior:contain}
+.panel-body.md-view{white-space:normal}
+.panel-body.md-view h1,.panel-body.md-view h2,.panel-body.md-view h3{margin:14px 0 8px;font-size:15px;font-weight:700;line-height:1.4}
+.panel-body.md-view h1{font-size:17px}
+.panel-body.md-view p{margin:0 0 10px}
+.panel-body.md-view ul,.panel-body.md-view ol{margin:0 0 10px;padding-left:1.3em}
+.panel-body.md-view li{margin:4px 0}
+.panel-body.md-view blockquote{margin:10px 0;padding:10px 12px;background:#f7f9fc;border-left:4px solid var(--primary);color:var(--text2);border-radius:0 8px 8px 0}
+.panel-body.md-view hr{border:none;border-top:1px solid var(--border);margin:14px 0}
+.panel-body.md-view strong{font-weight:700;color:var(--text)}
+.panel-body.md-view code{font-family:inherit;background:transparent;padding:0;color:inherit}
+.panel-body::-webkit-scrollbar{width:8px;height:8px}
+.panel-body::-webkit-scrollbar-thumb{background:#c1c1c1;border-radius:4px}
+.panel-body::-webkit-scrollbar-thumb:hover{background:#a8a8a8}
+.panel-body::-webkit-scrollbar-track{background:#f5f5f5;border-radius:4px}
+.story-card{border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:.15s}
+.story-card:hover{border-color:var(--primary-border);background:#fafcff}
+.story-card.active-match{border-color:var(--primary);background:var(--primary-bg);box-shadow:0 0 0 1px var(--primary-border)}
+.story-card .match-tip{margin-top:6px;font-size:11px;color:var(--text3)}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;margin-right:6px}
+.tag-act{background:#f6ffed;color:#389e0d}
+.tag-task{background:#fff7e6;color:#d46b08}
+.tag-story{background:var(--primary-bg);color:#0958d9}
+.quote{margin-top:8px;padding:8px;background:#fafafa;border-left:3px solid var(--primary);font-size:12px;color:var(--text2)}
+.j-block{margin:0 0 10px;padding:8px 10px;border-radius:6px;line-height:1.7;transition:background .2s}
+.j-block.match-exact{background:#fff1b8;outline:2px solid #faad14}
+.j-block.match-likely{background:#e6f4ff;outline:2px solid #69b1ff}
+.j-block.match-maybe{background:#f6ffed;outline:1px dashed #95de64}
+.match-bar{flex-shrink:0;font-size:12px;color:var(--text2);padding:4px 2px 0;min-height:18px}
+.metric-locked{background:#f5f5f5 !important;border-color:#d9d9d9 !important}
+.metric-locked b,.metric-locked span{color:#8c8c8c !important}
+.audit-stage-tag.ok{background:#f6ffed;color:#389e0d}
+.audit-stage-tag.revise{background:#fff2f0;color:#cf1322}
+.audit-stage-tag.unlock{background:#f5f5f5;color:#8c8c8c}
+.audit-stage-tag.finalize{background:#f6ffed;color:#389e0d}
+.audit-stage-tag.check-ok{background:#f6ffed;color:#389e0d}
+.audit-stage-tag.check-fail{background:#fff2f0;color:#cf1322}
+.audit-stage-tag.ai{background:#e6f4ff;color:#0958d9}
+.audit-code-tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;background:#fff2f0;color:#cf1322;margin-left:6px;border:1px solid #ffccc7}
+.confirm-modal .modal-card{width:min(440px,100%)}
+.confirm-modal .confirm-msg{font-size:14px;line-height:1.7;margin:8px 0 18px;color:var(--text)}
+.reg-group{margin-bottom:18px}
+.reg-group h3{margin:0 0 8px;font-size:14px;color:var(--text);border-left:3px solid var(--primary);padding-left:8px}
+.manual-page .shot{display:block;max-width:min(100%,480px);max-height:200px;width:auto;height:auto;object-fit:cover;object-position:top left;border-radius:8px;border:1px solid var(--border);margin:8px 0}
+.manual-page .cap{font-size:12px;color:var(--text3);margin:0 0 14px}
+.toolbar{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;flex-shrink:0}
+.toolbar h4{margin:0 0 8px;font-size:13px}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.btn{border:1px solid #d9d9d9;background:#fff;border-radius:8px;padding:7px 14px;font-size:13px}
+.btn:hover{border-color:var(--primary);color:var(--primary)}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn-primary:hover{background:#4096ff;border-color:#4096ff;color:#fff}
+.btn-success{background:var(--success-bg);border-color:#b7eb8f;color:#389e0d}
+.btn-danger{background:var(--error-bg);border-color:#ffccc7;color:#cf1322}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+#reason{width:100%;padding:8px;border:1px solid #d9d9d9;border-radius:8px;margin:8px 0;font-family:inherit;font-size:13px;display:none}
+.toast{position:fixed;bottom:20px;right:20px;background:#fff;border:1px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,.12);padding:12px 16px;border-radius:8px;max-width:360px;z-index:200;display:none}
+.toast.err{border-left:4px solid var(--error)}
+.toast.ok{border-left:4px solid var(--success)}
+.audit-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;flex-shrink:0;max-height:160px;overflow:auto}
+.audit-box h4{margin:0 0 8px;font-size:12px;color:var(--text2)}
+.audit-item{font-size:12px;line-height:1.45;padding:6px 0;border-bottom:1px solid var(--border)}
+.audit-item:last-child{border-bottom:none}
+.audit-item .when{color:var(--text3);font-size:11px}
+.audit-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;background:var(--card);transition:.15s}
+.audit-card:hover{border-color:var(--primary-border);background:#fafcff}
+.audit-card h4{margin:0 0 6px;font-size:14px}
+.audit-card .bits{font-size:12px;color:var(--text2)}
+.audit-detail .audit-item{padding:10px 0}
+.audit-stage-tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;background:var(--primary-bg);color:var(--primary);margin-right:6px}
+.actor-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.actor-row input{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-size:13px;width:140px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:300}
+.overlay.show{display:flex}
+.spinner{background:#fff;padding:24px 32px;border-radius:10px;text-align:center}
+.spinner .spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-size:13px;width:180px}
+.history{font-size:11px;color:var(--text3);margin-top:8px;max-height:60px;overflow:auto;font-family:var(--mono)}
+.journal-bar{flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.journal-bar .j-title{font-weight:600;font-size:13px}
+.journal-bar .j-meta{font-size:12px;color:var(--text2)}
+.btn-excerpt{display:none}
+.btn-excerpt.show{display:inline-flex}
+.excerpt-modal-card{width:min(560px,100%)}
+.excerpt-modal-card .excerpt-body{font-size:14px;line-height:1.7;color:var(--text)}
+.excerpt-modal-card .meta{margin-top:10px;color:var(--text2)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:400;padding:20px}
+.modal.show{display:flex}
+.modal-card{background:#fff;border-radius:12px;width:min(860px,100%);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.18)}
+.modal-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-head h3{margin:0;font-size:16px}
+.modal-body{padding:14px 18px;overflow:auto;flex:1}
+.guide{background:var(--primary-bg);border-left:4px solid var(--primary);padding:10px 12px;border-radius:0 8px 8px 0;font-size:13px;margin-bottom:12px;line-height:1.6}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab{border:1px solid var(--border-strong,#d9d9d9);background:#fff;border-radius:999px;padding:6px 12px;font-size:12px}
+.tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.filters select,.filters input{padding:6px 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:12px}
+.j-list{display:flex;flex-direction:column;gap:8px}
+.j-card{border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:.15s}
+.j-card:hover{border-color:var(--primary-border);background:#fafcff}
+.j-card.selected{border-color:var(--primary);background:var(--primary-bg)}
+.j-card h4{margin:0 0 6px;font-size:14px}
+.j-card p{margin:0;font-size:12px;color:var(--text2);line-height:1.5}
+.j-card .row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.badge{font-size:11px;padding:2px 8px;border-radius:999px;background:#f5f5f5;color:var(--text2)}
+.badge.fast{background:var(--success-bg);color:#389e0d}
+.badge.slow{background:var(--warning-bg);color:#d48806}
+.paste-box{width:100%;min-height:160px;padding:10px;border:1px solid #d9d9d9;border-radius:8px;font-family:inherit;font-size:13px}
+.nav-link{display:flex;gap:10px;padding:12px 16px;cursor:pointer;border-left:3px solid transparent;color:rgba(255,255,255,.75);font-size:13px}
+.nav-link:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-link.active{background:rgba(22,119,255,.15);border-left-color:var(--primary);color:#fff;font-weight:600}
+.view{display:none;flex:1;min-height:0;flex-direction:column;gap:12px;overflow:hidden}
+.view.active{display:flex}
+.journals-page{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.journals-toolbar{flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.journals-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.journals-stats .metric{min-width:90px}
+.journals-scroll{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}
+.j-card .actions{margin-top:8px;display:flex;gap:8px}
+.topbar-actions{display:flex;align-items:center;gap:12px}
+.help-drawer{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;justify-content:flex-end;z-index:450}
+.help-drawer.show{display:flex}
+.help-panel{width:min(420px,100%);height:100%;background:#fff;box-shadow:-8px 0 24px rgba(0,0,0,.12);display:flex;flex-direction:column}
+.help-panel header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.help-panel header h3{margin:0;font-size:15px}
+.help-body{padding:14px 16px;overflow:auto;flex:1;font-size:13px;line-height:1.7;color:var(--text)}
+.help-body h4{margin:14px 0 6px;font-size:13px;color:var(--text)}
+.help-body h4:first-child{margin-top:0}
+.help-body ol,.help-body ul{margin:0 0 8px;padding-left:18px}
+.help-body li{margin:4px 0}
+.help-body .tip{background:var(--primary-bg);border-left:3px solid var(--primary);padding:8px 10px;border-radius:0 6px 6px 0;margin:8px 0;font-size:12px}
+.help-body a{color:var(--primary)}
+.manual-page{flex:1;min-height:0;overflow:auto;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 22px 40px}
+.manual-page h2{margin:0 0 8px;font-size:22px}
+.manual-page .lead{color:var(--text2);margin:0 0 20px;line-height:1.7}
+.manual-page h3{margin:28px 0 10px;font-size:16px;border-left:4px solid var(--primary);padding-left:10px}
+.manual-page p,.manual-page li{line-height:1.75;color:var(--text);font-size:14px}
+.manual-page ol,.manual-page ul{padding-left:20px;margin:8px 0 12px}
+.manual-page .shot{display:block;width:100%;max-width:920px;border:1px solid var(--border);border-radius:8px;margin:12px 0 6px;background:#fafafa}
+.manual-page .cap{font-size:12px;color:var(--text3);margin:0 0 16px}
+.manual-page .callout{background:var(--primary-bg);border-left:4px solid var(--primary);padding:10px 12px;border-radius:0 8px 8px 0;margin:12px 0;line-height:1.65}
+.manual-toc{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+.manual-toc a{font-size:12px;padding:6px 10px;border:1px solid #d9d9d9;border-radius:999px;color:var(--text2);text-decoration:none;background:#fff}
+.manual-toc a:hover{border-color:var(--primary);color:var(--primary)}
+@media(max-width:900px){
+  html,body{overflow:auto}
+  .app{height:auto;min-height:100vh;overflow:visible}
+  .body{overflow:visible}
+  .main{overflow:visible}
+  .grid{grid-template-columns:1fr;min-height:480px}
+  .panel{height:360px}
+  .sidebar{width:200px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">QT</div>
+      <div>
+        <div>产品需求梳理智能体</div>
+        <div class="meta" id="llm-info">加载中…</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn" type="button" id="btn-help">使用手册</button>
+      <div class="meta" id="top-journal-hint">未选日志库条目时使用默认演示全文</div>
+    </div>
+  </header>
+  <div class="body">
+    <aside class="sidebar">
+      <div class="sidebar-nav">
+      <h3>导航</h3>
+      <div class="nav-link active" id="nav-work" data-view="work">
+        <div class="dot">工</div>
+        <div><div class="step-title">工作台</div><div class="step-sub">一条条审、定稿</div></div>
+      </div>
+      <div class="nav-link" id="nav-journals" data-view="journals">
+        <div class="dot">库</div>
+        <div><div class="step-title">日志库</div><div class="step-sub" id="nav-journals-count">全部日志</div></div>
+      </div>
+      <div class="nav-link" id="nav-fetch" data-view="fetch">
+        <div class="dot">取</div>
+        <div><div class="step-title">获取信息</div><div class="step-sub" id="nav-fetch-count">官方新日志</div></div>
+      </div>
+      <div class="nav-link" id="nav-queue" data-view="queue">
+        <div class="dot">审</div>
+        <div><div class="step-title">待人审</div><div class="step-sub" id="nav-queue-count">AI 后等人</div></div>
+      </div>
+      <div class="nav-link" id="nav-audit" data-view="audit">
+        <div class="dot">史</div>
+        <div><div class="step-title">审核历史</div><div class="step-sub" id="nav-audit-count">按日志回溯</div></div>
+      </div>
+      <div class="nav-link" id="nav-registry" data-view="registry">
+        <div class="dot">档</div>
+        <div><div class="step-title">定稿档案</div><div class="step-sub" id="nav-registry-count">审过的可查找</div></div>
+      </div>
+      <div class="nav-link" id="nav-manual" data-view="manual">
+        <div class="dot">册</div>
+        <div><div class="step-title">使用手册</div><div class="step-sub">白话说明 + 截图</div></div>
+      </div>
+      </div>
+      <div class="sidebar-foot">
+        <div class="who" id="user-chip">未登录</div>
+        <button class="btn" type="button" id="btn-logout">退出登录</button>
+        <a class="btn btn-primary" href="/login.html" id="btn-goto-login" style="display:none;text-align:center;text-decoration:none;box-sizing:border-box">登录 / 注册</a>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="page-back-bar" id="page-back-bar">
+        <button class="btn" type="button" id="btn-page-back">← 返回上一页</button>
+        <span class="meta" id="page-back-label"></span>
+      </div>
+      <!-- 工作台 -->
+      <div class="view active" id="view-work">
+      <div class="journal-bar">
+        <div>
+          <div class="j-title" id="j-current-title">当前日志：加载中…</div>
+          <div class="j-meta" id="j-current-meta">—</div>
+        </div>
+        <div class="btnrow" style="margin:0">
+          <button class="btn btn-excerpt" id="btn-show-excerpt" type="button" title="单独查看本轮关注摘要">看本轮摘要</button>
+          <button class="btn" id="btn-goto-journals" type="button">打开日志库</button>
+          <button class="btn btn-primary" id="btn-pick-journal" type="button">快速更换</button>
+        </div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><b id="m-phase">—</b><span>当前阶段</span></div>
+        <div class="metric"><b id="m-rounds">0</b><span>反馈轮次</span></div>
+        <div class="metric"><b id="m-stories">0</b><span>故事条数</span></div>
+        <div class="metric"><b id="m-lock">—</b><span>Step1 锁定</span></div>
+      </div>
+      <div class="match-bar" id="match-hint">Step2 时：点右侧条目，左侧会标出原文匹配（黄=精确 / 蓝=很可能 / 绿=可能）。这是人审对照工具，不靠 AI。</div>
+      <div class="grid">
+        <section class="panel">
+          <div class="panel-head">研发日志（全文对照）<span><span class="scroll-hint">↕ 独立滚动</span> · <span class="meta" id="journal-len"></span></span></div>
+          <div class="panel-body md-view" id="journal-text">加载中…</div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><span id="output-title">电脑整理结果</span><span class="scroll-hint">↕ 独立滚动</span></div>
+          <div class="panel-body md-view" id="output-area"><p style="color:var(--text3)">点击下方「运行」开始</p></div>
+        </section>
+      </div>
+      <section class="toolbar">
+        <h4 id="action-title">Step1 · 整理需求故事</h4>
+        <div class="actor-row">
+          <label class="meta">审核人</label>
+          <input id="actor-name" placeholder="你的姓名" />
+          <span class="meta" id="approval-badge">—</span>
+        </div>
+        <div class="btnrow" id="primary-actions">
+          <button class="btn btn-primary" id="btn-run-step1">▶ 运行 Step1（AI 整理故事）</button>
+        </div>
+        <div class="btnrow" id="feedback-actions" style="display:none">
+          <button class="btn btn-success" id="btn-ok">✓ 通过</button>
+          <button class="btn btn-danger" data-code="编造">✗ 编造</button>
+          <button class="btn btn-danger" data-code="分层">✗ 分层</button>
+          <button class="btn btn-danger" data-code="漏了">✗ 漏了</button>
+          <button class="btn btn-danger" data-code="格式">✗ 格式</button>
+          <button class="btn btn-danger" data-code="其他">✗ 其他</button>
+          <button class="btn" id="btn-unlock" style="display:none">解锁 Step1</button>
+        </div>
+        <textarea id="reason" rows="2" placeholder="通过/打叉理由（必填，便于回溯）"></textarea>
+        <div class="btnrow" id="revise-confirm-row" style="display:none">
+          <button class="btn btn-primary" id="btn-revise-confirm" type="button">确认提交并继续</button>
+          <button class="btn" id="btn-revise-cancel" type="button">取消</button>
+        </div>
+        <div class="btnrow" id="step3-actions" style="display:none">
+          <div class="guide" id="step3-banner" style="flex:1;margin:0">
+            Step1/Step2 人审通过还<strong>不算定稿</strong>。必须点右边蓝色按钮，才会出现在「定稿档案」。
+          </div>
+          <input class="approver" id="approver" placeholder="定稿人姓名" value="" />
+          <button class="btn btn-primary" id="btn-finalize">生成定稿并归档</button>
+          <button class="btn" id="btn-check">运行 check 验收</button>
+        </div>
+        <div class="history" id="history"></div>
+        <div class="btnrow" style="margin-top:8px">
+          <button class="btn" type="button" id="btn-goto-audit">查看本日志审核历史</button>
+        </div>
+      </section>
+      </div>
+
+      <!-- 日志库页 -->
+      <div class="view" id="view-journals">
+        <div class="journals-page">
+          <div class="journals-toolbar">
+            <div class="journals-stats">
+              <div class="metric"><b id="js-total">0</b><span>日志总数</span></div>
+              <div class="metric"><b id="js-products">0</b><span>产品流</span></div>
+              <div class="metric"><b id="js-formal">0</b><span>正式全文</span></div>
+              <div class="metric"><b id="js-custom">0</b><span>自定义</span></div>
+            </div>
+            <div class="guide" id="journals-page-guide" style="margin-bottom:10px">
+              官方仓库按<strong>产品流 × 日期</strong>归档。先筛产品流，再按日期选；试跑用摘录，定稿用全文；临时材料用粘贴/上传。
+            </div>
+            <div class="filters">
+              <select id="jp-filter-product"><option value="">全部产品流</option></select>
+              <select id="jp-filter-usage" title="用途分类：试跑用摘录、正式用全文、临时材料用自定义">
+                <option value="">全部用途</option>
+                <option value="try">用途：试跑 / 摘录</option>
+                <option value="formal">用途：正式全文</option>
+                <option value="custom">用途：自定义</option>
+              </select>
+              <select id="jp-filter-review">
+                <option value="">全部定稿状态</option>
+                <option value="new">未定稿</option>
+                <option value="approved">已定稿</option>
+              </select>
+              <select id="jp-filter-speed">
+                <option value="">全部速度</option>
+                <option value="快">快</option>
+                <option value="中">中</option>
+                <option value="慢">慢</option>
+              </select>
+              <input id="jp-filter-q" placeholder="搜标题 / 产品流 / 日期" style="min-width:180px" />
+              <button class="btn" type="button" id="btn-jp-select-all">全选当前列表</button>
+              <button class="btn" type="button" id="btn-jp-select-none">取消全选</button>
+              <button class="btn" type="button" id="btn-jp-paste">粘贴新日志</button>
+              <button class="btn" type="button" id="btn-jp-batch">批量 AI → 待人审</button>
+              <button class="btn btn-primary" type="button" id="btn-jp-refresh">刷新列表</button>
+            </div>
+            <div class="meta" id="jp-usage-hint" style="margin-top:8px">用途分类：<strong>试跑/摘录</strong>=字少快速验证；<strong>正式全文</strong>=按日完整日志定稿用；<strong>自定义</strong>=粘贴/上传。是否已定稿另看「已定稿」筛选（与「日志库」原文不是一回事）。</div>
+            <div class="meta" id="jp-sync-hint" style="margin-top:8px"></div>
+          </div>
+          <div class="journals-scroll" id="journals-page-list"></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-fetch">
+        <div class="journals-page">
+          <div class="journals-toolbar">
+            <div class="guide">
+              从<strong>官方仓库</strong>
+              <a href="https://github.com/quanttide/quanttide-journal-of-product-development" target="_blank" rel="noopener">quanttide/quanttide-journal-of-product-development</a>
+              拉取研发日志。<strong>获取 ≠ 写入日志库</strong>：高度相似会自动取消；其余按获取日分组。点卡片看全文；「对比日志库」查 journals/ 里有没有同 id/同日/相似全文（不是查「定稿档案」）。
+            </div>
+            <div class="btnrow">
+              <button class="btn btn-primary" type="button" id="btn-fetch-run">手动拉取新日志</button>
+              <button class="btn" type="button" id="btn-fetch-auto">立即跑一次每日自动拉取</button>
+              <button class="btn" type="button" id="btn-fetch-refresh">刷新列表</button>
+              <button class="btn" type="button" id="btn-fetch-approve">同意入库所选</button>
+              <button class="btn" type="button" id="btn-fetch-reject">拒绝所选</button>
+            </div>
+            <div class="meta" id="fetch-hint" style="margin-top:8px"></div>
+          </div>
+          <div class="journals-scroll" id="fetch-list"></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-queue">
+        <div class="journals-page">
+          <div class="journals-toolbar">
+            <div class="guide">
+              <strong>待人审怎么走：</strong>① 日志库勾选 → 批量 AI；② AI <em>只先写 Step1 需求故事</em>；③ 你点「开始人审 Step1」通过后，自己再跑 Step2；④ 你再审「用户要…」条目；⑤ Step3 定稿进「定稿档案」。<br/>
+              状态白话：排队中 / AI 正在写 / 等人审 Step1 / 等人审 Step2 / 失败可重看原因。
+            </div>
+            <div class="btnrow">
+              <button class="btn btn-primary" type="button" id="btn-queue-refresh">刷新队列</button>
+            </div>
+          </div>
+          <div class="journals-scroll" id="queue-list"></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-audit">
+        <div class="journals-page">
+          <div class="journals-toolbar">
+            <div class="guide">这里<strong>一行就是一份日志</strong>的操作总览。
+              <strong>未定稿 ≠ 消失</strong>：每条会标「现在在哪」（待人审 / 工作台 / 定稿档案 / 仅有历史）。
+              点进去可看阶段，也可点「继续处理」跳回去。只有定稿后才进「定稿档案」。
+            </div>
+            <div class="filters">
+              <input id="audit-q" placeholder="搜日志标题 / id / 审核人" style="min-width:220px" />
+              <button class="btn btn-primary" type="button" id="btn-audit-refresh">刷新</button>
+            </div>
+          </div>
+          <div class="journals-scroll" id="audit-list"></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-registry">
+        <div class="journals-page">
+          <div class="journals-toolbar">
+            <div class="guide">只列出<strong>已定稿</strong>的需求档案（按产品流分类）。「日志库」是原文；这里是审完归档的结果。审核历史里只跑过 AI / 人审但没点定稿的，不会出现在这里。</div>
+            <div class="filters">
+              <select id="registry-product"><option value="">全部产品流</option></select>
+              <input id="registry-q" placeholder="搜标题 / 定稿人 / 日志 id" style="min-width:220px" />
+              <button class="btn btn-primary" type="button" id="btn-registry-refresh">刷新</button>
+            </div>
+          </div>
+          <div class="journals-scroll" id="registry-list"></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-manual">
+        <div class="manual-page" id="manual-page">
+          <h2>使用手册（白话版）</h2>
+          <p class="lead">这个工具帮你把「研发日志里乱七八糟的话」整理成「用户要什么」的条目，并且<strong>每次你点通过或打叉都要写理由</strong>，以后出问题能查回来。下面按真实界面说明，配的是本机刚截的图。</p>
+          <div class="callout">使用前先<strong>登录</strong>（可注册新账号）。演示账号：用户名 <code>demo</code>，密码 <code>demo1234</code>。你的审核记录会记进本地数据库，和账号绑在一起。</div>
+          <div class="manual-toc">
+            <a href="#m-what">这是干什么的</a>
+            <a href="#m-nav">左边入口</a>
+            <a href="#m-pick">怎么选日志</a>
+            <a href="#m-one">怎么一条条审</a>
+            <a href="#m-match">怎么对照原文（非 AI）</a>
+            <a href="#m-batch">怎么批量给 AI 先跑</a>
+            <a href="#m-done">审完去哪找</a>
+            <a href="#m-faq">卡住了怎么办</a>
+          </div>
+
+          <h3 id="m-what">1. 这是干什么的？</h3>
+          <p>想象开会留下一堆记录。你要做的是：</p>
+          <ol>
+            <li>先挑一份记录；</li>
+            <li>让电脑先整理一稿；</li>
+            <li><strong>你自己看一遍</strong>——对了写「为什么对」，错了写「哪里错」并让它重做；</li>
+            <li>最后签字定稿，放进「定稿档案」；以后同一份就不用再从头审。</li>
+          </ol>
+          <div class="callout">记住一句话：<strong>电脑可以帮忙写，但最后拍板的是人</strong>。批量也只是让电脑先写好草稿排队，不能一键全过。</div>
+
+          <h3 id="m-nav">2. 左边入口分别干什么？</h3>
+          <ul>
+            <li><strong>工作台</strong>：真正审稿的地方（看原文、看整理结果、点通过/打叉）。</li>
+            <li><strong>日志库</strong>：所有可选的研发日志，像书架（按产品流 × 日期）。</li>
+            <li><strong>待人审</strong>：电脑批量跑完、等你来看的队列。</li>
+            <li><strong>审核历史</strong>：按<strong>一份日志一行</strong>汇总；点进去才看各阶段（Step1/Step2/定稿）。</li>
+            <li><strong>定稿档案</strong>：正式定稿记录，按<strong>产品流分类</strong>；可点开看详情。与「日志库」原文不是一回事。</li>
+            <li><strong>使用手册</strong>：就是本页。</li>
+          </ul>
+          <div class="callout">从工作台跳到别的页后，顶部会出现<strong>「← 返回上一页」</strong>，不用每次重新点「工作台」。</div>
+          <p>右上角「使用手册」也会打开本页。</p>
+
+          <h3 id="m-pick">3. 怎么选日志？</h3>
+          <p>点左侧<strong>日志库</strong>。上面有筛选：产品、用途、是否已定稿、快慢、搜索。每条卡片会告诉你「为什么选它」。</p>
+          <img class="shot" src="assets/manual/manual-02-journals.png" alt="日志库界面截图" />
+          <p class="cap">图：日志库。可勾选多条，也可点「选用并去工作台」。</p>
+          <ul>
+            <li>想<strong>快点试一下</strong>：选「试跑 / 摘录」（字少）。</li>
+            <li>要<strong>正式留档</strong>：选对应产品、那天的<strong>全文</strong>。</li>
+            <li>刚开完会：用「粘贴新日志」或上传文件。</li>
+            <li>已经标着<strong>已定稿</strong>的：一般不用再审；真要重做，点「强制复审」。</li>
+          </ul>
+
+          <h3 id="m-one">4. 怎么在工作台一条条审？</h3>
+          <p>选好日志后会进<strong>工作台</strong>。左边是原文，右边是电脑整理出来的内容，两边可以各自上下滚。</p>
+          <img class="shot" src="assets/manual/manual-01-workbench.png" alt="工作台界面截图" />
+          <p class="cap">图：工作台（缩略）。先看当前日志，再点「运行」。</p>
+          <ol>
+            <li>在「审核人」框里填上<strong>你的名字</strong>（以后查记录要用）。</li>
+            <li>点蓝色按钮，让电脑先整理一稿（可能要等一会儿，转圈是正常的）。</li>
+            <li>对照原文看：有没有瞎编？有没有漏？一件事说清楚了吗？</li>
+            <li>
+              <strong>对了</strong>：点「通过」→ 在理由框写一句人话（比如「和原文对得上，一件事清楚」）→ 点「确认提交并继续」。<br/>
+              <strong>错了</strong>：点红按钮里的原因类型（编造/漏了/…）→ 写清楚错在哪 → 确认提交，电脑会按你的意见重做。
+            </li>
+            <li>第一轮过了再跑第二轮（拆成「用户要……」条目），同样要写通过或打叉理由。</li>
+            <li>都过了之后：填定稿人姓名 → 点「生成定稿并归档」→ 再点「运行 check 验收」（主要查：有没有编造、格式对不对）。</li>
+          </ol>
+          <img class="shot" src="assets/manual/manual-05-review.png" alt="人审通过打叉截图" />
+          <p class="cap">图：人审区。通过、打叉都要写理由。</p>
+          <div class="callout">要回溯时去左边<strong>审核历史</strong>：先按日志找，再点开看每个阶段谁做了什么决定。</div>
+
+          <h3 id="m-match">5. 原文很长时，怎么快速对照？（非 AI 工具）</h3>
+          <p>AI 只负责抽出条目；人审还要核对「这句话是不是原文里有的」。全文很长时不要整页硬找：</p>
+          <ol>
+            <li>进入 Step2（或定稿结果）后，右侧每条「用户要…」卡片都可以点。</li>
+            <li>点一下：左侧全文会<strong>自动滚到相关段落并高亮</strong>。</li>
+            <li>颜色含义：<strong>黄</strong>=精确/极高 · <strong>蓝</strong>=很可能 · <strong>绿</strong>=可能相关。</li>
+            <li>可连点多条，快速扫完一遍，比肉眼从头滚高效得多。</li>
+          </ol>
+          <div class="callout">这是本地文本匹配，不调用 AI。用来帮人提效，最终对不对仍由你拍板。</div>
+
+          <h3 id="m-batch">6. 日志很多，能不能让电脑先批量跑？</h3>
+          <p>可以。在日志库里<strong>勾选</strong>几条 → 点「批量 AI → 待人审」。电脑会在后台一条条先写草稿。</p>
+          <p>然后打开左侧<strong>待人审</strong>，看到排好的条目后点「开始人审」，再回到工作台按第 4 步做人审。<strong>仍然要你一条条写理由</strong>，不会批量一键全过。</p>
+          <img class="shot" src="assets/manual/manual-03-queue.png" alt="待人审队列截图" />
+          <p class="cap">图：待人审（缩略）。</p>
+
+          <h3 id="m-done">7. 审完了去哪找？还会不会让我再审一遍？</h3>
+          <p>定稿成功后，会出现在<strong>定稿档案</strong>。列表按<strong>产品流</strong>分组（产品云、业务云…），和官方研发日志仓库的分类一致。可按产品筛选，也可搜标题/定稿人。</p>
+          <img class="shot" src="assets/manual/manual-04-registry.png" alt="定稿档案列表截图" />
+          <p class="cap">图：定稿档案（缩略）。点卡片可看定稿条目与审核阶段。</p>
+          <ul>
+            <li><strong>点卡片 / 查看详情</strong>：看定稿了哪些「用户要…」、当时各阶段谁过的。</li>
+            <li>同一份内容<strong>没改过</strong>：日志库会标「已定稿」，一般不用再审。</li>
+            <li>原文<strong>后来改了</strong>：系统会提醒可能要复审。</li>
+            <li>你主动想重做：点「强制复审」。</li>
+          </ul>
+
+          <h3 id="m-faq">8. 卡住了怎么办？</h3>
+          <ul>
+            <li>页面打不开：确认启动时那个<strong>黑窗口还在</strong>，地址是 <code>http://127.0.0.1:8765/</code>。</li>
+            <li>转圈一直不结束：等一两分钟；仍不行就刷新（Ctrl+F5），看黑窗口有没有报错退出。</li>
+            <li>点通过没反应：是不是没填<strong>审核人</strong>？是不是没写<strong>通过理由</strong>？</li>
+            <li>定稿报错 / 验收弹奇怪提示：先刷新再试；若仍失败把黑窗口最后几行错误发给维护人。</li>
+            <li>跳到日志库回不来：点页面上方<strong>「← 返回上一页」</strong>，或点左侧「工作台」。</li>
+            <li>日志很少：找会技术的同事跑一次官方日志同步；或自己粘贴一段先用。</li>
+            <li>想重来：工作台里清空本轮产物，或换一份日志（会提示清空）。</li>
+          </ul>
+          <p class="lead" style="margin-top:24px">更细的交付说明还在仓库文档里；日常操作以<strong>本页截图版手册</strong>为准。</p>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="overlay" id="overlay"><div class="spinner"><div class="spin"></div><div id="overlay-msg">AI 处理中，请稍候…</div></div></div>
+
+<div class="modal confirm-modal" id="confirm-modal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="confirm-title">请确认</h3>
+      <button class="btn" type="button" id="btn-confirm-cancel-x">关闭</button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg" id="confirm-msg">确定继续？</p>
+      <div class="btnrow" style="justify-content:flex-end;margin:0">
+        <button class="btn" type="button" id="btn-confirm-cancel">取消</button>
+        <button class="btn btn-primary" type="button" id="btn-confirm-ok">确定</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="registry-detail-modal">
+  <div class="modal-card" style="width:min(780px,100%)">
+    <div class="modal-head">
+      <h3 id="registry-detail-title">定稿详情</h3>
+      <button class="btn" type="button" id="btn-close-registry-detail">关闭</button>
+    </div>
+    <div class="modal-body" id="registry-detail-body">
+      <span class="meta">加载中…</span>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="audit-detail-modal">
+  <div class="modal-card" style="width:min(720px,100%)">
+    <div class="modal-head">
+      <h3 id="audit-detail-title">审核明细</h3>
+      <button class="btn" type="button" id="btn-close-audit-detail">关闭</button>
+    </div>
+    <div class="modal-body audit-detail" id="audit-detail-body">
+      <span class="meta">加载中…</span>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="excerpt-modal">
+  <div class="modal-card excerpt-modal-card">
+    <div class="modal-head">
+      <h3>本轮关注摘要</h3>
+      <button class="btn" type="button" id="btn-close-excerpt">关闭</button>
+    </div>
+    <div class="modal-body">
+      <p class="meta" style="margin:0 0 10px">这是试跑时的关注点，不是对比原文。左侧面板才是全文。</p>
+      <div class="excerpt-body md-view" id="excerpt-body"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="preview-modal">
+  <div class="modal-card" style="width:min(920px,100%)">
+    <div class="modal-head">
+      <h3 id="preview-title">日志全文</h3>
+      <button class="btn" type="button" id="btn-close-preview">关闭</button>
+    </div>
+    <div class="modal-body">
+      <div class="meta" id="preview-meta" style="margin-bottom:10px"></div>
+      <div class="md-view" id="preview-body" style="max-height:min(70vh,620px);overflow:auto;border:1px solid var(--border);border-radius:8px;padding:12px"></div>
+      <div class="btnrow" id="preview-actions" style="margin-top:12px"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="compare-modal">
+  <div class="modal-card" style="width:min(1100px,100%)">
+    <div class="modal-head">
+      <h3 id="compare-title">对比日志库</h3>
+      <button class="btn" type="button" id="btn-close-compare">关闭</button>
+    </div>
+    <div class="modal-body">
+      <div class="guide" id="compare-hint" style="margin-bottom:10px"></div>
+      <div class="grid" style="min-height:280px">
+        <section class="panel">
+          <div class="panel-head">获取的新内容<span class="meta" id="compare-left-meta"></span></div>
+          <div class="panel-body md-view" id="compare-left"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head">库中已有<span class="meta" id="compare-right-meta"></span></div>
+          <div class="panel-body md-view" id="compare-right"></div>
+        </section>
+      </div>
+      <div id="compare-matches" style="margin-top:12px"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="journal-modal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>选择研发日志</h3>
+      <button class="btn" type="button" id="btn-close-modal">关闭</button>
+    </div>
+    <div class="modal-body">
+      <div class="guide" id="journal-guide">
+        先定今天要梳理的<strong>一件事</strong>，再选日志。<br/>
+        <strong>想快：</strong>选「聚焦摘录」或粘贴一小段。　
+        <strong>要正式：</strong>选按日全文。　
+        <strong>刚开完会：</strong>用粘贴 / 上传。
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="library" type="button">日志库</button>
+        <button class="tab" data-tab="paste" type="button">粘贴文本</button>
+        <button class="tab" data-tab="upload" type="button">上传文件</button>
+      </div>
+      <div id="tab-library">
+        <div class="filters">
+          <select id="filter-product"><option value="">全部产品流</option></select>
+          <select id="filter-usage" title="用途分类">
+            <option value="">全部用途</option>
+            <option value="try">用途：试跑 / 摘录</option>
+            <option value="formal">用途：正式全文</option>
+            <option value="custom">用途：自定义</option>
+          </select>
+              <input id="filter-q" placeholder="搜标题 / 为什么选" />
+        </div>
+        <div class="j-list" id="journal-list"></div>
+      </div>
+      <div id="tab-paste" style="display:none">
+        <input id="paste-title" placeholder="标题（如：今日站会·需求梳理）" style="width:100%;margin-bottom:8px;padding:8px;border:1px solid #d9d9d9;border-radius:8px" />
+        <textarea class="paste-box" id="paste-content" placeholder="把飞书/会议纪要粘贴到这里…"></textarea>
+        <div class="btnrow" style="margin-top:10px">
+          <button class="btn btn-primary" type="button" id="btn-paste-use">保存并使用</button>
+        </div>
+      </div>
+      <div id="tab-upload" style="display:none">
+        <p class="meta">支持纯文本或常见文档导出的文字。上传后进入自定义库并立即选用。</p>
+        <input type="file" id="upload-file" accept=".md,.txt,text/plain,text/markdown" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STEP1 = '整理需求故事';
+const STEP2 = '提取用户故事 JSON';
+let state = null;
+let currentStep = 1;
+let pendingReviseCode = null;
+let pendingAction = null; // 'ok' | 'revise'
+
+const phaseLabel = {
+  idle: '待开始',
+  step1_review: 'Step1 待确认',
+  step2_ready: 'Step1 已锁定',
+  step2_review: 'Step2 待确认',
+  step3_ready: 'Step3 待定稿',
+  done: '已定稿'
+};
+
+async function api(path, opts) {
+  try {
+    const options = Object.assign({ credentials: 'same-origin' }, opts || {});
+    const r = await fetch(path, options);
+    const data = await r.json().catch(() => ({}));
+    if (r.status === 401 || data.need_login) {
+      location.href = '/login.html';
+      return { ok: false, error: data.error || '请先登录' };
+    }
+    if (!r.ok && !data.error) data.error = 'HTTP ' + r.status;
+    if (r.status === 409) data.error = data.error || '系统正忙，请稍候';
+    return data;
+  } catch (e) {
+    return { ok: false, error: '连不上服务：请确认已启动 start-with-ai.bat（' + (e.message || e) + ')' };
+  }
+}
+
+function toast(msg, ok) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + (ok ? 'ok' : 'err');
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+function showBusy(msg) {
+  document.getElementById('overlay-msg').textContent = msg || 'AI 处理中，约 30–90 秒…';
+  document.getElementById('overlay').classList.add('show');
+}
+function hideBusy() { document.getElementById('overlay').classList.remove('show'); }
+
+function levelTag(lv) {
+  const m = { activity: ['活动', 'tag-act'], task: ['任务', 'tag-task'], story: ['故事', 'tag-story'] };
+  const [t, c] = m[lv] || ['条目', 'tag-task'];
+  return `<span class="tag ${c}">${t}</span>`;
+}
+
+function renderStories(payload) {
+  const stories = (payload && payload.stories) || [];
+  if (!stories.length) return '<p style="color:var(--text3)">暂无故事条目</p>';
+  return stories.map((s, i) => `
+    <div class="story-card" data-idx="${i}" data-quote="${esc(s.source_quote || '')}" title="点击对照左侧原文">
+      ${levelTag(s.level)}
+      <strong>${esc(s.text || '')}</strong>
+      <div class="quote">${esc(s.source_quote || '')}</div>
+      <div class="match-tip">点击 → 左侧标出匹配原文</div>
+    </div>`).join('');
+}
+
+function bindStoryMatchClicks(area) {
+  if (!area) return;
+  area.querySelectorAll('.story-card').forEach(card => {
+    card.onclick = () => highlightStoryMatch(card.dataset.quote || '', card);
+  });
+}
+
+let journalBlocks = [];
+
+function textSimilarity(a, b) {
+  const x = String(a || '').replace(/\s+/g, '');
+  const y = String(b || '').replace(/\s+/g, '');
+  if (!x || !y) return 0;
+  if (x.includes(y) || y.includes(x)) return 1;
+  const grams = (s) => {
+    const g = new Set();
+    for (let i = 0; i < s.length - 1; i++) g.add(s.slice(i, i + 2));
+    return g;
+  };
+  const A = grams(x), B = grams(y);
+  let inter = 0;
+  A.forEach(v => { if (B.has(v)) inter++; });
+  const uni = A.size + B.size - inter;
+  return uni ? inter / uni : 0;
+}
+
+function renderJournalCompare(text) {
+  const raw = String(text || '').replace(/\r\n/g, '\n').trim();
+  const el = document.getElementById('journal-text');
+  journalBlocks = [];
+  if (!raw) {
+    el.innerHTML = '<p style="color:var(--text3)">（空）</p>';
+    return;
+  }
+  const paras = raw.split(/\n{2,}/);
+  paras.forEach((p, pi) => {
+    const body = p.trim();
+    if (!body) return;
+    const sents = body.split(/(?<=[。！？])/).map(s => s.trim()).filter(s => s.length >= 4);
+    if (sents.length >= 2 && body.length > 80) {
+      sents.forEach((s, si) => journalBlocks.push({ id: `p${pi}s${si}`, text: s }));
+    } else {
+      journalBlocks.push({ id: `p${pi}`, text: body });
+    }
+  });
+  el.innerHTML = journalBlocks.map(b =>
+    `<p class="j-block" id="jb-${b.id}">${esc(b.text)}</p>`
+  ).join('');
+}
+
+function highlightStoryMatch(quote, cardEl) {
+  document.querySelectorAll('.story-card.active-match').forEach(c => c.classList.remove('active-match'));
+  if (cardEl) cardEl.classList.add('active-match');
+  document.querySelectorAll('.j-block').forEach(el => {
+    el.classList.remove('match-exact', 'match-likely', 'match-maybe');
+  });
+  const hint = document.getElementById('match-hint');
+  const q = (quote || '').trim();
+  if (!q || !journalBlocks.length) {
+    if (hint) hint.textContent = '没有可对照的原文引用。';
+    return;
+  }
+  const ranked = journalBlocks.map(b => {
+    let score = 0;
+    if (b.text.includes(q) || q.includes(b.text)) score = 1;
+    else score = textSimilarity(b.text, q);
+    return { b, score };
+  }).filter(x => x.score >= 0.28).sort((a, c) => c.score - a.score).slice(0, 4);
+
+  if (!ranked.length) {
+    if (hint) hint.textContent = '未找到高置信匹配，请人工在左侧扫读。';
+    return;
+  }
+  ranked.forEach((x, i) => {
+    const el = document.getElementById('jb-' + x.b.id);
+    if (!el) return;
+    if (i === 0) el.classList.add(x.score >= 0.85 ? 'match-exact' : 'match-likely');
+    else el.classList.add('match-maybe');
+    if (i === 0) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  if (hint) {
+    hint.textContent = `已标出 ${ranked.length} 处（最高约 ${Math.round(ranked[0].score * 100)}%）。黄=精确/极高 · 蓝=很可能 · 绿=可能相关。`;
+  }
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/** 把 md 记号变成正常排版，界面上不出现 # ** ` > --- */
+function mdToReadableHtml(raw) {
+  if (!raw) return '<p style="color:var(--text3)">（空）</p>';
+  let text = String(raw).replace(/\r\n/g, '\n');
+  // 去掉围栏代码块标记，只留内容
+  text = text.replace(/```[\w-]*\n?([\s\S]*?)```/g, (_, code) => '\n' + code.trim() + '\n');
+  const lines = text.split('\n');
+  const html = [];
+  let inUl = false, inOl = false, inQuote = false;
+  const closeLists = () => {
+    if (inUl) { html.push('</ul>'); inUl = false; }
+    if (inOl) { html.push('</ol>'); inOl = false; }
+  };
+  const closeQuote = () => {
+    if (inQuote) { html.push('</blockquote>'); inQuote = false; }
+  };
+  const inline = (s) => {
+    let t = esc(s);
+    t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    t = t.replace(/`([^`]+)`/g, '$1'); // 不展示代码样式，只留文字
+    t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
+    return t;
+  };
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (!trimmed) {
+      closeLists();
+      closeQuote();
+      continue;
+    }
+    if (/^---+$/.test(trimmed) || /^\*\*\*+$/.test(trimmed)) {
+      closeLists(); closeQuote();
+      html.push('<hr/>');
+      continue;
+    }
+    const hm = trimmed.match(/^(#{1,6})\s+(.*)$/);
+    if (hm) {
+      closeLists(); closeQuote();
+      const lv = Math.min(hm[1].length, 3);
+      html.push(`<h${lv}>${inline(hm[2])}</h${lv}>`);
+      continue;
+    }
+    if (/^>\s?/.test(trimmed)) {
+      closeLists();
+      if (!inQuote) { html.push('<blockquote>'); inQuote = true; }
+      html.push('<p>' + inline(trimmed.replace(/^>\s?/, '')) + '</p>');
+      continue;
+    }
+    closeQuote();
+    const ul = trimmed.match(/^[-*+]\s+(.*)$/);
+    if (ul) {
+      if (inOl) { html.push('</ol>'); inOl = false; }
+      if (!inUl) { html.push('<ul>'); inUl = true; }
+      html.push('<li>' + inline(ul[1]) + '</li>');
+      continue;
+    }
+    const ol = trimmed.match(/^\d+[.)]\s+(.*)$/);
+    if (ol) {
+      if (inUl) { html.push('</ul>'); inUl = false; }
+      if (!inOl) { html.push('<ol>'); inOl = true; }
+      html.push('<li>' + inline(ol[1]) + '</li>');
+      continue;
+    }
+    closeLists();
+    html.push('<p>' + inline(trimmed) + '</p>');
+  }
+  closeLists();
+  closeQuote();
+  return html.join('') || '<p style="color:var(--text3)">（空）</p>';
+}
+
+function showReadable(el, raw) {
+  if (!el) return;
+  el.classList.add('md-view');
+  el.innerHTML = mdToReadableHtml(raw);
+}
+
+function renderOutput() {
+  const area = document.getElementById('output-area');
+  area.classList.add('md-view');
+  const art = state.artifacts || {};
+  const hint = document.getElementById('match-hint');
+  const phase = state.phase || '';
+  // 只看 phase，不要用 currentStep（会残留上一次人审的 2/3，导致 Step1 右侧空白）
+  if (phase === 'done') {
+    document.getElementById('output-title').textContent = '定稿结果';
+    if (hint) hint.textContent = '定稿条目也可点击对照左侧原文。';
+    if (art.accepted) {
+      const stories = art.accepted.stories || [];
+      const n = stories.length;
+      const rev = art.accepted.loop_metrics || {};
+      const meta = art.accepted.meta || {};
+      area.innerHTML =
+        `<p><strong>已定稿归档</strong> · 共 ${n} 条 · 反馈 ${rev.rounds || 0} 轮 · 纠偏 ${rev.corrections || 0} 次</p>` +
+        (art.accepted.requirement_story
+          ? `<details style="margin:8px 0"><summary class="meta">查看一并保存的需求故事（Step1）</summary><div class="md-view">${mdToReadableHtml(art.accepted.requirement_story)}</div></details>`
+          : '') +
+        (meta.journal_title || meta.journal_id
+          ? `<p class="meta">来源日志：${esc(meta.journal_title || meta.journal_id)}</p>`
+          : '') +
+        renderStories(art.accepted);
+      bindStoryMatchClicks(area);
+    } else {
+      area.innerHTML = '<p style="color:var(--text3)">尚未定稿</p>';
+    }
+  } else if (phase === 'step2_review' || phase === 'step2_ready' || phase === 'step3_ready') {
+    document.getElementById('output-title').textContent =
+      phase === 'step3_ready' ? '待定稿的「用户要…」条目' : '抽出的「用户要…」条目';
+    if (hint) hint.textContent = '点右侧条目 → 左侧标出匹配原文（人审对照工具，非 AI）。';
+    area.innerHTML = art.stories ? renderStories(art.stories) : '<p style="color:var(--text3)">还没抽出条目</p>';
+    bindStoryMatchClicks(area);
+  } else if (phase === 'step1_review' || phase === 'idle') {
+    document.getElementById('output-title').textContent =
+      phase === 'step1_review' ? '电脑整理的需求故事（请人审）' : '电脑整理的需求故事';
+    if (hint) hint.textContent = 'Step1 审的是右侧需求故事全文；进入 Step2 后，点右侧条目可匹配原文。';
+    if (art.requirement_story) showReadable(area, art.requirement_story);
+    else area.innerHTML = '<p style="color:var(--text3)">还没开始整理，点下面「运行」按钮；若从待人审打开仍为空，请刷新队列重开。</p>';
+  } else {
+    document.getElementById('output-title').textContent = '电脑整理结果';
+    if (hint) hint.textContent = '';
+    if (art.requirement_story) showReadable(area, art.requirement_story);
+    else if (art.stories) {
+      area.innerHTML = renderStories(art.stories);
+      bindStoryMatchClicks(area);
+    } else {
+      area.innerHTML = '<p style="color:var(--text3)">暂无产物</p>';
+    }
+  }
+}
+
+function updateNav() {
+  // 进度只反映在顶部阶段卡片
+}
+
+function updateToolbar() {
+  const primary = document.getElementById('primary-actions');
+  const feedback = document.getElementById('feedback-actions');
+  const step3 = document.getElementById('step3-actions');
+  const reason = document.getElementById('reason');
+  const reviseRow = document.getElementById('revise-confirm-row');
+  primary.innerHTML = '';
+  feedback.style.display = 'none';
+  step3.style.display = 'none';
+  reason.style.display = 'none';
+  reviseRow.style.display = 'none';
+  pendingReviseCode = null;
+
+  if (state.last_error) {
+    toast('上次错误：' + state.last_error, false);
+    state.last_error = null;
+  }
+
+  if (state.phase === 'done') {
+    document.getElementById('action-title').textContent = '已定稿 · 可运行 check，或清空本轮重新梳理';
+    step3.style.display = 'flex';
+    document.getElementById('btn-finalize').style.display = 'none';
+    primary.innerHTML = '<button class="btn btn-primary" id="btn-reset">↺ 清空本轮产物，重新梳理</button>';
+    document.getElementById('btn-reset').onclick = resetDemo;
+    currentStep = 3;
+    return;
+  }
+
+  if (state.phase === 'idle') {
+    document.getElementById('action-title').textContent = 'Step1 · 整理需求故事';
+    primary.innerHTML = '<button class="btn btn-primary" id="btn-run-step1">▶ 运行 Step1（AI 整理故事）</button>';
+    document.getElementById('btn-run-step1').onclick = runStep1;
+    currentStep = 1;
+    return;
+  }
+
+  if (state.phase === 'step1_review') {
+    document.getElementById('action-title').textContent = 'Step1 · 请确认：故事是否读得通？';
+    feedback.style.display = 'flex';
+    document.getElementById('btn-unlock').style.display = 'none';
+    currentStep = 1;
+    return;
+  }
+
+  if (state.phase === 'step2_ready') {
+    document.getElementById('action-title').textContent =
+      'Step1 已锁定。下一步由你决定：运行 Step2，或先解锁 Step1 重审。系统不会自动跑 Step2。';
+    primary.innerHTML =
+      '<button class="btn btn-primary" id="btn-run-step2" type="button">▶ 运行 Step2（AI 提取故事）</button>' +
+      '<button class="btn" id="btn-unlock-ready" type="button">解锁 Step1</button>';
+    document.getElementById('btn-run-step2').onclick = () => runStep2();
+    document.getElementById('btn-unlock-ready').onclick = () => unlockStep1();
+    currentStep = 2;
+    return;
+  }
+
+  if (state.phase === 'step2_review') {
+    document.getElementById('action-title').textContent =
+      'Step2 · 请确认：有无编造/分层/遗漏？若要改 Step1，先点「解锁 Step1」。';
+    feedback.style.display = 'flex';
+    const unlockBtn = document.getElementById('btn-unlock');
+    unlockBtn.style.display = 'inline-block';
+    unlockBtn.textContent = '解锁 Step1';
+    unlockBtn.onclick = () => unlockStep1();
+    currentStep = 2;
+    return;
+  }
+
+  if (state.phase === 'step3_ready') {
+    document.getElementById('action-title').textContent =
+      'Step3 · 人工定稿：填写定稿人 → 点「生成定稿并归档」。Step2 通过还不算定稿。';
+    step3.style.display = 'flex';
+    document.getElementById('btn-finalize').style.display = 'inline-block';
+    const ap = document.getElementById('approver');
+    if (ap && !ap.value.trim()) {
+      ap.value = getActor() || (state.user && (state.user.display_name || state.user.username)) || '';
+    }
+    currentStep = 3;
+  }
+}
+
+async function refresh() {
+  try {
+    state = await api('/api/state');
+  } catch (e) {
+    toast('连不上服务：请双击 start-with-ai.bat 启动', false);
+    document.getElementById('llm-info').textContent = '服务未启动';
+    document.getElementById('action-title').textContent = '服务未启动 · 请双击仓库里的 start-with-ai.bat';
+    document.getElementById('primary-actions').innerHTML =
+      '<button class="btn btn-primary" onclick="location.reload()">刷新重试</button>';
+    return;
+  }
+  if (!state.ok) { toast(state.error || '加载失败', false); return; }
+  document.getElementById('llm-info').textContent = state.llm || '';
+  if (state.user) {
+    document.getElementById('user-chip').textContent =
+      '当前用户：' + (state.user.display_name || state.user.username);
+    const actorEl = document.getElementById('actor-name');
+    if (actorEl && !actorEl.value) {
+      actorEl.value = state.user.display_name || state.user.username || '';
+    }
+    document.getElementById('btn-logout').style.display = '';
+    document.getElementById('btn-goto-login').style.display = 'none';
+  } else {
+    document.getElementById('user-chip').textContent = '未登录';
+    document.getElementById('btn-logout').style.display = 'none';
+    document.getElementById('btn-goto-login').style.display = '';
+  }
+  document.getElementById('m-phase').textContent = phaseLabel[state.phase] || state.phase;
+  document.getElementById('m-rounds').textContent = (state.metrics && state.metrics.rounds) || 0;
+  const art = state.artifacts || {};
+  document.getElementById('m-stories').textContent = art.stories
+    ? (art.stories.stories || []).length : 0;
+  document.getElementById('m-lock').textContent = state.step1_locked ? '已锁' : '未锁';
+  const lockWrap = document.getElementById('m-lock').parentElement;
+  if (lockWrap) lockWrap.classList.toggle('metric-locked', !!state.step1_locked);
+  document.getElementById('history').textContent = (state.history || []).join(' → ');
+  const ap = state.approval || {};
+  document.getElementById('approval-badge').textContent = ap.label || '—';
+  const actorEl = document.getElementById('actor-name');
+  if (actorEl && !actorEl.value && localStorage.getItem('qt_actor')) {
+    actorEl.value = localStorage.getItem('qt_actor');
+  }
+  updateJournalBar(state);
+  // 先按 phase 设 currentStep，再渲染右侧，避免残留 Step2 把需求故事盖成空
+  if (state.phase === 'step1_review' || state.phase === 'idle') currentStep = 1;
+  else if (state.phase === 'step2_ready' || state.phase === 'step2_review') currentStep = 2;
+  else if (state.phase === 'step3_ready' || state.phase === 'done') currentStep = 3;
+  renderOutput();
+  updateNav();
+  updateToolbar();
+}
+
+function renderAuditJournalCards(items) {
+  const box = document.getElementById('audit-list');
+  if (!items.length) {
+    box.innerHTML = '<p class="meta">暂无审核记录。在工作台通过/打叉后会出现在这里（按日志聚合）。</p>';
+    return;
+  }
+  box.innerHTML = items.map(it => {
+    const jid = it.journal_id || '';
+    const finalized = (it.finalize_count || 0) > 0 || it.in_registry;
+    const loc = it.location_label || (finalized ? '定稿档案' : '未定稿');
+    const bits = [
+      (it.event_count || 0) + ' 次操作',
+      it.ok_count ? ('通过 ' + it.ok_count) : null,
+      it.revise_count ? ('打叉 ' + it.revise_count) : null,
+      finalized ? ('定稿 ' + (it.finalize_count || 1)) : null,
+      (it.actors || []).slice(0, 3).join('、') || null,
+    ].filter(Boolean);
+    const continueLabel = it.location === 'queue'
+      ? '去待人审继续'
+      : (it.location === 'workbench'
+        ? '打开工作台继续'
+        : (it.location === 'registry' ? '查看定稿档案' : '重新打开继续'));
+    return `
+      <div class="audit-card" data-jid="${esc(jid)}" data-title="${esc(it.journal_title || jid || '')}"
+           data-loc="${esc(it.location || '')}" data-qid="${esc(it.queue_id || '')}" data-action="${esc(it.continue_action || '')}">
+        <h4>${esc(it.journal_title || jid || '（未选日志）')}
+          <span class="badge ${finalized ? 'fast' : ''}" style="margin-left:8px;font-weight:500">${finalized ? '已定稿' : '未定稿'}</span>
+        </h4>
+        <div class="bits" style="margin-top:4px"><strong>现在在哪：</strong>${esc(loc)}</div>
+        <div class="bits">${esc(it.last_at || '')} · 最近：${esc(it.last_summary || '—')}</div>
+        <div class="bits" style="margin-top:4px">${esc(bits.join(' · '))}</div>
+        <div class="actions" style="margin-top:8px">
+          <button class="btn btn-audit-detail" type="button">看阶段</button>
+          <button class="btn btn-primary btn-audit-continue" type="button">${esc(continueLabel)}</button>
+        </div>
+      </div>`;
+  }).join('');
+  box.querySelectorAll('.audit-card').forEach(card => {
+    const detail = () => openAuditDetail(card.dataset.jid, card.dataset.title, {
+      location: card.dataset.loc,
+      queue_id: card.dataset.qid,
+      continue_action: card.dataset.action,
+      location_label: (card.querySelector('.bits strong') && card.querySelector('.bits').textContent) || ''
+    });
+    card.querySelector('.btn-audit-detail').onclick = (e) => { e.stopPropagation(); detail(); };
+    card.querySelector('.btn-audit-continue').onclick = (e) => {
+      e.stopPropagation();
+      continueFromAudit(card.dataset.jid, card.dataset.action, card.dataset.qid);
+    };
+    card.onclick = (e) => {
+      if (e.target.closest('button')) return;
+      detail();
+    };
+  });
+}
+
+async function continueFromAudit(journalId, action, queueId) {
+  if (!journalId && action !== 'queue') {
+    toast('没有 journal_id，无法继续', false);
+    return;
+  }
+  if (action === 'queue' && queueId) {
+    closeAuditDetail();
+    await openQueueItem(queueId);
+    return;
+  }
+  if (action === 'queue' && !queueId) {
+    toast('队列项已不在，改去待人审页查看，或重新打开日志', false);
+    switchView('queue');
+    return;
+  }
+  if (action === 'registry') {
+    closeAuditDetail();
+    switchView('registry');
+    openRegistryDetail(journalId);
+    return;
+  }
+  if (action === 'workbench') {
+    closeAuditDetail();
+    // 若工作台已是这份日志，直接去；否则选用
+    if (state && state.journal_id === journalId) {
+      switchView('work');
+      await refresh();
+      toast('已回到工作台，可继续审/定稿', true);
+      return;
+    }
+  }
+  // reopen / workbench 换日志：打开到工作台继续（未定稿不要走强制复审）
+  closeAuditDetail();
+  const ok = await selectJournal(journalId, { forceReopen: false });
+  if (ok) {
+    switchView('work');
+    toast('已打开到工作台。若还差定稿，阶段会显示「待定稿归档」。', true);
+  }
+}
+
+function auditActionClass(ev) {
+  const act = ev.action || '';
+  if (act === 'ok' || act === 'finalize') return 'ok';
+  if (act === 'revise') return 'revise';
+  if (act === 'unlock' || act === 'reopen') return 'unlock';
+  if (act === 'check') {
+    const r = ev.reason || ev.summary || '';
+    return (r.includes('未通过') || r.includes('失败')) ? 'check-fail' : 'check-ok';
+  }
+  if (act === 'ai_ready') return 'ai';
+  return 'ai';
+}
+
+function renderAuditEventHtml(ev, opts) {
+  opts = opts || {};
+  const cls = auditActionClass(ev);
+  const code = (ev.action === 'revise' && ev.code) ? `<span class="audit-code-tag">拒绝·${esc(ev.code)}</span>` : '';
+  const jidLine = opts.showJournalId
+    ? `<div class="meta">日志 id：${esc(ev.journal_id || '—')}</div>`
+    : '';
+  return `
+    <div class="audit-item">
+      <div class="when">${esc(ev.at || '')} · ${esc(ev.actor || '')}</div>
+      ${jidLine}
+      <div>
+        <span class="audit-stage-tag ${cls}">${esc(ev.step || '')}</span>
+        ${code}
+        <strong>${esc(ev.summary || (ev.step + '/' + ev.action))}</strong>
+      </div>
+      ${ev.reason ? `<div class="meta">理由：${esc(ev.reason)}</div>` : ''}
+    </div>`;
+}
+
+let _confirmResolver = null;
+function confirmAsk(message, title) {
+  return new Promise(resolve => {
+    _confirmResolver = resolve;
+    document.getElementById('confirm-title').textContent = title || '请确认';
+    document.getElementById('confirm-msg').textContent = message || '确定继续？';
+    document.getElementById('confirm-modal').classList.add('show');
+  });
+}
+function finishConfirm(ok) {
+  document.getElementById('confirm-modal').classList.remove('show');
+  const r = _confirmResolver;
+  _confirmResolver = null;
+  if (r) r(!!ok);
+}
+
+async function loadAuditList(preferJournalId) {
+  const q = (document.getElementById('audit-q') && document.getElementById('audit-q').value) || '';
+  const data = await api('/api/audit?group=1&limit=80&q=' + encodeURIComponent(q));
+  const list = document.getElementById('audit-list');
+  if (!data.ok) {
+    list.innerHTML = '<p class="meta">加载失败</p>';
+    return;
+  }
+  const items = data.items || [];
+  document.getElementById('nav-audit-count').textContent = (data.count || 0) + ' 份';
+  renderAuditJournalCards(items);
+  if (preferJournalId) {
+    const hit = items.find(x => x.journal_id === preferJournalId);
+    if (hit) openAuditDetail(preferJournalId, hit.journal_title || preferJournalId);
+  }
+}
+
+async function openAuditDetail(journalId, title, locInfo) {
+  const modal = document.getElementById('audit-detail-modal');
+  const body = document.getElementById('audit-detail-body');
+  document.getElementById('audit-detail-title').textContent = title || journalId || '审核明细';
+  body.innerHTML = '<span class="meta">加载阶段明细…</span>';
+  modal.classList.add('show');
+  if (!journalId) {
+    body.innerHTML = '<p class="meta">该记录没有 journal_id，无法展开阶段。</p>';
+    return;
+  }
+  const data = await api('/api/audit?journal_id=' + encodeURIComponent(journalId) + '&limit=100');
+  // 严格过滤：只显示本 journal_id，防止串日志
+  const events = (data.events || []).filter(ev => (ev.journal_id || '') === journalId);
+  // 再取聚合信息（现在在哪）
+  let loc = locInfo || {};
+  try {
+    const grouped = await api('/api/audit?group=1&limit=80&q=' + encodeURIComponent(journalId));
+    const hit = (grouped.items || []).find(x => x.journal_id === journalId);
+    if (hit) loc = { ...loc, ...hit };
+  } catch (e) { /* ignore */ }
+  const locLabel = loc.location_label || '未知';
+  const action = loc.continue_action || 'reopen';
+  const qid = loc.queue_id || '';
+  if (!data.ok || !events.length) {
+    body.innerHTML = `<p class="meta">暂无本日志的阶段记录</p>
+      <p class="guide">现在在哪：${esc(locLabel)}</p>
+      <div class="btnrow"><button class="btn btn-primary" type="button" id="btn-audit-cont">继续处理</button></div>`;
+    const b = document.getElementById('btn-audit-cont');
+    if (b) b.onclick = () => continueFromAudit(journalId, action, qid);
+    return;
+  }
+  body.innerHTML =
+    `<div class="guide" style="margin:0 0 10px">日志 <code>${esc(journalId)}</code> · 共 ${events.length} 条阶段<br/>
+      <strong>现在在哪：</strong>${esc(locLabel)}（未定稿时不会出现在「定稿档案」；若在待人审/工作台，点下方继续）</div>
+    <div class="btnrow" style="margin:0 0 12px">
+      <button class="btn btn-primary" type="button" id="btn-audit-cont">继续处理</button>
+    </div>` +
+    events.map(ev => renderAuditEventHtml(ev)).join('');
+  const b = document.getElementById('btn-audit-cont');
+  if (b) b.onclick = () => continueFromAudit(journalId, action, qid);
+}
+
+function closeAuditDetail() {
+  document.getElementById('audit-detail-modal').classList.remove('show');
+}
+
+function getActor() {
+  const v = (document.getElementById('actor-name').value || '').trim();
+  if (v) localStorage.setItem('qt_actor', v);
+  return v;
+}
+
+function setExcerptUi(excerpt) {
+  const text = (excerpt || '').trim();
+  const btn = document.getElementById('btn-show-excerpt');
+  const body = document.getElementById('excerpt-body');
+  if (text) {
+    showReadable(body, text);
+    btn.classList.add('show');
+  } else {
+    body.innerHTML = '';
+    btn.classList.remove('show');
+    document.getElementById('excerpt-modal').classList.remove('show');
+  }
+}
+
+function applyJournalView(j) {
+  if (!j || !j.ok) return;
+  renderJournalCompare(j.content || '');
+  document.getElementById('journal-len').textContent = (j.chars || 0) + ' 字·全文';
+  setExcerptUi(j.excerpt);
+}
+
+function updateJournalBar(st) {
+  const meta = st.journal_meta || {};
+  const title = meta.title || (st.journal_id ? st.journal_id : '默认演示日志（未从库中选择）');
+  document.getElementById('j-current-title').textContent = '当前日志：' + title;
+  const bits = [];
+  if (meta.product) bits.push('产品流 ' + meta.product);
+  if (meta.date) bits.push(meta.date);
+  bits.push((st.journal_chars || 0) + ' 字全文');
+  if (st.excerpt_chars) bits.push('摘要 ' + st.excerpt_chars + ' 字');
+  if (meta.speed) bits.push('速度 ' + meta.speed);
+  if (meta.when) bits.push(meta.when);
+  document.getElementById('j-current-meta').textContent = bits.join(' · ');
+  document.getElementById('top-journal-hint').textContent =
+    (st.excerpt_chars ? '左侧对照全文；需要时点「看本轮摘要」。' : '') +
+    (meta.why || '点「更换 / 选择日志」按产品流、日期选用');
+  setExcerptUi(st.excerpt);
+}
+
+let journalCatalog = { journals: [], products: [], guide: {} };
+let journalFilter = { product: '', usage: '', q: '' };
+
+function openJournalModal() {
+  document.getElementById('journal-modal').classList.add('show');
+  loadJournalList();
+}
+function closeJournalModal() {
+  document.getElementById('journal-modal').classList.remove('show');
+}
+
+async function loadJournalList() {
+  const data = await api('/api/journals');
+  if (!data.ok) { toast(data.error || '加载日志库失败', false); return; }
+  journalCatalog = data;
+  const guide = data.guide || {};
+  if (guide.principle) {
+    document.getElementById('journal-guide').innerHTML =
+      esc(guide.principle) + '<br/><strong>筛选维度：</strong>' + esc((guide.filters || []).join(' / '));
+    document.getElementById('journals-page-guide').innerHTML =
+      esc(guide.principle) + ' 来源：' + esc((data.stats && data.stats.source_repo) || '');
+  }
+  const stats = data.stats || {};
+  document.getElementById('js-total').textContent = stats.total || (data.journals || []).length;
+  document.getElementById('js-products').textContent = stats.products || (data.products || []).length;
+  document.getElementById('js-formal').textContent = stats.formal || 0;
+  document.getElementById('js-custom').textContent = stats.custom || 0;
+  document.getElementById('nav-journals-count').textContent =
+    (stats.total || (data.journals || []).length) + ' 条';
+  document.getElementById('jp-sync-hint').textContent =
+    (stats.synced_at ? ('最近同步：' + stats.synced_at + ' · ') : '') +
+    '可用 scripts/sync_journals.py 从官方仓库拉全量';
+
+  ['filter-product', 'jp-filter-product'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    const labels = data.product_labels || {};
+    sel.innerHTML = '<option value="">全部产品流</option>' +
+      (data.products || []).map(p =>
+        `<option value="${esc(p)}">${esc(labels[p] || p)} (${esc(p)})</option>`
+      ).join('');
+    sel.value = cur;
+  });
+  renderJournalCards();
+  renderJournalsPage();
+}
+
+function filteredJournals(productSel, usageSel, qInput, speedSel, reviewSel) {
+  const q = ((qInput && qInput.value) || '').trim().toLowerCase();
+  const product = (productSel && productSel.value) || '';
+  const usage = (usageSel && usageSel.value) || '';
+  const speed = (speedSel && speedSel.value) || '';
+  const review = (reviewSel && reviewSel.value) || '';
+  return (journalCatalog.journals || []).filter(j => {
+    if (product && j.product !== product) return false;
+    if (usage && (j.usage || '') !== usage) return false;
+    if (speed && (j.speed || '') !== speed) return false;
+    if (review && (j.review_status || 'new') !== review) return false;
+    if (q) {
+      const blob = ((j.title || '') + (j.why || '') + (j.when || '') + (j.product || '') + (j.date || '') + (j.review_label || '')).toLowerCase();
+      if (!blob.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function journalCardHtml(j, selectedId, withUseBtn) {
+  const approved = j.review_status === 'approved';
+  return `
+    <div class="j-card ${j.id === selectedId ? 'selected' : ''}" data-id="${esc(j.id)}" data-approved="${approved ? '1' : '0'}">
+      <h4>${withUseBtn ? `<label style="margin-right:8px"><input type="checkbox" class="batch-check" data-id="${esc(j.id)}" onclick="event.stopPropagation()" /></label>` : ''}${esc(j.title || j.id)}</h4>
+      <div class="row">
+        <span class="badge">${esc(j.product || '')}</span>
+        <span class="badge">${esc(j.date || '无日期')}</span>
+        <span class="badge ${j.speed === '快' ? 'fast' : (j.speed === '慢' ? 'slow' : '')}">${esc(j.speed || '')} · ${j.chars || 0} 字</span>
+        <span class="badge">${esc({try:'试跑摘录', formal:'正式全文', custom:'自定义'}[j.usage] || j.usage || '')}</span>
+        <span class="badge ${approved ? 'fast' : ''}">${esc(j.review_label || '未定稿')}</span>
+      </div>
+      <p><strong>为什么选：</strong>${esc(j.why || '')}</p>
+      <p><strong>什么时候选：</strong>${esc(j.when || '')}</p>
+      <p class="meta">${esc(j.preview || '')}…</p>
+      ${withUseBtn ? `<div class="actions">
+        <button class="btn btn-preview-j" type="button" data-id="${esc(j.id)}">看全文</button>
+        <button class="btn btn-primary btn-use" type="button" data-id="${esc(j.id)}" data-approved="${approved ? '1' : '0'}">${approved ? '强制复审并去工作台' : '选用并去工作台'}</button>
+      </div>` : ''}
+    </div>`;
+}
+
+function renderJournalCards() {
+  const list = document.getElementById('journal-list');
+  const selectedId = state && state.journal_id;
+  const items = filteredJournals(
+    document.getElementById('filter-product'),
+    document.getElementById('filter-usage'),
+    document.getElementById('filter-q'),
+    null
+  );
+  if (!items.length) {
+    list.innerHTML = '<p class="meta">没有匹配的日志。可换筛选，或改用粘贴/上传。</p>';
+    return;
+  }
+  list.innerHTML = items.map(j => journalCardHtml(j, selectedId, false)).join('');
+  list.querySelectorAll('.j-card').forEach(card => {
+    card.onclick = () => selectJournal(card.dataset.id);
+  });
+}
+
+function renderJournalsPage() {
+  const list = document.getElementById('journals-page-list');
+  if (!list) return;
+  const selectedId = state && state.journal_id;
+  const items = filteredJournals(
+    document.getElementById('jp-filter-product'),
+    document.getElementById('jp-filter-usage'),
+    document.getElementById('jp-filter-q'),
+    document.getElementById('jp-filter-speed'),
+    document.getElementById('jp-filter-review')
+  );
+  if (!items.length) {
+    list.innerHTML = '<p class="meta">没有匹配日志。换筛选，或点「粘贴新日志」。</p>';
+    return;
+  }
+  list.innerHTML = items.map(j => journalCardHtml(j, selectedId, true)).join('');
+  list.querySelectorAll('.btn-preview-j').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      previewLibraryJournal(btn.dataset.id);
+    };
+  });
+  list.querySelectorAll('.btn-use').forEach(btn => {
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      const ok = await selectJournal(btn.dataset.id, { forceReopen: btn.dataset.approved === '1' });
+      if (ok) switchView('work');
+    };
+  });
+  list.querySelectorAll('.j-card').forEach(card => {
+    card.onclick = (e) => {
+      if (e.target.closest('.btn-use') || e.target.closest('.btn-preview-j') || e.target.closest('.batch-check')) return;
+      // 只看内容，不进工作台、不强制复审
+      previewLibraryJournal(card.dataset.id);
+    };
+  });
+}
+
+let viewStack = [];
+let currentViewName = 'work';
+const VIEW_LABELS = {
+  work: '工作台',
+  journals: '日志库',
+  fetch: '获取信息',
+  queue: '待人审',
+  audit: '审核历史',
+  registry: '定稿档案',
+  manual: '使用手册'
+};
+
+function updateBackBar(name) {
+  const bar = document.getElementById('page-back-bar');
+  const label = document.getElementById('page-back-label');
+  if (!bar) return;
+  if (name === 'work' || !viewStack.length) {
+    bar.classList.remove('show');
+    return;
+  }
+  const prev = viewStack[viewStack.length - 1];
+  bar.classList.add('show');
+  if (label) label.textContent = '从「' + (VIEW_LABELS[prev] || prev) + '」过来 · 可返回';
+}
+
+function goBackView() {
+  const prev = viewStack.pop() || 'work';
+  switchView(prev, { replace: true });
+}
+
+function switchView(name, opts) {
+  opts = opts || {};
+  if (!opts.replace && name !== currentViewName) {
+    viewStack.push(currentViewName);
+    if (viewStack.length > 12) viewStack.shift();
+  }
+  currentViewName = name;
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  document.querySelectorAll('.nav-link').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('data-view') === name);
+  });
+  updateBackBar(name);
+  if (name === 'journals') loadJournalList();
+  if (name === 'fetch') loadFetchInbox();
+  if (name === 'queue') loadQueue();
+  if (name === 'audit') loadAuditList();
+  if (name === 'registry') loadRegistry();
+  if (name === 'manual') {
+    const page = document.getElementById('manual-page');
+    if (page) page.scrollTop = 0;
+  }
+}
+
+async function selectJournal(id, opts) {
+  if (!id) return false;
+  opts = (typeof opts === 'boolean') ? { forceReopen: opts } : (opts || {});
+  const forceReopen = !!opts.forceReopen; // 仅对「已定稿」的日志用强制复审
+  if (state && state.phase !== 'idle') {
+    const ok = await confirmAsk(
+      forceReopen
+        ? '这份日志已经进过定稿档案。强制复审会清空当前工作台产物并重新打开。确定继续？'
+        : '切换日志会清空当前工作台里未定稿的产物。确定切换吗？（只想看内容请点「看全文」，不必选用）',
+      forceReopen ? '强制复审' : '切换日志'
+    );
+    if (!ok) return false;
+  } else if (forceReopen) {
+    const ok = await confirmAsk(
+      '这份日志已经进过定稿档案。强制复审会清空工作台并用它重新打开。确定继续？',
+      '强制复审'
+    );
+    if (!ok) return false;
+  }
+  showBusy(forceReopen ? '强制复审载入中…' : '切换日志…');
+  try {
+    const res = await api('/api/journal/select', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id, force_reopen: forceReopen })
+    });
+    if (!res.ok) { toast(res.error || '切换失败', false); return false; }
+    toast(res.message || '已切换', true);
+    if (res.hint) toast(res.hint, true);
+    closeJournalModal();
+    const j = await api('/api/journal');
+    if (j.ok) {
+      applyJournalView(j);
+    }
+    await refresh();
+    return true;
+  } finally { hideBusy(); }
+}
+
+async function pasteJournal() {
+  const title = document.getElementById('paste-title').value.trim();
+  const content = document.getElementById('paste-content').value;
+  if (state && state.phase !== 'idle') {
+    const ok = await confirmAsk('粘贴新日志会清空当前产物，确定继续？', '粘贴新日志');
+    if (!ok) return;
+  }
+  showBusy('保存粘贴日志…');
+  try {
+    const res = await api('/api/journal/paste', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ title, content })
+    });
+    if (!res.ok) { toast(res.error || '保存失败', false); return; }
+    toast(res.message || '已使用粘贴日志', true);
+    closeJournalModal();
+    const j = await api('/api/journal');
+    if (j.ok) {
+      applyJournalView(j);
+    }
+    await refresh();
+  } finally { hideBusy(); }
+}
+
+async function uploadJournal(file) {
+  if (!file) return;
+  if (state && state.phase !== 'idle') {
+    const ok = await confirmAsk('上传新日志会清空当前产物，确定继续？', '上传日志');
+    if (!ok) return;
+  }
+  const text = await file.text();
+  showBusy('上传日志…');
+  try {
+    const res = await api('/api/journal/upload', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ filename: file.name, content: text })
+    });
+    if (!res.ok) { toast(res.error || '上传失败', false); return; }
+    toast(res.message || '上传成功', true);
+    closeJournalModal();
+    const j = await api('/api/journal');
+    if (j.ok) {
+      applyJournalView(j);
+    }
+    await refresh();
+  } finally { hideBusy(); }
+}
+
+async function runStep1() {
+  showBusy('Step1：AI 正在整理需求故事…');
+  try {
+    const res = await api('/api/loop/step1', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+    if (!res.ok) { toast(res.error || 'Step1 失败', false); return; }
+    toast('Step1 完成，请确认', true);
+    await refresh();
+  } finally { hideBusy(); }
+}
+
+async function runStep2() {
+  showBusy('Step2：AI 正在提取用户故事…');
+  try {
+    const res = await api('/api/loop/step2', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+    if (!res.ok) { toast(res.error || 'Step2 失败', false); return; }
+    toast('Step2 完成，共 ' + (res.count || 0) + ' 条', true);
+    await refresh();
+  } finally { hideBusy(); }
+}
+
+async function unlockStep1() {
+  const ok = await confirmAsk(
+    '解锁 Step1 会撤掉当前 Step2 草稿，回到需求故事人审。确定解锁？',
+    '解锁 Step1'
+  );
+  if (!ok) return;
+  showBusy('正在解锁 Step1…');
+  try {
+    const actor = getActor() || (state && state.user && (state.user.display_name || state.user.username)) || '审核人';
+    const res = await api('/api/loop/feedback', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ step: STEP1, raw: 'unlock:step1', actor })
+    });
+    if (!res.ok) {
+      toast(res.error || '解锁失败', false);
+      return;
+    }
+    document.getElementById('reason').value = '';
+    document.getElementById('revise-confirm-row').style.display = 'none';
+    document.getElementById('reason').style.display = 'none';
+    pendingReviseCode = null;
+    pendingAction = null;
+    currentStep = 1;
+    // 先按接口返回的 phase 强制切回 Step1，避免 refresh 前界面还停在 Step2
+    if (state) state.phase = res.phase || 'step1_review';
+    toast(res.message || 'Step1 已解锁', true);
+    await refresh();
+    if (!state || state.phase !== 'step1_review') {
+      // 再拉一次；若仍不对，本地兜底切到 Step1 交互
+      await refresh();
+    }
+    if (state && state.phase === 'step1_review') {
+      document.getElementById('action-title').textContent = 'Step1 · 请确认：故事是否读得通？';
+      document.getElementById('output-title').textContent = '电脑整理的需求故事（请人审）';
+      toast('已回到 Step1', true);
+    } else {
+      toast('解锁已提交，但阶段未切回。请强制刷新页面后再看。当前阶段：' + ((state && state.phase) || '?'), false);
+    }
+  } finally {
+    hideBusy();
+  }
+}
+
+async function submitFeedback(kind, code) {
+  if (kind === 'unlock') {
+    await unlockStep1();
+    return;
+  }
+  let raw = 'ok';
+  const step = currentStep === 1 ? STEP1 : STEP2;
+  const actor = getActor();
+  if (kind === 'ok' || kind === 'revise') {
+    if (!actor) { toast('请先填写审核人姓名', false); document.getElementById('actor-name').focus(); return; }
+  }
+  if (kind === 'revise') {
+    const reason = document.getElementById('reason').value.trim();
+    if (!reason) { toast('请填写打叉原因', false); document.getElementById('reason').style.display = 'block'; return; }
+    raw = 'revise:' + code + ':' + reason;
+    showBusy('正在根据反馈重跑…');
+  } else if (kind === 'ok') {
+    const reason = document.getElementById('reason').value.trim();
+    if (!reason) { toast('通过也请填写理由（便于回溯）', false); document.getElementById('reason').style.display = 'block'; return; }
+    raw = 'ok:' + reason;
+    showBusy('提交通过…');
+  }
+  try {
+    const res = await api('/api/loop/feedback', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ step, raw, actor })
+    });
+    if (!res.ok) { toast(res.error || '提交失败', false); return; }
+    toast(res.message || '已提交', true);
+    document.getElementById('reason').value = '';
+    document.getElementById('revise-confirm-row').style.display = 'none';
+    document.getElementById('reason').style.display = 'none';
+    pendingReviseCode = null;
+    pendingAction = null;
+    await refresh();
+    // Step2 通过后进入 Step3，必须人自己点定稿；禁止自动跳过
+    if (kind === 'ok' && (res.phase === 'step3_ready' || (state && state.phase === 'step3_ready'))) {
+      const ap = document.getElementById('approver');
+      if (ap && !ap.value.trim()) {
+        ap.value = getActor() || (state.user && (state.user.display_name || state.user.username)) || '';
+      }
+      toast('Step2 已通过，已进入 Step3。请确认定稿人后点「生成定稿并归档」。', true);
+    }
+  } finally { hideBusy(); }
+}
+
+async function finalize() {
+  const approver = document.getElementById('approver').value.trim() || getActor();
+  if (!approver) { toast('请填写定稿人姓名', false); return; }
+  document.getElementById('approver').value = approver;
+  showBusy('正在生成定稿并归档…');
+  try {
+    const res = await api('/api/loop/finalize', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ approver, note: '人工定稿归档' })
+    });
+    if (!res.ok) { toast(res.error || '定稿失败', false); return; }
+    const jid = (res.registry && (res.registry.journal_id || res.registry.journalId)) || (state && state.journal_id) || '';
+    toast('已写入定稿档案' + (jid ? ('：' + jid) : '') + '。已打开「定稿档案」列表。', true);
+    await refresh();
+    await loadRegistry();
+    switchView('registry');
+    if (jid) openRegistryDetail(jid);
+  } finally { hideBusy(); }
+}
+
+async function runCheck() {
+  showBusy('运行 check 验收…');
+  try {
+    const res = await api('/api/check', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        target: state.phase === 'done' ? 'accepted' : 'stories',
+        actor: getActor()
+      })
+    });
+    if (res.passed) {
+      const tip = (res.warnings && res.warnings.length) ? ('；' + res.warnings[0]) : '';
+      toast('[OK] 验收门槛通过' + tip, true);
+    } else {
+      toast('未通过：' + (res.errors || [res.error || '未知错误']).slice(0,2).join('；'), false);
+    }
+    await refresh();
+  } finally { hideBusy(); }
+}
+
+async function loadQueue() {
+  const data = await api('/api/queue');
+  const list = document.getElementById('queue-list');
+  if (!data.ok) { list.innerHTML = '<p class="meta">加载失败</p>'; return; }
+  document.getElementById('nav-queue-count').textContent =
+    (data.pending_human || 0) + ' 待审';
+  const items = data.items || [];
+  if (!items.length) {
+    list.innerHTML = '<p class="meta">队列为空。去日志库勾选后点「批量 AI → 待人审」。AI 只会先写 Step1，不会跳过人审。</p>';
+    return;
+  }
+  const statusMap = {
+    queued: { label: '排队等 AI', tip: '还没开始跑' },
+    ai_running: { label: 'AI 正在写', tip: '请稍候刷新' },
+    pending_step1: { label: '等人审 · Step1', tip: '需求故事已写好，点开始人审' },
+    pending_step2: { label: '等人审 · Step2', tip: '用户要…条目已抽出，点开始人审' },
+    pending_human: { label: '等人审（旧）', tip: '兼容旧队列项' },
+    in_review: { label: '人审进行中', tip: '已在工作台打开过，可继续审' },
+    step1_passed: { label: 'Step1 已过 · 等人点 Step2', tip: '不会自动跑 Step2，打开后可运行或解锁' },
+    done: { label: '已进定稿档案', tip: '' },
+    failed: { label: '失败', tip: '看下方错误' },
+  };
+  const canOpen = new Set(['pending_step1', 'pending_step2', 'pending_human', 'in_review', 'step1_passed', 'failed']);
+  list.innerHTML = items.map(it => {
+    const sm = statusMap[it.status] || { label: it.status, tip: '' };
+    const btnLabel = it.status === 'pending_step2'
+      ? '开始人审 Step2'
+      : (it.status === 'step1_passed'
+        ? '继续（跑 Step2 / 解锁）'
+        : (it.status === 'pending_step1' || it.status === 'pending_human'
+          ? '开始人审 Step1'
+          : '继续人审'));
+    return `
+    <div class="j-card">
+      <h4>${esc(it.journal_title || it.journal_id)}</h4>
+      <div class="row">
+        <span class="badge">${esc(sm.label)}</span>
+        <span class="badge">${it.story_count || 0} 条故事</span>
+        <span class="badge">${esc(it.updated_at || '')}</span>
+      </div>
+      ${sm.tip ? `<p class="meta">${esc(sm.tip)}</p>` : ''}
+      ${it.error ? `<p class="meta" style="color:var(--error)">${esc(it.error)}</p>` : ''}
+      <div class="actions">
+        ${canOpen.has(it.status)
+          ? `<button class="btn btn-primary btn-open-q" data-id="${esc(it.id)}" type="button">${btnLabel}</button>`
+          : `<span class="meta">${esc(sm.label)} · 请点刷新</span>`}
+      </div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.btn-open-q').forEach(btn => {
+    btn.onclick = () => openQueueItem(btn.dataset.id);
+  });
+}
+
+async function loadFetchInbox() {
+  const data = await api('/api/journals/fetch');
+  const list = document.getElementById('fetch-list');
+  const hint = document.getElementById('fetch-hint');
+  if (!data.ok) {
+    list.innerHTML = '<p class="meta">加载失败</p>';
+    return;
+  }
+  document.getElementById('nav-fetch-count').textContent =
+    (data.pending_count || 0) + ' 待入库';
+  hint.textContent = data.source_repo
+    ? ('来源：' + data.source_repo + ' · 获取≠入库 · 服务会每日自动拉取一次，也可手动拉')
+    : '';
+  const groups = data.groups || [];
+  if (!groups.length) {
+    list.innerHTML = '<p class="meta">暂无待入库日志。点上方「手动拉取」或等每日自动拉取。</p>';
+    return;
+  }
+  list.innerHTML = groups.map(g => `
+    <div class="reg-group">
+      <h3>获取日 ${esc(g.date)}（${g.count}）</h3>
+      ${(g.items || []).map(it => `
+        <div class="j-card fetch-card" data-id="${esc(it.id)}">
+          <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
+            <input type="checkbox" class="fetch-check" data-id="${esc(it.id)}" style="margin-top:4px" onclick="event.stopPropagation()"/>
+            <div style="flex:1">
+              <h4 style="margin:0">${esc(it.title || it.journal_id)}</h4>
+              <div class="row" style="margin-top:6px">
+                <span class="badge">${esc(it.product_label || it.product || '')}</span>
+                <span class="badge">${it.chars || 0} 字</span>
+                <span class="badge">${esc(it.date || '')}</span>
+              </div>
+              <p class="meta" style="margin:8px 0 0">${esc(it.suggest_reason || '')}</p>
+              <p class="meta">${esc(it.preview || '')}</p>
+              <div class="actions" style="margin-top:8px">
+                <button class="btn btn-preview-fetch" type="button" data-id="${esc(it.id)}">看全文</button>
+                <button class="btn btn-compare-fetch" type="button" data-id="${esc(it.id)}">对比日志库</button>
+                <a class="btn" href="${esc(it.source_url || '#')}" target="_blank" rel="noopener" onclick="event.stopPropagation()">打开官方原文</a>
+                <span class="meta">id <code>${esc(it.journal_id)}</code></span>
+              </div>
+            </div>
+          </label>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+  list.querySelectorAll('.fetch-card').forEach(card => {
+    card.onclick = (e) => {
+      if (e.target.closest('a,button,input,label input')) return;
+      previewFetchItem(card.dataset.id);
+    };
+  });
+  list.querySelectorAll('.btn-preview-fetch').forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); previewFetchItem(btn.dataset.id); };
+  });
+  list.querySelectorAll('.btn-compare-fetch').forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); compareFetchItem(btn.dataset.id); };
+  });
+}
+
+async function previewFetchItem(id) {
+  showBusy('加载全文…');
+  try {
+    const data = await api('/api/journals/fetch/item?id=' + encodeURIComponent(id || ''));
+    if (!data.ok) { toast(data.error || '加载失败', false); return; }
+    const it = data.item || {};
+    openPreviewModal({
+      title: it.title || it.journal_id || '获取全文',
+      meta: `id ${it.journal_id || ''} · ${it.chars || 0} 字 · 获取≠入库`,
+      content: it.content || '',
+      actionsHtml: `
+        <button class="btn btn-primary" type="button" id="btn-pv-compare">对比日志库</button>
+        ${it.source_url ? `<a class="btn" href="${esc(it.source_url)}" target="_blank" rel="noopener">打开官方原文</a>` : ''}
+      `,
+      onReady: () => {
+        const b = document.getElementById('btn-pv-compare');
+        if (b) b.onclick = () => { closePreviewModal(); compareFetchItem(id); };
+      }
+    });
+  } finally { hideBusy(); }
+}
+
+async function compareFetchItem(id) {
+  showBusy('正在对比日志库…');
+  try {
+    const data = await api('/api/journals/fetch/compare?id=' + encodeURIComponent(id || ''));
+    if (!data.ok) { toast(data.error || '对比失败', false); return; }
+    const left = data.item || {};
+    const matches = data.matches || [];
+    const best = data.best || matches[0];
+    document.getElementById('compare-title').textContent =
+      '对比日志库 · ' + (left.title || left.journal_id || '');
+    document.getElementById('compare-hint').textContent =
+      (data.compare_target_label ? ('对比目标：' + data.compare_target_label + '（不是定稿档案）。') : '') +
+      (data.message || '');
+    document.getElementById('compare-left-meta').textContent = (left.chars || 0) + ' 字';
+    showReadable(document.getElementById('compare-left'), left.content || '');
+    if (best && best.content) {
+      const tags = [];
+      if (best.same_id) tags.push('同 id');
+      if (best.same_product_date) tags.push('同产品流+同日');
+      tags.push('相似 ' + ((best.similarity || 0) * 100).toFixed(0) + '%');
+      document.getElementById('compare-right-meta').textContent =
+        `${best.journal_id || best.file} · ${tags.join(' · ')} · ${best.chars || 0} 字`;
+      showReadable(document.getElementById('compare-right'), best.content);
+    } else {
+      document.getElementById('compare-right-meta').textContent = '日志库无匹配';
+      document.getElementById('compare-right').innerHTML =
+        '<p class="meta">日志库 journals/ 中未发现同 id / 同日或明显相同全文。可考虑写入日志库。（此处不查「定稿档案」）</p>';
+    }
+    const box = document.getElementById('compare-matches');
+    if (matches.length > 1) {
+      box.innerHTML = '<p class="meta">日志库其他相关项（点切换右侧）：</p>' + matches.map((m, i) =>
+        `<button class="btn btn-cmp-pick" type="button" data-i="${i}" style="margin:4px 4px 0 0">${esc(m.journal_id || m.file)}${m.same_id ? ' ·同id' : ''}${m.same_product_date ? ' ·同日' : ''} · ${((m.similarity || 0) * 100).toFixed(0)}%</button>`
+      ).join('');
+      box.querySelectorAll('.btn-cmp-pick').forEach(btn => {
+        btn.onclick = () => {
+          const m = matches[Number(btn.dataset.i)];
+          if (!m) return;
+          document.getElementById('compare-right-meta').textContent =
+            `${m.journal_id || m.file} · 相似 ${(m.similarity * 100).toFixed(0)}% · ${m.chars || 0} 字`;
+          if (m.content) showReadable(document.getElementById('compare-right'), m.content);
+          else document.getElementById('compare-right').innerHTML = `<p class="meta">${esc(m.preview || '')}</p>`;
+        };
+      });
+    } else {
+      box.innerHTML = '';
+    }
+    document.getElementById('compare-modal').classList.add('show');
+  } finally { hideBusy(); }
+}
+
+async function previewLibraryJournal(id) {
+  showBusy('加载日志全文…');
+  try {
+    const data = await api('/api/journals/preview?id=' + encodeURIComponent(id || ''));
+    if (!data.ok && data.error) { toast(data.error || '加载失败', false); return; }
+    const meta = data.meta || {};
+    openPreviewModal({
+      title: meta.title || data.id || id,
+      meta: [
+        meta.product || '',
+        meta.date || '',
+        (data.chars || 0) + ' 字',
+        meta.review_label || ''
+      ].filter(Boolean).join(' · '),
+      content: data.content || '',
+      actionsHtml: `
+        <button class="btn btn-primary" type="button" id="btn-pv-use">${(meta.review_status === 'approved') ? '强制复审并去工作台' : '选用并去工作台'}</button>
+      `,
+      onReady: () => {
+        const b = document.getElementById('btn-pv-use');
+        if (b) b.onclick = async () => {
+          closePreviewModal();
+          const ok = await selectJournal(id, { forceReopen: meta.review_status === 'approved' });
+          if (ok) switchView('work');
+        };
+      }
+    });
+  } finally { hideBusy(); }
+}
+
+function openPreviewModal({ title, meta, content, actionsHtml, onReady }) {
+  document.getElementById('preview-title').textContent = title || '全文';
+  document.getElementById('preview-meta').textContent = meta || '';
+  showReadable(document.getElementById('preview-body'), content || '');
+  document.getElementById('preview-actions').innerHTML = actionsHtml || '';
+  document.getElementById('preview-modal').classList.add('show');
+  if (typeof onReady === 'function') onReady();
+}
+
+function closePreviewModal() {
+  document.getElementById('preview-modal').classList.remove('show');
+}
+
+function closeCompareModal() {
+  document.getElementById('compare-modal').classList.remove('show');
+}
+
+async function runOfficialFetch() {
+  showBusy('正在从官方仓库拉取（不会自动入库）…');
+  try {
+    const res = await api('/api/journals/fetch/run', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ max_per_product: 30, mode: 'manual' })
+    });
+    if (!res.ok) { toast(res.error || '拉取失败', false); return; }
+    toast(res.message || '拉取完成', true);
+    if ((res.cancelled_count || 0) > 0) {
+      toast('因高度相似取消 ' + res.cancelled_count + ' 条', true);
+    }
+    await loadFetchInbox();
+  } finally { hideBusy(); }
+}
+
+async function runAutoFetchNow() {
+  showBusy('执行每日自动拉取检查…');
+  try {
+    const res = await api('/api/journals/fetch/run', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ mode: 'auto', force: true })
+    });
+    if (!res.ok) { toast(res.error || '自动拉取失败', false); return; }
+    toast(res.skipped ? (res.reason || '今日已拉过') : (res.message || '自动拉取完成'), true);
+    await loadFetchInbox();
+  } finally { hideBusy(); }
+}
+
+async function approveFetchSelected() {
+  const ids = [...document.querySelectorAll('.fetch-check:checked')].map(el => el.dataset.id);
+  if (!ids.length) { toast('请先勾选要入库的日志', false); return; }
+  const ok = await confirmAsk('同意将所选 ' + ids.length + ' 条写入日志库？获取页只是暂存，入库后才能在日志库选用。', '同意入库');
+  if (!ok) return;
+  showBusy('写入日志库…');
+  try {
+    const res = await api('/api/journals/fetch/approve', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ ids })
+    });
+    if (!res.ok) { toast(res.error || '入库失败', false); return; }
+    toast(res.message || '已写入日志库', true);
+    await loadFetchInbox();
+    await loadJournalList();
+  } finally { hideBusy(); }
+}
+
+async function rejectFetchSelected() {
+  const ids = [...document.querySelectorAll('.fetch-check:checked')].map(el => el.dataset.id);
+  if (!ids.length) { toast('请先勾选要拒绝的项', false); return; }
+  const ok = await confirmAsk('拒绝所选 ' + ids.length + ' 条？不会写入日志库。', '拒绝');
+  if (!ok) return;
+  const res = await api('/api/journals/fetch/reject', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ ids, reason: '人工拒绝' })
+  });
+  if (!res.ok) { toast(res.error || '操作失败', false); return; }
+  toast(res.message || '已拒绝', true);
+  await loadFetchInbox();
+}
+
+async function openQueueItem(id) {
+  showBusy('载入待人审…');
+  try {
+    const res = await api('/api/queue/open', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id })
+    });
+    if (!res.ok) { toast(res.error || '打开失败', false); return; }
+    toast(res.message || '已载入', true);
+    const j = await api('/api/journal');
+    if (j.ok) {
+      applyJournalView(j);
+    }
+    await refresh();
+    switchView('work');
+  } finally { hideBusy(); }
+}
+
+async function loadRegistry() {
+  const q = (document.getElementById('registry-q') && document.getElementById('registry-q').value) || '';
+  const product = (document.getElementById('registry-product') && document.getElementById('registry-product').value) || '';
+  const data = await api('/api/registry?q=' + encodeURIComponent(q) + '&product=' + encodeURIComponent(product));
+  const list = document.getElementById('registry-list');
+  if (!data.ok) { list.innerHTML = '<p class="meta">加载失败</p>'; return; }
+  document.getElementById('nav-registry-count').textContent = (data.count || 0) + ' 条';
+  const sel = document.getElementById('registry-product');
+  const labels = data.product_labels || {};
+  if (sel && !(sel.dataset.filled === '1')) {
+    (data.products || []).forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = labels[p] || p;
+      sel.appendChild(opt);
+    });
+    sel.dataset.filled = '1';
+  }
+  const items = data.items || [];
+  if (!items.length) {
+    list.innerHTML = '<p class="meta">尚无定稿档案。Step3 定稿成功后会出现在这里。</p>';
+    return;
+  }
+  const groups = {};
+  items.forEach(it => {
+    const key = it.product || 'other';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(it);
+  });
+  const order = Object.keys(groups).sort((a, b) => (labels[a] || a).localeCompare(labels[b] || b, 'zh'));
+  list.innerHTML = order.map(key => {
+    const title = labels[key] || key;
+    const cards = groups[key].map(it => `
+      <div class="j-card" data-id="${esc(it.journal_id)}">
+        <h4>${esc(it.title || it.journal_id)}</h4>
+        <div class="row">
+          <span class="badge fast">已定稿</span>
+          <span class="badge">定稿人 ${esc(it.approver || '')}</span>
+          <span class="badge">${it.story_count || 0} 条</span>
+          <span class="badge">${esc(it.approved_at || '')}</span>
+        </div>
+        <p class="meta">id: ${esc(it.journal_id)}</p>
+        <div class="actions">
+          <button class="btn btn-primary btn-reg-detail" type="button" data-id="${esc(it.journal_id)}">查看详情</button>
+          <button class="btn btn-use" type="button" data-id="${esc(it.journal_id)}">强制复审</button>
+        </div>
+      </div>`).join('');
+    return `<div class="reg-group"><h3>${esc(title)}（${groups[key].length}）</h3>${cards}</div>`;
+  }).join('');
+  list.querySelectorAll('.btn-reg-detail').forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); openRegistryDetail(btn.dataset.id); };
+  });
+  list.querySelectorAll('.btn-use').forEach(btn => {
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      const ok = await selectJournal(btn.dataset.id, { forceReopen: true });
+      if (ok) switchView('work');
+    };
+  });
+  list.querySelectorAll('.j-card').forEach(card => {
+    card.onclick = (e) => {
+      if (e.target.closest('button')) return;
+      openRegistryDetail(card.dataset.id);
+    };
+  });
+}
+
+async function openRegistryDetail(journalId) {
+  const modal = document.getElementById('registry-detail-modal');
+  const body = document.getElementById('registry-detail-body');
+  document.getElementById('registry-detail-title').textContent = '定稿详情';
+  body.innerHTML = '<span class="meta">加载中…</span>';
+  modal.classList.add('show');
+  const data = await api('/api/registry/detail?journal_id=' + encodeURIComponent(journalId || ''));
+  if (!data.ok) {
+    body.innerHTML = `<p class="meta">${esc(data.error || '加载失败')}</p>`;
+    return;
+  }
+  const rec = data.record || {};
+  document.getElementById('registry-detail-title').textContent = rec.title || journalId || '定稿详情';
+  const stories = (data.accepted && data.accepted.stories) || [];
+  const events = (data.events || []).filter(ev => (ev.journal_id || '') === journalId);
+  const reqStory = data.requirement_story || (data.accepted && data.accepted.requirement_story) || '';
+  body.innerHTML = `
+    <div class="guide">
+      日志 id：<code>${esc(journalId)}</code><br/>
+      产品流：${esc(rec.product || '—')} · 定稿人：${esc(rec.approver || '')} ·
+      ${rec.story_count || stories.length || 0} 条 · ${esc(rec.approved_at || '')}<br/>
+      产物：${esc(rec.accepted_path || '')} · 指纹 ${esc(rec.fingerprint || '')}
+    </div>
+    <h4 style="margin:12px 0 8px;font-size:13px">需求故事（Step1，已随定稿保存）</h4>
+    ${reqStory
+      ? `<div class="md-view" style="max-height:180px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:10px">${mdToReadableHtml(reqStory)}</div>`
+      : '<p class="meta">本条定稿时未保存需求故事（旧数据）。重新定稿后会出现。</p>'}
+    <h4 style="margin:12px 0 8px;font-size:13px">定稿条目</h4>
+    ${stories.length ? renderStories({ stories }) : '<p class="meta">未读到定稿 JSON（文件可能缺失）</p>'}
+    <h4 style="margin:16px 0 8px;font-size:13px">本日志审核阶段（${events.length}）</h4>
+    ${events.length ? events.map(ev => renderAuditEventHtml(ev)).join('') : '<p class="meta">无阶段记录</p>'}
+    <div class="btnrow" style="margin-top:12px">
+      <button class="btn btn-primary" type="button" id="btn-reg-open-work">打开到工作台复审</button>
+    </div>
+  `;
+  bindStoryMatchClicks(body);
+  const openBtn = document.getElementById('btn-reg-open-work');
+  if (openBtn) {
+    openBtn.onclick = async () => {
+      modal.classList.remove('show');
+      const ok = await selectJournal(journalId, { forceReopen: true });
+      if (ok) switchView('work');
+    };
+  }
+}
+
+function closeRegistryDetail() {
+  document.getElementById('registry-detail-modal').classList.remove('show');
+}
+
+async function batchEnqueue() {
+  const ids = [...document.querySelectorAll('.batch-check:checked')].map(el => el.dataset.id);
+  if (!ids.length) { toast('请先勾选要批量 AI 的日志', false); return; }
+  const actor = getActor() || '批量任务';
+  showBusy('加入批量队列…');
+  try {
+    const res = await api('/api/queue/batch', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ journal_ids: ids, actor })
+    });
+    if (!res.ok) { toast(res.error || '入队失败', false); return; }
+    toast('已入队 ' + (res.enqueued || []).length + ' 条，可在「待人审」查看进度', true);
+    switchView('queue');
+  } finally { hideBusy(); }
+}
+
+async function resetDemo() {
+  const ok = await confirmAsk('确定清空本轮产物并重新梳理？当前定稿/故事将被删除。', '清空本轮');
+  if (!ok) return;
+  showBusy('正在重置…');
+  try {
+    const res = await api('/api/loop/reset', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ keep_locked: false })
+    });
+    if (!res.ok) { toast(res.error || '重置失败', false); return; }
+    toast(res.message || '已重置', true);
+    await refresh();
+  } finally { hideBusy(); }
+}
+
+document.getElementById('btn-ok').onclick = () => {
+  pendingAction = 'ok';
+  pendingReviseCode = null;
+  document.getElementById('reason').style.display = 'block';
+  document.getElementById('revise-confirm-row').style.display = 'flex';
+  document.getElementById('reason').placeholder = '通过理由（必填）——例如：与原文一致，一件事清楚';
+  document.getElementById('reason').focus();
+};
+document.getElementById('btn-unlock').onclick = () => unlockStep1();
+document.querySelectorAll('[data-code]').forEach(btn => {
+  btn.onclick = () => {
+    pendingAction = 'revise';
+    pendingReviseCode = btn.dataset.code;
+    document.getElementById('reason').style.display = 'block';
+    document.getElementById('revise-confirm-row').style.display = 'flex';
+    document.getElementById('reason').placeholder = '打叉原因（' + btn.dataset.code + '）——写一句人话即可';
+    document.getElementById('reason').focus();
+  };
+});
+document.getElementById('btn-revise-confirm').onclick = () => {
+  if (pendingAction === 'ok') {
+    submitFeedback('ok');
+    return;
+  }
+  if (!pendingReviseCode) { toast('请先点通过或一种打叉类型', false); return; }
+  submitFeedback('revise', pendingReviseCode);
+};
+document.getElementById('btn-revise-cancel').onclick = () => {
+  pendingReviseCode = null;
+  pendingAction = null;
+  document.getElementById('reason').value = '';
+  document.getElementById('reason').style.display = 'none';
+  document.getElementById('revise-confirm-row').style.display = 'none';
+};
+document.getElementById('btn-finalize').onclick = finalize;
+document.getElementById('btn-check').onclick = runCheck;
+
+[1,2,3].forEach(i => {
+  // 保留 currentStep 由工具栏阶段驱动；不再绑定侧边流水线
+});
+
+document.getElementById('btn-pick-journal').onclick = openJournalModal;
+document.getElementById('btn-page-back').onclick = goBackView;
+document.getElementById('btn-close-registry-detail').onclick = closeRegistryDetail;
+document.getElementById('registry-detail-modal').addEventListener('click', e => {
+  if (e.target.id === 'registry-detail-modal') closeRegistryDetail();
+});
+document.getElementById('registry-product').onchange = () => loadRegistry();
+document.getElementById('btn-show-excerpt').onclick = () => {
+  document.getElementById('excerpt-modal').classList.add('show');
+};
+document.getElementById('btn-close-excerpt').onclick = () => {
+  document.getElementById('excerpt-modal').classList.remove('show');
+};
+document.getElementById('excerpt-modal').addEventListener('click', e => {
+  if (e.target.id === 'excerpt-modal') {
+    document.getElementById('excerpt-modal').classList.remove('show');
+  }
+});
+document.getElementById('btn-goto-journals').onclick = () => switchView('journals');
+document.getElementById('nav-work').onclick = () => switchView('work');
+document.getElementById('nav-journals').onclick = () => switchView('journals');
+document.getElementById('nav-fetch').onclick = () => switchView('fetch');
+document.getElementById('nav-queue').onclick = () => switchView('queue');
+document.getElementById('nav-audit').onclick = () => switchView('audit');
+document.getElementById('nav-registry').onclick = () => switchView('registry');
+document.getElementById('nav-manual').onclick = () => switchView('manual');
+document.getElementById('btn-close-modal').onclick = closeJournalModal;
+document.getElementById('btn-help').onclick = () => switchView('manual');
+document.getElementById('btn-fetch-run').onclick = runOfficialFetch;
+document.getElementById('btn-fetch-auto').onclick = runAutoFetchNow;
+document.getElementById('btn-fetch-refresh').onclick = loadFetchInbox;
+document.getElementById('btn-fetch-approve').onclick = approveFetchSelected;
+document.getElementById('btn-fetch-reject').onclick = rejectFetchSelected;
+document.getElementById('btn-close-preview').onclick = closePreviewModal;
+document.getElementById('preview-modal').addEventListener('click', e => {
+  if (e.target.id === 'preview-modal') closePreviewModal();
+});
+document.getElementById('btn-close-compare').onclick = closeCompareModal;
+document.getElementById('compare-modal').addEventListener('click', e => {
+  if (e.target.id === 'compare-modal') closeCompareModal();
+});
+document.getElementById('btn-goto-audit').onclick = () => {
+  const jid = (state && state.journal_id) || '';
+  if (!jid) {
+    toast('当前没有选中日志，请先从日志库选用', false);
+    switchView('audit');
+    return;
+  }
+  switchView('audit');
+  // 直接打开本日志明细，避免和别的日志混在一起看
+  openAuditDetail(jid, (state.journal_meta && state.journal_meta.title) || jid);
+  loadAuditList();
+};
+document.getElementById('btn-audit-refresh').onclick = () => loadAuditList();
+document.getElementById('audit-q').oninput = () => loadAuditList();
+document.getElementById('btn-jp-select-all').onclick = () => {
+  document.querySelectorAll('#journals-page-list .batch-check').forEach(el => { el.checked = true; });
+  toast('已全选当前筛选列表', true);
+};
+document.getElementById('btn-jp-select-none').onclick = () => {
+  document.querySelectorAll('#journals-page-list .batch-check').forEach(el => { el.checked = false; });
+};
+document.getElementById('btn-confirm-ok').onclick = () => finishConfirm(true);
+document.getElementById('btn-confirm-cancel').onclick = () => finishConfirm(false);
+document.getElementById('btn-confirm-cancel-x').onclick = () => finishConfirm(false);
+document.getElementById('confirm-modal').addEventListener('click', e => {
+  if (e.target.id === 'confirm-modal') finishConfirm(false);
+});
+document.getElementById('btn-close-audit-detail').onclick = closeAuditDetail;
+document.getElementById('audit-detail-modal').addEventListener('click', e => {
+  if (e.target.id === 'audit-detail-modal') closeAuditDetail();
+});
+document.getElementById('btn-logout').onclick = async () => {
+  await api('/api/auth/logout', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+  location.href = '/login.html';
+};
+document.getElementById('journal-modal').addEventListener('click', e => {
+  if (e.target.id === 'journal-modal') closeJournalModal();
+});
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const name = tab.dataset.tab;
+    document.getElementById('tab-library').style.display = name === 'library' ? 'block' : 'none';
+    document.getElementById('tab-paste').style.display = name === 'paste' ? 'block' : 'none';
+    document.getElementById('tab-upload').style.display = name === 'upload' ? 'block' : 'none';
+  };
+});
+document.getElementById('filter-product').onchange = renderJournalCards;
+document.getElementById('filter-usage').onchange = renderJournalCards;
+document.getElementById('filter-q').oninput = renderJournalCards;
+document.getElementById('jp-filter-product').onchange = renderJournalsPage;
+document.getElementById('jp-filter-usage').onchange = renderJournalsPage;
+document.getElementById('jp-filter-review').onchange = renderJournalsPage;
+document.getElementById('jp-filter-speed').onchange = renderJournalsPage;
+document.getElementById('jp-filter-q').oninput = renderJournalsPage;
+document.getElementById('btn-jp-refresh').onclick = () => loadJournalList();
+document.getElementById('btn-jp-batch').onclick = batchEnqueue;
+document.getElementById('btn-queue-refresh').onclick = loadQueue;
+document.getElementById('btn-registry-refresh').onclick = loadRegistry;
+document.getElementById('registry-q').oninput = () => loadRegistry();
+document.getElementById('btn-jp-paste').onclick = () => {
+  openJournalModal();
+  document.querySelector('.tab[data-tab="paste"]').click();
+};
+document.getElementById('btn-paste-use').onclick = pasteJournal;
+document.getElementById('upload-file').onchange = e => {
+  const f = e.target.files && e.target.files[0];
+  if (f) uploadJournal(f);
+};
+
+(async () => {
+  try {
+    const j = await api('/api/journal');
+    if (j.ok) {
+      applyJournalView(j);
+    }
+  } catch (e) {
+    document.getElementById('journal-text').innerHTML = '<p style="color:var(--text3)">无法加载日志。请确认已双击 start-with-ai.bat，地址是 http://127.0.0.1:8765/</p>';
+  }
+  await refresh();
+  await loadJournalList();
+})();
+</script>
+</body>
+</html>

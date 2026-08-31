@@ -18,6 +18,10 @@ if not exist "%REVIEW%" (
 )
 
 echo Opening in your default browser...
+echo.
+echo NOTE: For AI draft stories, use start-with-ai.bat instead.
+echo       (This opens file:// without local API server.)
+echo.
 start "" "%REVIEW%"
 
 echo.

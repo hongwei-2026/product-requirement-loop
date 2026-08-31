@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>产品需求梳理智能体 · 阶段 0–7 答辩报告</title>
+<meta name="description" content="量潮实训 · product-requirement 闭环试点答辩全景报告" />
+<style>
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --primary-bg: #e6f4ff;
+    --primary-border: #91caff;
+    --success: #52c41a;
+    --success-bg: #f6ffed;
+    --success-border: #b7eb8f;
+    --warning: #faad14;
+    --warning-bg: #fffbe6;
+    --error: #ff4d4f;
+    --text: rgba(0,0,0,0.88);
+    --text-secondary: rgba(0,0,0,0.65);
+    --text-tertiary: rgba(0,0,0,0.45);
+    --border: #f0f0f0;
+    --border-strong: #d9d9d9;
+    --bg-layout: #f0f2f5;
+    --bg-container: #ffffff;
+    --sidebar-bg: #001529;
+    --sidebar-active: #1677ff;
+    --sidebar-width: 256px;
+    --header-height: 56px;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --shadow: 0 1px 2px rgba(0,0,0,0.03), 0 2px 8px rgba(0,0,0,0.06);
+    --shadow-lg: 0 6px 16px rgba(0,0,0,0.08);
+    --font: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --mono: ui-monospace, Consolas, "Cascadia Code", monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--bg-layout);
+    line-height: 1.6;
+    font-size: 14px;
+  }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { color: var(--primary-hover); }
+
+  /* ── App Shell ── */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    color: rgba(255,255,255,0.85);
+    z-index: 100;
+    display: flex; flex-direction: column;
+    transition: transform 0.25s ease;
+  }
+  .sidebar-brand {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .sidebar-brand .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 15px; font-weight: 600; color: #fff;
+  }
+  .logo-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, #1677ff, #0958d9);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #fff;
+  }
+  .sidebar-brand .sub {
+    margin-top: 6px; font-size: 12px; color: rgba(255,255,255,0.45);
+  }
+  .sidebar-nav {
+    flex: 1; overflow-y: auto; padding: 12px 0;
+  }
+  .nav-group { padding: 8px 16px 4px; font-size: 11px; color: rgba(255,255,255,0.35); letter-spacing: 0.05em; }
+  .sidebar-nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px; color: rgba(255,255,255,0.75);
+    font-size: 13px; transition: all 0.15s;
+    border-left: 3px solid transparent;
+  }
+  .sidebar-nav a:hover { color: #fff; background: rgba(255,255,255,0.06); }
+  .sidebar-nav a.active {
+    color: #fff; background: rgba(22,119,255,0.15);
+    border-left-color: var(--sidebar-active);
+  }
+  .nav-num {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+  }
+  .sidebar-nav a.active .nav-num { background: var(--primary); }
+  .sidebar-footer {
+    padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px; color: rgba(255,255,255,0.45);
+  }
+  .sidebar-footer a { color: rgba(255,255,255,0.65); }
+
+  .main { flex: 1; margin-left: var(--sidebar-width); min-width: 0; }
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    height: var(--header-height);
+    background: var(--bg-container);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+    box-shadow: var(--shadow);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .menu-toggle {
+    display: none; border: none; background: none; cursor: pointer;
+    padding: 6px; border-radius: var(--radius);
+  }
+  .menu-toggle:hover { background: var(--bg-layout); }
+  .breadcrumb { font-size: 13px; color: var(--text-secondary); }
+  .breadcrumb strong { color: var(--text); font-weight: 500; }
+  .topbar-actions { display: flex; gap: 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: var(--radius);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    border: 1px solid var(--border-strong); background: var(--bg-container);
+    color: var(--text); transition: all 0.15s; font-family: inherit;
+  }
+  .btn:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-primary {
+    background: var(--primary); border-color: var(--primary); color: #fff;
+  }
+  .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+  .content { padding: 24px; max-width: 1200px; }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, #001529 0%, #003a8c 50%, #1677ff 100%);
+    border-radius: var(--radius-lg);
+    padding: 40px 36px;
+    color: #fff;
+    margin-bottom: 24px;
+    position: relative; overflow: hidden;
+  }
+  .hero::after {
+    content: ""; position: absolute; top: -50%; right: -10%;
+    width: 400px; height: 400px; border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+  .hero-tag {
+    display: inline-block; padding: 4px 12px; border-radius: 999px;
+    background: rgba(255,255,255,0.12); font-size: 12px; margin-bottom: 12px;
+  }
+  .hero h1 {
+    margin: 0 0 12px; font-size: clamp(22px, 3vw, 32px);
+    line-height: 1.3; font-weight: 600; position: relative;
+  }
+  .hero-lead {
+    margin: 0; max-width: 640px; font-size: 15px;
+    color: rgba(255,255,255,0.85); line-height: 1.7; position: relative;
+  }
+
+  /* ── Stats ── */
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--bg-container); border-radius: var(--radius-lg);
+    padding: 20px; border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  .stat-value {
+    font-size: 28px; font-weight: 700; color: var(--primary);
+    line-height: 1.2;
+  }
+  .stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+  /* ── Sections ── */
+  .section {
+    background: var(--bg-container); border-radius: var(--radius-lg);
+    border: 1px solid var(--border); margin-bottom: 24px;
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .section-head {
+    padding: 20px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  }
+  .section-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+  .section-head .desc { margin: 4px 0 0; font-size: 13px; color: var(--text-secondary); }
+  .section-body { padding: 24px; }
+  .section-body p { margin: 0 0 14px; color: var(--text); line-height: 1.75; }
+  .section-body p:last-child { margin-bottom: 0; }
+
+  .tag {
+    display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 500;
+  }
+  .tag-blue { background: var(--primary-bg); color: #0958d9; border: 1px solid var(--primary-border); }
+  .tag-green { background: var(--success-bg); color: #389e0d; border: 1px solid var(--success-border); }
+  .tag-orange { background: var(--warning-bg); color: #d48806; }
+
+  .callout {
+    background: var(--primary-bg); border-left: 4px solid var(--primary);
+    padding: 14px 18px; border-radius: 0 var(--radius) var(--radius) 0;
+    margin: 16px 0; font-size: 14px;
+  }
+  .callout strong { color: #0958d9; }
+
+  blockquote.story {
+    margin: 16px 0; padding: 16px 20px;
+    background: #fafafa; border-left: 4px solid var(--border-strong);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    color: var(--text-secondary); font-style: italic;
+  }
+
+  /* ── Timeline ── */
+  .timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0; }
+  .tl-item {
+    padding: 16px; border-radius: var(--radius);
+    border: 1px solid var(--border); background: #fafafa;
+    transition: all 0.15s;
+  }
+  .tl-item:hover { border-color: var(--primary-border); background: var(--primary-bg); }
+  .tl-item.done { border-color: var(--success-border); background: var(--success-bg); }
+  .tl-num { font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+  .tl-item.done .tl-num { color: var(--success); }
+  .tl-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .tl-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  table.data {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  table.data th, table.data td {
+    border: 1px solid var(--border); padding: 10px 14px;
+    text-align: left; vertical-align: top;
+  }
+  table.data th { background: #fafafa; font-weight: 600; color: var(--text); }
+  table.data tr:hover td { background: #fafafa; }
+
+  /* ── Figures ── */
+  .figure-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .figure-grid.single { grid-template-columns: 1fr; }
+  figure.fig {
+    margin: 0; border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; background: #fff;
+  }
+  figure.fig img {
+    display: block; width: 100%; cursor: zoom-in;
+    transition: transform 0.2s;
+  }
+  figure.fig:hover img { transform: scale(1.01); }
+  figure.fig figcaption {
+    padding: 10px 14px; font-size: 12px; color: var(--text-secondary);
+    border-top: 1px solid var(--border); background: #fafafa;
+  }
+
+  pre.code {
+    background: #0f172a; color: #e2e8f0; padding: 16px 18px;
+    border-radius: var(--radius); overflow-x: auto;
+    font-family: var(--mono); font-size: 13px; line-height: 1.6;
+    margin: 16px 0;
+  }
+  code { font-family: var(--mono); font-size: 0.92em; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; }
+
+  /* ── Evidence cards ── */
+  .evidence-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .evidence-card {
+    padding: 20px; border-radius: var(--radius-lg);
+    border: 1px solid var(--border); background: #fafafa;
+  }
+  .evidence-card .num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; margin-bottom: 12px;
+  }
+  .evidence-card h4 { margin: 0 0 8px; font-size: 14px; }
+  .evidence-card p { margin: 0; font-size: 12px; color: var(--text-secondary); }
+  .evidence-card .path {
+    margin-top: 10px; padding: 8px 10px; background: #fff;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    font-family: var(--mono); font-size: 11px; word-break: break-all;
+  }
+
+  /* ── Lightbox ── */
+  .lightbox {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.85); align-items: center; justify-content: center;
+    padding: 40px; cursor: zoom-out;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img {
+    max-width: 95vw; max-height: 90vh; border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+  }
+  .lightbox-close {
+    position: absolute; top: 20px; right: 24px;
+    color: #fff; font-size: 28px; cursor: pointer; border: none; background: none;
+  }
+
+  /* ── Footer ── */
+  .page-footer {
+    text-align: center; padding: 32px 24px;
+    color: var(--text-tertiary); font-size: 12px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 1100px) {
+    .timeline { grid-template-columns: repeat(2, 1fr); }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .evidence-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .menu-toggle { display: block; }
+    .figure-grid { grid-template-columns: 1fr; }
+    .timeline { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .content { padding: 16px; }
+    .hero { padding: 28px 20px; }
+  }
+  @media print {
+    .sidebar, .topbar, .menu-toggle, .topbar-actions { display: none !important; }
+    .main { margin-left: 0; }
+    .section { break-inside: avoid; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">
+        <div class="logo-icon">QT</div>
+        <span>量潮科技</span>
+      </div>
+      <div class="sub">产品需求梳理智能体 · 答辩报告</div>
+    </div>
+    <nav class="sidebar-nav" id="nav">
+      <div class="nav-group">概览</div>
+      <a href="#hero" class="active"><span class="nav-num">·</span> 报告首页</a>
+      <a href="#story"><span class="nav-num">1</span> 故事开端</a>
+      <a href="#gap"><span class="nav-num">2</span> 官方缺口</a>
+      <a href="#roadmap"><span class="nav-num">3</span> 八阶段路线</a>
+      <div class="nav-group">实施过程</div>
+      <a href="#stage0"><span class="nav-num">0</span> 学会验收</a>
+      <a href="#stage2"><span class="nav-num">2</span> 流水线图纸</a>
+      <a href="#stage3"><span class="nav-num">3</span> AI 台词</a>
+      <a href="#stage4"><span class="nav-num">4</span> 真跑闭环</a>
+      <a href="#stage567"><span class="nav-num">5–7</span> 验收与整理</a>
+      <div class="nav-group">答辩</div>
+      <a href="#evidence"><span class="nav-num">✓</span> 硬证据</a>
+      <a href="#summary"><span class="nav-num">★</span> 一句话总结</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="../../project/trials/case-01/review.html" id="link-review">打开验收对照页 →</a><br/>
+      2026-08-31
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-toggle" id="menu-toggle" aria-label="菜单">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        </button>
+        <div class="breadcrumb">答辩报告 / <strong>阶段 0–7 全景</strong></div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn" onclick="window.print()">打印</button>
+        <a class="btn btn-primary" href="阶段0-7全景答辩报告.md">Markdown 版</a>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- Hero -->
+      <section class="hero" id="hero">
+        <span class="hero-tag">QuantTide · Agent Engineering · product-requirement</span>
+        <h1>小王弄丢需求之后<br/>我们把「说明书」建成了能跑的一条线</h1>
+        <p class="hero-lead">
+          从研发日志到定稿需求：人两次把关、机器两次产出、通过的步骤锁起来、定稿带修订记录。
+          八个阶段，一条可复现的闭环。
+        </p>
+      </section>
+
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-value">8</div>
+          <div class="stat-label">阶段全部完成（0 → 7）</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">3</div>
+          <div class="stat-label">闭环反馈轮次（含 1 次纠偏）</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">2</div>
+          <div class="stat-label">人工确认关口</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">0</div>
+          <div class="stat-label">编造条目（check 验收）</div>
+        </div>
+      </div>
+
+      <!-- Story -->
+      <section class="section" id="story">
+        <div class="section-head">
+          <div>
+            <h2>故事从哪儿开始</h2>
+            <p class="desc">一个产研负责人飞书里的几句话，引发了这次课题</p>
+          </div>
+          <span class="tag tag-blue">第一幕</span>
+        </div>
+        <div class="section-body">
+          <blockquote class="story">
+            日志太散了，想从里面抓「用户要……」<br/>
+            AI 帮忙分一分，人改完再定稿。<br/>
+            <strong>别瞎编，原文没说的不要加。</strong>
+          </blockquote>
+          <p>小王觉得说清楚了。可一周后排期，没人能回答：</p>
+          <ol>
+            <li>这几句话最后变成了哪几条需求？</li>
+            <li>AI 有没有自己加戏？</li>
+            <li>谁拍板说「这条算数」？</li>
+          </ol>
+          <div class="callout">
+            <strong>课题目标：</strong>不是再做一个聊天机器人，而是把「从日志到定稿」做成能跑、能改、能留痕、能给别人复现的一套东西。
+          </div>
+        </div>
+      </section>
+
+      <!-- Gap -->
+      <section class="section" id="gap">
+        <div class="section-head">
+          <div>
+            <h2>官方早就画过饼，但还没盖厨房</h2>
+            <p class="desc">产品云有完整需求，Agent 工程侧只有说明书</p>
+          </div>
+          <span class="tag tag-orange">第二幕</span>
+        </div>
+        <div class="section-body">
+          <p>产品云的需求文档写得很明白：要从研发日志里抓用户故事，人要能改，层级要分得清。但在 Agent 工程那边，同名的东西<strong>只有一页说明</strong>，没有能真正跑起来的程序。</p>
+          <div class="figure-grid">
+            <figure class="fig">
+              <img src="assets/13-product-cloud-capture.png" alt="产品云官方需求" loading="lazy" />
+              <figcaption>图 1 · 产品云：官方「从日志抓用户故事」</figcaption>
+            </figure>
+            <figure class="fig">
+              <img src="assets/03-product-requirement-index.png" alt="Agent 侧只有说明" loading="lazy" />
+              <figcaption>图 2 · Agent 侧：只有说明书，没有能跑的</figcaption>
+            </figure>
+          </div>
+          <div class="callout"><strong>大白话目标：</strong>把说明书，变成能用的流水线。</div>
+        </div>
+      </section>
+
+      <!-- Roadmap -->
+      <section class="section" id="roadmap">
+        <div class="section-head">
+          <div>
+            <h2>八个阶段，其实是盖一栋楼</h2>
+            <p class="desc">先验、再画图纸、写台词、真跑、验收、写报告、整理</p>
+          </div>
+          <span class="tag tag-green">全部完成</span>
+        </div>
+        <div class="section-body">
+          <figure class="fig">
+            <img src="assets/defense-stages-roadmap.png" alt="八个阶段路线图" loading="lazy" />
+            <figcaption>图 3 · 阶段 0→7 总路线</figcaption>
+          </figure>
+          <div class="timeline">
+            <div class="tl-item done"><div class="tl-num">阶段 0</div><div class="tl-title">学会验收</div><div class="tl-desc">验收对照页、阅读笔记</div></div>
+            <div class="tl-item done"><div class="tl-num">阶段 1</div><div class="tl-title">摆好桌子</div><div class="tl-desc">环境、AI 连接、启动脚本</div></div>
+            <div class="tl-item done"><div class="tl-num">阶段 2</div><div class="tl-title">画图纸</div><div class="tl-desc">三步流水线、锁定规则</div></div>
+            <div class="tl-item done"><div class="tl-num">阶段 3</div><div class="tl-title">写台词</div><div class="tl-desc">两步 AI 提示词</div></div>
+            <div class="tl-item done"><div class="tl-num">阶段 4</div><div class="tl-title">真跑闭环</div><div class="tl-desc">定稿 + 锁定文件夹</div></div>
+            <div class="tl-item done"><div class="tl-num">阶段 5</div><div class="tl-title">机器质检</div><div class="tl-desc">check.py 全绿</div></div>
+            <div class="tl-item done"><div class="tl-num">阶段 6</div><div class="tl-title">试点报告</div><div class="tl-desc">门槛与实测分开</div></div>
+            <div class="tl-item done"><div class="tl-num">阶段 7</div><div class="tl-title">打扫现场</div><div class="tl-desc">README、一键脚本</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stage 0 -->
+      <section class="section" id="stage0">
+        <div class="section-head">
+          <div>
+            <h2>阶段 0：先学会「怎么验」</h2>
+            <p class="desc">左原文、右故事、下确认——和 review.html 同一套交互</p>
+          </div>
+          <span class="tag tag-blue">验收对照</span>
+        </div>
+        <div class="section-body">
+          <p>如果 AI 抽出来的故事和原文对不上，或者自己编了一条，人看不出来，后面全白搭。所以我做了一个<strong>验收对照页</strong>：</p>
+          <div class="figure-grid">
+            <figure class="fig">
+              <img src="assets/shot-review-full.png" alt="验收对照页全貌" loading="lazy" />
+              <figcaption>图 4 · 验收对照页全貌（答辩可 live 演示）</figcaption>
+            </figure>
+            <figure class="fig">
+              <img src="assets/shot-review-spec.png" alt="流水线定义面板" loading="lazy" />
+              <figcaption>图 5 · 展开「流水线定义」，自动读图纸</figcaption>
+            </figure>
+          </div>
+          <div class="table-wrap">
+            <table class="data">
+              <thead><tr><th>打叉类型</th><th>意思</th></tr></thead>
+              <tbody>
+                <tr><td><span class="tag tag-orange">编造</span></td><td>AI 加了原文没有的东西</td></tr>
+                <tr><td><span class="tag tag-orange">分层</span></td><td>活动 / 任务 / 故事分错了</td></tr>
+                <tr><td><span class="tag tag-orange">漏了</span></td><td>原文有，AI 没抓到</td></tr>
+                <tr><td><span class="tag tag-orange">格式</span></td><td>不像「用户要……」句式</td></tr>
+                <tr><td><span class="tag tag-orange">其他</span></td><td>以上都不像，但总觉得不对</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stage 2 -->
+      <section class="section" id="stage2">
+        <div class="section-head">
+          <div>
+            <h2>阶段 2：画承重墙——流水线图纸</h2>
+            <p class="desc">三步走，中间停两次；通过了就锁，打叉只改当前步</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <pre class="code">第 1 步  AI  把乱日志整理成「一件事」  →  需求故事
+         ↓ 人停一下：通不通？能往下走吗？
+第 2 步  AI  从故事里抽出 JSON 条目   →  故事列表
+         ↓ 人再停：有没有编造？分层对不对？
+第 3 步  人  定稿                     →  accepted.json</pre>
+          <div class="figure-grid">
+            <figure class="fig">
+              <img src="assets/defense-arch-overview.png" alt="系统架构" loading="lazy" />
+              <figcaption>图 6 · 从日志到定稿，中间两次「人停下来」</figcaption>
+            </figure>
+            <figure class="fig">
+              <img src="assets/defense-human-ai-loop.png" alt="人机闭环" loading="lazy" />
+              <figcaption>图 7 · 通过就锁、打叉只改当前步</figcaption>
+            </figure>
+            <figure class="fig">
+              <img src="assets/04-devops-code-spec.png" alt="官方图纸对照" loading="lazy" />
+              <figcaption>图 8 · 对齐官方 devops-code 模板</figcaption>
+            </figure>
+            <figure class="fig">
+              <img src="assets/12-requirement-json.png" alt="JSON 结构" loading="lazy" />
+              <figcaption>图 9 · 每条故事要有层级、原文出处</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stage 3 -->
+      <section class="section" id="stage3">
+        <div class="section-head">
+          <div>
+            <h2>阶段 3：给 AI 写「台词本」</h2>
+            <p class="desc">先讲成一件事，再抽条目；不许编造，每条带原文出处</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="table-wrap">
+            <table class="data">
+              <thead><tr><th>台词文件</th><th>AI 在干什么</th><th>打个比方</th></tr></thead>
+              <tbody>
+                <tr><td>第一步台词</td><td>把日志讲成「一件事」</td><td>给领导写一页 briefing</td></tr>
+                <tr><td>第二步台词</td><td>抽「用户要……」条目</td><td>从 briefing 摘待办清单</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <figure class="fig">
+            <img src="assets/shot-requirement-story.png" alt="需求故事产出" loading="lazy" />
+            <figcaption>图 10 · Step1 产物：先讲成一件事，再结构化</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Stage 4 -->
+      <section class="section" id="stage4">
+        <div class="section-head">
+          <div>
+            <h2>阶段 4：真盖楼——跑通一整圈</h2>
+            <p class="desc">程序按图纸跑，人在两个关口真正停下来</p>
+          </div>
+          <span class="tag tag-green">课题高潮</span>
+        </div>
+        <div class="section-body">
+          <ol>
+            <li>第一步做完 → 输入 <code>ok</code> → 锁进 <code>output/locked/</code></li>
+            <li>第二步做完 → 故意打叉（格式不对）→ 只重跑第二步</li>
+            <li>改完再 <code>ok</code> → 生成定稿，每条故事带修订履历</li>
+          </ol>
+          <figure class="fig">
+            <img src="assets/shot-run-results.png" alt="运行结果" loading="lazy" />
+            <figcaption>图 11 · 3 轮反馈、1 次纠偏、完整 history</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Stage 5-7 -->
+      <section class="section" id="stage567">
+        <div class="section-head">
+          <div>
+            <h2>阶段 5–7：质检、实测、整理</h2>
+            <p class="desc">机器验收 → 试点报告 → 别人也能跑</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="table-wrap">
+            <table class="data">
+              <thead><tr><th>阶段</th><th>做了什么</th><th>结论</th></tr></thead>
+              <tbody>
+                <tr><td><strong>5</strong></td><td>check.py 查编造、句式、定稿合规；未覆盖句写 uncovered.md</td><td>机器验收全绿</td></tr>
+                <tr><td><strong>6</strong></td><td>trial-report：门槛（申请）和实测（本次）分开写</td><td>有 Loop 时纠偏有通道</td></tr>
+                <tr><td><strong>7</strong></td><td>README、run-stage4-loop.bat、verify_all 0–7</td><td>换个人也能复现</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Evidence -->
+      <section class="section" id="evidence">
+        <div class="section-head">
+          <div>
+            <h2>给老师看的三份硬证据</h2>
+            <p class="desc">录视频时镜头请停 5 秒</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="evidence-grid">
+            <div class="evidence-card">
+              <div class="num">1</div>
+              <h4>定稿文件</h4>
+              <p>有 revised 和 approved，不是一次过</p>
+              <div class="path">project/trials/case-01/output/accepted.json</div>
+            </div>
+            <div class="evidence-card">
+              <div class="num">2</div>
+              <h4>锁定文件夹</h4>
+              <p>第一步通过后真的锁了</p>
+              <div class="path">project/trials/case-01/output/locked/step1-requirement-story.md</div>
+            </div>
+            <div class="evidence-card">
+              <div class="num">3</div>
+              <h4>自检全绿</h4>
+              <p>八个阶段串联验收通过</p>
+              <div class="path">python scripts\verify_all.py</div>
+            </div>
+          </div>
+          <figure class="fig" style="margin-top:20px">
+            <img src="assets/shot-review-hero.png" alt="验收页首屏" loading="lazy" />
+            <figcaption>图 12 · 验收页首屏（live 演示用）</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Summary -->
+      <section class="section" id="summary">
+        <div class="section-head">
+          <div>
+            <h2>一句话总结</h2>
+            <p class="desc">答辩结尾可念</p>
+          </div>
+          <span class="tag tag-green">收束</span>
+        </div>
+        <div class="section-body">
+          <div class="callout" style="font-size:15px;line-height:1.8">
+            官方产品云早就说要从日志抓用户故事，但 Agent 工程侧长期只有说明书。
+            我用八个阶段，把它做成了<strong>能跑、能改、能锁、能验、能留痕</strong>的一条线。
+            不是「聊天抽 JSON」，而是<strong>人两次把关、机器两次产出、最后定稿带修订记录</strong>。
+            SQL 那一步本期不做，写在图纸的「以后再说」里。
+          </div>
+        </div>
+      </section>
+
+      <footer class="page-footer">
+        量潮科技 · QuantTide · product-requirement-loop · docs/答辩总报告<br/>
+        本页 UI 对齐 review.html 交互风格，后续可并入产品云前端
+      </footer>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightbox-close">&times;</button>
+  <img id="lightbox-img" src="" alt="" />
+</div>
+
+<script>
+(function () {
+  const sidebar = document.getElementById('sidebar');
+  const menuToggle = document.getElementById('menu-toggle');
+  const navLinks = document.querySelectorAll('#nav a');
+  const sections = document.querySelectorAll('.section, .hero');
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+
+  menuToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+  navLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 768) sidebar.classList.remove('open');
+    });
+  });
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const id = entry.target.id;
+      navLinks.forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+      });
+    });
+  }, { rootMargin: '-20% 0px -60% 0px', threshold: 0 });
+
+  document.querySelectorAll('#hero, .section').forEach(el => observer.observe(el));
+
+  document.querySelectorAll('figure.fig img').forEach(img => {
+    img.addEventListener('click', () => {
+      lightboxImg.src = img.src;
+      lightboxImg.alt = img.alt;
+      lightbox.classList.add('open');
+    });
+  });
+  lightbox.addEventListener('click', () => lightbox.classList.remove('open'));
+  document.getElementById('lightbox-close').addEventListener('click', e => {
+    e.stopPropagation();
+    lightbox.classList.remove('open');
+  });
+
+  const reviewLink = document.getElementById('link-review');
+  if (location.port === '8765') {
+    reviewLink.href = '/review.html';
+  }
+})();
+</script>
+</body>
+</html>

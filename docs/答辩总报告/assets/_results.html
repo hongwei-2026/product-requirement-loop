@@ -1,0 +1,58 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>运行结果</title>
+<style>
+  body{font-family:"Cascadia Code","Consolas","PingFang SC",sans-serif;margin:0;padding:28px;background:#1e1e1e;color:#d4d4d4}
+  h1{font-size:18px;color:#fff;margin:0 0 16px}
+  .panel{background:#252526;border:1px solid #3c3c3c;padding:16px;margin-bottom:16px}
+  .ok{color:#4ec9b0}
+  .key{color:#9cdcfe}
+  .str{color:#ce9178}
+  pre{white-space:pre-wrap;font-size:13px;line-height:1.5;margin:0}
+  h2{font-size:14px;color:#dcdcaa;margin:0 0 8px}
+</style></head><body>
+<h1>case-01 运行结果摘录（阶段 4～5）</h1>
+<div class="panel"><h2>闭环 metrics</h2>
+<pre>rounds = <span class="ok">3</span>
+corrections = <span class="ok">1</span>
+rework = <span class="ok">1</span>
+feedback_triggered = <span class="ok">4</span>
+history:
+  整理需求故事:ok
+  提取用户故事 JSON:revise:格式:请确保每条 text 以用户要开头且 source_quote 为原文连续句
+  提取用户故事 JSON:ok
+</pre></div>
+<div class="panel"><h2>accepted.json · review</h2>
+<pre>{
+  <span class="key">"approved"</span>: <span class="ok">true</span>,
+  <span class="key">"approver"</span>: <span class="str">"case-01-operator"</span>,
+  <span class="key">"comments"</span>: <span class="str">"人工确认：未覆盖句多为语气/过渡/重复表述或与需求抽取无关的旁白，已写入 uncovered.md（共 87 句）。定稿故事均含可追溯 source_quote…"</span>
+}</pre></div>
+<div class="panel"><h2>故事条数 / 修订痕迹</h2>
+<pre>stories = <span class="ok">5</span>
+首条 text: <span class="str">用户要用新的需求梳理方式替代旧的用户故事地图。</span>
+首条 revisions:
+[
+  {
+    "round": 1,
+    "action": "created",
+    "at": "2026-07-10T00:00:00Z"
+  },
+  {
+    "round": 2,
+    "action": "revised",
+    "code": "格式",
+    "comment": "请确保每条 text 以用户要开头且 source_quote 为原文连续句",
+    "at": "2026-08-31T01:19:13Z"
+  },
+  {
+    "round": 3,
+    "action": "approved",
+    "at": "2026-08-31T01:19:48Z"
+  }
+]
+</pre></div>
+<div class="panel"><h2>check.py（阶段 5）</h2>
+<pre class="ok">[OK] stories.json  exit=0  编造=0
+[OK] accepted.json --strict  exit=0
+uncovered.md 已落盘 · review.comments 已人工确认</pre></div>
+</body></html>

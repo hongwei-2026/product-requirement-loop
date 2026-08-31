@@ -21,6 +21,26 @@ dist/
 output/
 project/trials/case-01/output/
 
+# Local runtime DB / sessions / queue (regenerated)
+project/data/*
+!project/data/.gitkeep
+
+# Agent / local smoke leftovers (do not publish)
+_agent_*.json
+_agent_*.txt
+_cookie.txt
+_c60.txt
+_e60.txt
+_journal.json
+_login.json
+_login_out.txt
+_state.json
+cookie.txt
+login.json
+audit_group1.json
+audit_journal.json
+
 # Secrets
 *.pem
 credentials.json
+*.key

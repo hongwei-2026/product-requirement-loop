@@ -17,7 +17,7 @@
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 12px 20px; }
     .panel { background: #fff; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; }
     .panel h2 { margin: 0; padding: 12px 14px; font-size: 1rem; background: #f8f9fb; border-bottom: 1px solid #eee; }
-    .content { padding: 14px; white-space: pre-wrap; line-height: 1.8; font-size: 0.92rem; max-height: 380px; overflow: auto; }
+    .content { padding: 14px; white-space: pre-wrap; line-height: 1.8; font-size: 0.92rem; max-height: 480px; overflow: auto; }
     mark { background: #fff566; padding: 0 2px; border-radius: 2px; }
     .story { border: 1px solid #e8e8e8; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
     .tag { display: inline-block; font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; margin-right: 6px; }
@@ -36,6 +36,18 @@
     #reason { width: 100%; padding: 10px; font-size: 0.92rem; border: 1px solid #d9d9d9; border-radius: 8px; margin-bottom: 8px; font-family: inherit; }
     #reason.missing { border-color: #ff4d4f; background: #fff2f0; }
     #cmd { width: 100%; padding: 10px; font-family: Consolas, monospace; font-size: 0.9rem; border: 1px solid #d9d9d9; border-radius: 8px; background: #fafafa; }
+    #cmd.verdict-ok { border-color: #95de64; background: #f6ffed; }
+    #cmd.verdict-revise { border-color: #ff4d4f; background: #fff2f0; }
+    #cmd.verdict-pending { border-color: #faad14; background: #fffbe6; color: #874d00; }
+    .panel-note { margin: 0; padding: 10px 14px; font-size: 0.85rem; color: #555; background: #fafafa; border-bottom: 1px solid #eee; }
+    .ai-row { padding: 10px 14px; border-bottom: 1px solid #eee; background: #f9f0ff; }
+    .ai-row button { background: #722ed1; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+    .ai-row button:disabled { background: #d9d9d9; cursor: not-allowed; }
+    .server-banner { margin: 0 16px 12px; padding: 10px 14px; background: #fff2f0; border: 1px solid #ffccc7; border-radius: 8px; font-size: 0.9rem; color: #a8071a; display: none; }
+    .verdict-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.8rem; margin-left: 8px; }
+    .verdict-badge.ok { background: #f6ffed; color: #389e0d; }
+    .verdict-badge.revise { background: #fff2f0; color: #cf1322; }
+    .verdict-badge.pending { background: #fffbe6; color: #d48806; }
     .template-chip { border: 1px dashed #91caff; background: #fafafa; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 0.85rem; text-align: left; }
     .template-chip:hover { background: #e6f4ff; }
     .builder { display: none; margin-bottom: 10px; padding: 12px; background: #fafafa; border: 1px solid #eee; border-radius: 8px; }
@@ -45,18 +57,29 @@
     .builder-row span { font-size: 0.9rem; }
     .status { padding: 8px 20px 16px; font-size: 0.85rem; color: #555; }
     footer { padding: 12px 20px; color: #666; font-size: 0.85rem; border-top: 1px solid #ddd; background: #fff; }
+    .spec-panel { margin: 0 20px 12px; background: #fff; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; }
+    .spec-panel summary { cursor: pointer; padding: 12px 14px; background: #f0f5ff; font-weight: 600; }
+    .spec-body { padding: 12px 14px; font-size: 0.88rem; line-height: 1.6; }
+    .spec-step { border-left: 3px solid #1677ff; padding: 6px 10px; margin-bottom: 8px; background: #fafafa; }
+    .spec-meta { color: #666; font-size: 0.82rem; }
     @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <header>
     <h1>case-01 验收对照页（非产品 UI）</h1>
-    <p>点关键词看左边原文 → 对右边 → 通过就点 ✓；发现问题点 ✗ 并写一句为什么。</p>
+    <p>左 = 官方原文（完整）｜ 右 = AI 抓取的用户故事（可试跑）｜ 下方 = 你点通过或打叉</p>
+    <p id="page-url" style="margin-top:8px;font-size:0.8rem;color:#888;"></p>
   </header>
 
+  <div class="warn" id="server-banner" style="display:none;background:#fff2f0;border-left-color:#ff4d4f;color:#a8071a;">
+    <strong>当前不是 AI 服务模式。</strong>请关闭本页，回到仓库根目录双击 <code>start-with-ai.bat</code>，
+    浏览器地址栏应是 <code>http://127.0.0.1:8765/review.html</code>（不能是 <code>file://</code> 开头）。
+  </div>
+
   <div class="warn">
-    <strong>打叉必须写原因。</strong>例如：「右边写了飞书，原文没有」。不填原因，生成不了 revise 指令。
-    已通过的内容会锁定，重跑只改当前步。详见 <code>人机确认操作指南.md</code>。
+    <strong>左边必须是完整原文</strong>（与 GitHub 一致），不是摘要。摘录仅用于关键词卡快速对照。<br>
+    右边 AI：必须用 <code>start-with-ai.bat</code> 打开。试抓约需 30–90 秒，请耐心等待，不要关黑色窗口。
   </div>
 
   <div class="keys">
@@ -74,30 +97,30 @@
 
   <div class="grid">
     <section class="panel">
-      <h2>左：原始日志</h2>
+      <h2>左：官方原文（完整，与 GitHub 一致）<span id="source-len" class="verdict-badge pending"></span></h2>
+      <p class="panel-note">可 Ctrl+F 搜关键词。若字数很少（几百字）说明加载错了，请用 start-with-ai.bat 打开。</p>
       <div class="content" id="source-text">加载中…</div>
     </section>
     <section class="panel">
-      <h2>右：用户故事（示例，阶段4后替换为真实 output）</h2>
+      <h2>右：用户故事（AI 输出，人验收）<span id="verdict-badge" class="verdict-badge pending">未确认</span></h2>
+      <p class="panel-note">阶段 0 可先点「AI 试抓」看真实 output；每条须带来源原句，禁止编造。</p>
+      <div class="ai-row">
+        <button type="button" id="btn-ai" onclick="runAiDraft()">AI 试抓用户故事</button>
+        <span id="ai-status" style="margin-left:10px;font-size:0.85rem;color:#666;"></span>
+      </div>
       <div class="content" id="stories">
-        <div class="story" data-id="s1">
-          <span class="tag task">任务</span><strong>用户要从零碎话语中捕捉用户故事</strong>
-          <div class="quote">来源：「从原始的零碎话语中去捕捉用户故事」</div>
-        </div>
-        <div class="story" data-id="s2">
-          <span class="tag task">任务</span><strong>用户要先捕捉出一个用户故事格式</strong>
-          <div class="quote">来源：「首先，要捕捉出来一个格式」</div>
-        </div>
-        <div class="story" data-id="s3">
-          <span class="tag storylv">故事</span><strong>用户要借助 AI 划分活动、任务、故事细节</strong>
-          <div class="quote">来源：「划分它的层级，即它是用户活动、用户任务还是用户故事细节」</div>
-        </div>
+        <p style="color:#888;">尚未运行 AI。点击上方按钮，或阶段 4 接入 Loop 后自动填充。</p>
       </div>
     </section>
   </div>
 
+  <details class="spec-panel" id="spec-panel" open>
+    <summary>Loop 定义（自动读取 specification.yaml）<span id="spec-source" class="spec-meta"></span></summary>
+    <div class="spec-body" id="spec-body">加载 Loop 定义中…</div>
+  </details>
+
   <section class="actions">
-    <h3>人确认</h3>
+    <h3>人确认 <span class="spec-meta">（下方 ✗ 码与 yaml loop 一致：编造|分层|漏了|格式|其他）</span></h3>
     <div class="btnrow">
       <button class="ok" onclick="pickOk()">✓ 通过（锁定本步）</button>
       <button class="bad" data-code="编造" onclick="pickRevise(this)">✗ 编造</button>
@@ -117,33 +140,132 @@
       <button class="primary" onclick="buildRevise()">生成 revise 指令</button>
     </div>
     <p class="hint">复制下面这行到终端（或给帮你跑 Loop 的人）：</p>
-    <input id="cmd" readonly value="ok" />
+    <input id="cmd" readonly value="" placeholder="点 ✓ 通过 或 ✗ 后生成指令" />
     <div class="btnrow" style="margin-top:8px;">
       <button onclick="copyCmd()">复制指令</button>
       <button onclick="setCmd('unlock:step1')">解锁 Step1（仅当你想改已通过的）</button>
     </div>
   </section>
 
-  <div class="status" id="status">当前：未锁定。通过后本步锁定；打叉须写原因，只重跑当前步。</div>
+  <div class="status" id="status">当前：未确认。点 ✓ = ok；点 ✗ 会清空 ok，生成 revise 后才算打叉。</div>
+
+  <script type="application/json" id="spec-embedded" data-encoding="base64">eyJuYW1lIjogInByb2R1Y3QtcmVxdWlyZW1lbnQiLCAiZGVzY3JpcHRpb24iOiAi56CU5Y+R5pel5b+XIOKGkiDpnIDmsYLmlYXkuovvvIhNYXJrZG93bu+8ieKGkiDnlKjmiLfmlYXkuosgSlNPTiDihpIg5Lq65bel5a6a56i/IiwgImVudHJ5IjogIuS6uuexu+aPkOS+m+S6p+WTgeeglOWPkeaXpeW/l+aWh+acrO+8iOaWh+S7tui3r+W+hO+8iSIsICJleGl0IjogIuS6uuexu+ehruiupCBhY2NlcHRlZC5qc29uIOWumueov++8jOS4lCBjaGVjay5weSDlhajpg6jpgJrov4ciLCAic3RlcHMiOiBbeyJuYW1lIjogIuaVtOeQhumcgOaxguaVheS6iyIsICJhY3RvciI6ICJhaSIsICJub3RlIjogIuWFiOaKiumbtueijuaXpeW/l+aVtOeQhuaIkOS4gOS7tuWujOaVtOeahOS6i++8iOWFqOWxgOaVheS6i++8ie+8jOWGjeaLhuiDjOaZry/opoHlgZrku4DkuYgv5LiN5YGaL+W+heehruiupC/ljp/mlofmkZjlvZUiLCAiYXJ0aWZhY3QiOiAib3V0cHV0L3JlcXVpcmVtZW50LXN0b3J5Lm1kIiwgImNoZWNrIjogIuivu+i1t+adpeaYr+S4gOS7tuWujOaVtOeahOS6i++8m+WQq+WOn+aWh+aRmOW9le+8m+S4jeaWsOWinuWOn+aWh+ayoeacieeahOmcgOaxgueCuSJ9LCB7Im5hbWUiOiAi5o+Q5Y+W55So5oi35pWF5LqLIEpTT04iLCAiYWN0b3IiOiAiYWkiLCAibm90ZSI6ICLkuKXmoLzpgbXlvqogcmVxdWlyZW1lbnQtc3RvcnkubWQg6K+t5LmJ77yb56aB5q2i57yW6YCg77ybdGV4dCDku6XjgIznlKjmiLfopoHjgI3lvIDlpLQiLCAiYXJ0aWZhY3QiOiAib3V0cHV0L3N0b3JpZXMuanNvbiIsICJjaGVjayI6ICLmr4/mnaHlkKsgbGV2ZWzjgIF0ZXh044CBc291cmNlX3F1b3Rl44CBcmVhc29u77ybbGV2ZWwg5Li6IGFjdGl2aXR5fHRhc2t8c3RvcnkifSwgeyJuYW1lIjogIuS6uuW3peivhOWuoeWumueovyIsICJhY3RvciI6ICJodW1hbiIsICJub3RlIjogIuS6uuehruiupOaIliByZXZpc2XvvJvlrprnqL/lhpnlhaUgYWNjZXB0ZWQuanNvbiDlubbluKYgYXBwcm92ZWQg5LiOIHJldmlzaW9ucyIsICJhcnRpZmFjdCI6ICJvdXRwdXQvYWNjZXB0ZWQuanNvbiIsICJjaGVjayI6ICLmr4/mnaEgc3RvcnkuYXBwcm92ZWQ9dHJ1Ze+8m3JldmlzaW9ucyDorrDlvZXlrozmlbQifV0sICJmZWVkYmFjayI6IFt7ImFmdGVyIjogIuaVtOeQhumcgOaxguaVheS6iyIsICJhY3RvciI6ICJodW1hbiIsICJhc2siOiAi5pWF5LqL5piv5ZCm6K+75b6X6YCa77yf5qC85byP5Y+v5ZCm6L+b5YWlIEpTT04g5o+Q5Y+W77yf6L6T5YWlIG9rIOaIliByZXZpc2U64oCmIn0sIHsiYWZ0ZXIiOiAi5o+Q5Y+W55So5oi35pWF5LqLIEpTT04iLCAiYWN0b3IiOiAiaHVtYW4iLCAiYXNrIjogIuacieaXoOWkmuS9meOAgemBl+a8j+aIluWIhuWxgumUmeivr++8n+i+k+WFpSBvayDmiJYgcmV2aXNlOuKApiJ9XSwgImxvb3AiOiB7ImNvbmRpdGlvbiI6ICJyZXZpc2U6PGNvZGU+IOKGkiDlj6rph43ot5HlvZPliY0gc3RlcO+8jOS4jeS7juWktOi3keOAglxu5bey6ZSB5a6a5Lqn54mp77yIb3V0cHV0L2xvY2tlZC8g5oiWIHN0b3J5LmFwcHJvdmVkPXRydWXvvInkuI3ooqsgQUkg6KaG55uW44CCXG7lv6vmjbfnoIHvvJrnvJbpgKB85YiG5bGCfOa8j+S6hnzmoLzlvI985YW25LuW77ybcmV2aXNlIOaXtiBjb21tZW50IOW/heWhq++8iOS4gOWPpeS6uuivneWNs+WPr++8ieOAglxudW5sb2NrOnN0ZXAxIOKGkiDku4XlvZPkurropoHmlLnlt7LpgJrov4fnmoQgU3RlcDEg5pe25L2/55So44CCXG4iLCAiZXhpdCI6ICLkurrnsbvnoa7orqQgYWNjZXB0ZWQuanNvbiDkuJQgY2hlY2sucHkg6YCa6L+HIn0sICJsb2NraW5nIjogeyJvbl9va19zdGVwMSI6ICLlpI3liLYgcmVxdWlyZW1lbnQtc3RvcnkubWQg4oaSIG91dHB1dC9sb2NrZWQvc3RlcDEtcmVxdWlyZW1lbnQtc3RvcnkubWQiLCAib25fb2tfc3RvcnkiOiAi6K+l5p2hIGFwcHJvdmVkPXRydWXvvIzph43ot5Egc3RlcDIg5pe26Lez6L+HIiwgInByZXNlcnZlX2FwcHJvdmVkIjogdHJ1ZX0sICJtZXRyaWNzIjogWyJyb3VuZHMiLCAidGltZSIsICJjb3JyZWN0aW9ucyIsICJyZXdvcmsiXSwgImFjY2VwdGFuY2UiOiB7ImZhYnJpY2F0aW9uX2NvdW50IjogMCwgInNvdXJjZV9xdW90ZV9wYXNzX3JhdGUiOiAxLjAsICJzZW50ZW5jZV9jb3ZlcmFnZV9yYXRlIjogMS4wLCAiZmVlZGJhY2tfdHJpZ2dlcmVkIjogdHJ1ZSwgIm1pbl9yb3VuZHMiOiAxfSwgImRlZmVycmVkIjogW3sibmFtZSI6ICJKU09OIOi9rCBTUUwiLCAicmVhc29uIjogIuWumOaWuSBwcm9kdWN0LXJlcXVpcmVtZW50IGluZGV4IOacieesrOS4ieatpe+8jOacrOacn+S4jeWunueOsCJ9XX0=</script>
 
   <footer>验收用页面 · 关键词见 复核关键词卡-case01.md</footer>
 
-  <!-- 双击打开 review.html 时浏览器禁止 fetch 本地文件，用内嵌副本兜底（与 input/journal-raw.md 同步） -->
+  <!-- 双击 file:// 时 fetch 可能失败，用内嵌完整原文兜底（journal-official-full.md，跑 sync_journal_embed.py 同步） -->
   <script type="text/plain" id="journal-embedded">我现在已经确定了一个初步的想法：我们的日志摘取档案这一步，实际上就是从原始的零碎话语中去捕捉用户故事。首先，要捕捉出来一个格式。
 然后，要根据人类的理解和 AI 的判断去划分它的层级，即它是用户活动、用户任务还是用户故事细节。要把它在图上找到一个合适的位置。这个过程可能是 AI 辅助，然后由人去调整，这个过程也要处理。最后是确认这个格式对不对。
 
 我觉得这个要代替旧的用户故事地图，变成一个新的用户故事地图，也就是需求梳理的部分。
 
-在没有更准确的生成步骤之前，像这样从原始语音去摘取，其实效率不是很高，但也足够用了。为了能把初步的结果垫出来，然后再不断精进。
+我突然发现一点啊，如果我要把用户任务全部换成我刚才定的那个，那么原本的用户故事怎么处理啊？这是一个比较大的问题。像这样修改现有的用户故事地图也是一件蛮麻烦的事情。对，这本身就是一个用户细节。
+
+---
+
+还尝试写了一个事件风暴的页面，发现其实没有想象中的那么难写，就是把用户、指令以及事件放成了一个框。虽然说这样不是很严谨，因为 command 可能会有不同的事件结果，但是这样展示也勉强能展示出效果，反正之后再改就行了。因为重点还是事件嘛，先让事件流的顺序展示，确实是比较科学的做法。
+
+我就在想，如果我们要继续自举，从人性来看，从用户故事地图到事件风暴的距离不小。
+
+直接生成的话，其实只能够对“用户活动”这个级别有比较明确的生成；哪怕到了“用户任务”这个级别，可能都需要专门做一下。用户故事更是这样，它不是一一对应的。
+
+虽然我看过的资料（事件风暴的书）里面有提到怎么从用户故事地图到事件风暴，但是好像也不是很完整。
+
+这个倒是可以让 AI 去发挥，然后人再跟着去试验，反复地试验应该就可以了。
+
+我发现如果要我手动改的话，其实我也能改得动。根据我对它的理解，再加一些比如 X 的东西，也是可以改得动的。
+
+其实也可以脱离我的平台，我们完全可以让它去生成 HTML 格式的事件风暴，去看效果对不对，然后再回头整理，其实也是可以的。
+
+对，因此我想到了一种更加自由的画布形式：用真实的业务数据直接去操作 HTML 来绘制业务展示。同时，从中可以抽象出共同的模式，这样我们就能得到一个更加准确的原型图。
+
+产研的过程完全可以直接深入到业务活动之中，然后从业务活动中再总结。
+
+
+在没有更准确的生成步骤之前，像这样从原始语音去摘取，其实效率不是很高，但也足够用了。
+
+为了能把初步的结果垫出来，然后再不断精进。这时候，人肯定知道怎么输出能让它更好，从而去不断改善和调整。人是可以跟系统进行协同配合的，人的行为也是可以被系统改变的。
 
 对，我觉得这个 intention 很关键，能够把整个过程做出来。也就是说，怎么才是一个更符合人机交互范式理解的东西？
 
-我们能不能不断地从碎片之中产生一个最小单元，然后再和大的图进行融合？</script>
+我们能不能不断地从碎片之中产生一个最小单元，然后再和大的图进行融合？或者是有了一大堆单元之后怎么去整合？甚至是这个图乱掉之后怎么去整理？
+
+有这种反脆弱的方式才是对的。因为本来像用户故事地图和事件风暴这种工作坊的形式，就是为了大家集体讨论，找到一致的结果。
+
+其实，一个不需要平台的工作流程就是：由一个人负责整理 HTML，大家按照这个格式去写就可以了。
+
+理论上来讲，我们的命令行完全可以作为主要的入口，在本地端侧去设计和生成这个东西。
+
+我觉得这是一个很重要的点：固定一个 HTML 格式。这样一来，它在很大程度上就可以脱离平台存在，更加自由。
+
+我们可以让 AI 去对比用户故事地图和事件风暴，让它去看两者的设计是否搭配一致，能不能找到合适的位置等等。其实，这是完全可行的。
+
+对，就像这些人类不擅长干的各种比较枯燥的活动，都可以让 AI 去做，特别是信息量比较大的时候。
+
+用户故事地图和事件风暴其实又不会过度地去约束 AI，所以 AI 在制定自己的编程计划时，相对来讲会比较好做一点。
+
+我们在做看板、进入实施阶段时，很大程度上可以先根据选定的框架（比如固定使用 Flat Block），让 AI 先生成一些示例代码。然后，AI 直接照着这些示例代码和相关需求进行整合。这样，我们就可以把它变成一个非常明确的 Web Coding 编程任务，然后再投产，就非常容易去组织了。
+
+这个看板本身就可以和编程平台连起来，看它能不能比较好地处理和验收整个流程。这和昨天晚上看到的那个视频比较像，正好也比较符合我们的设计思路。
+
+接下来就是验收环节。我们知道，验收是围绕用力进行测试的。像这种平台我们也见到过一些，在 DevOps 平台之中往往常见这种用于测试的平台，但是我觉得，作为产品平台，只有这个可能还不够。
+
+我们在验收环节可能需要一些额外的方法，这应该超出 testing 的范畴，是真正的 QA。这个差距在哪，可能还需要考虑一下。并且，我们可能需要一个类似于“用户故事地图”和“事件风暴”的框架，让 AI 与人能更好地往这个方向去协同。
+
+最后一个部分是运营。这个部分感觉可以在上线之后再慢慢梳理，流程也是类似的：
+1. 从这里面摘取内容，生成 Markdown；
+2. 生成合适的 HTML；
+3. 从页面中摘除并找到数据；
+4. 找到生成路径，并将生成路径写成命令行工具。
+
+完成这些步骤，这个平台就完整了。
+
+并且，我们用产品的研发流程，制定了一整套非常标准化、结构化的产品研发体系，其他所有的平台类似地做就可以了。并且，这个 5 阶段的结构框架在我们其他的云上也普遍存在，就比较好做。
+
+对需求进行结构化的梳理、对 design 方案进行结构化的实施、结构化的验收，以及结构化的运营和复盘，非常合适。
+
+由于我们搭建了一大堆工具平台，这些平台本身就可以提高其他工具的质量，因此质量控制会变得越来越轻松。它会随着平台能力的提高而不断降低难度，从而让人类更好地去处理这些东西。
+
+一旦达到临界点，即当验收的复杂度重新低于生成的复杂度时，整个体系的控制程度就会大大提高，我们整个云体系也就成型了。
+
+因为在 AI 能力快速增长之后：
+首先冲垮的就是验证能力和 review 能力。
+然后执行能力开始大大提高，所以要保证这一点就比较困难，需要持续不断地治理。
+
+一旦治理效率重新低于执行效率，也就是说这个结构可以更好地贴合我们的经验去完成，我觉得这是一个很好的状态了。
+
+哦，这个里面还有一个核心。z我们并不需要AI保持百分之百。并不需要呀，和人机协同保持百分之百准确，就是因为我们或许刘传会不断地验证和和那个处理吗？比如说他在写代码的那个时候那写着写着他自己就修正聊了，就可能也很正常，然后可能到艳搜索，回头再去看哦，原来前面有些设计错了，就说并不需要他已经保持正确，甚至你到未来才发现这也是很正常的
+
+就是这种容错在体系中是客观存在的，就是我们最终的目的还是希望这个产品能够被用户用起来，他觉得满意，我们要在后续透明化。
+
+“定义人机协同的新语法”，我觉得这个真的非常准确。它符合我对目标的认识：我想定义的是一整套人机协作语言，而不完全是平台，平台只是这个东西的最优承载而已。
+
+哪怕我们自己也知道，很多流程是可以不依赖它去走的。比如你觉得平台嫌贵，那你自己按照我们的语法去操作，没有任何问题。等你觉得用我们的平台更方便的时候，你再用就可以了。
+
+因为你总有需要团队协作的时候，总有发现自己生成一大堆东西、混乱得不行的时候。那个时候，你用我们提供好的工具批量导入进来，问题就解决了。只要你遵循我们的规范，你迟早都有可能成为我们的客户。
+
+所以，这些标准制度、标准体系、标准语言，以及承载它们的工具，就是整个标准化体系的精髓。通过这个标准化体系，就能够最大限度地提高整个系统的效率。
+
+对，配套这种集体决策机制，就需要有相关的投票。
+
+比如在研发一个产品时，相关角色（如产品运营）对运营方面的功能认识是否到位：
+1. 如果你提出了，但没被团队接受，事后证明你是对的，那就是团队的问题。
+2. 如果你没有提出，那就是作为代表的个人能力不足。
+
+所以这样反过来，就能够让大家对每一个议题和自己相关的部分都比较上心。那么这个机制放到产品的集体决策机制里面也是成立的，它也可以往议事云里面放。
+
+ </script>
 
   <script>
     let rawText = '';
     let reviseCode = null;
     let lastKeyword = '';
+    let verdict = null; // null | 'ok' | 'revise'
+
+    const SOURCE_FILES = [
+      'input/journal-official-full.md',
+      'input/journal-raw.md',
+    ];
 
     const TEMPLATES = {
       编造: {
@@ -185,20 +307,211 @@
     function loadSource(text) {
       rawText = text;
       document.getElementById('source-text').textContent = text;
+      const len = text.length;
+      const badge = document.getElementById('source-len');
+      badge.textContent = len + ' 字';
+      badge.className = 'verdict-badge ' + (len > 1500 ? 'ok' : 'revise');
     }
 
-    fetch('input/journal-raw.md')
-      .then(r => { if (!r.ok) throw new Error('fetch failed'); return r.text(); })
-      .then(loadSource)
-      .catch(() => {
+    function tryFetchSource(i) {
+      if (i >= SOURCE_FILES.length) {
         const fb = document.getElementById('journal-embedded');
-        if (fb && fb.textContent.trim()) {
-          loadSource(fb.textContent.trim());
-        } else {
-          document.getElementById('source-text').textContent =
-            '无法加载日志。请用浏览器直接打开本文件，或从 case-01 目录启动本地服务。';
-        }
+        if (fb && fb.textContent.trim()) loadSource(fb.textContent.trim());
+        else document.getElementById('source-text').textContent = '无法加载完整原文。请运行 start-with-ai.bat';
+        return;
+      }
+      fetch(SOURCE_FILES[i])
+        .then(r => { if (!r.ok) throw new Error(); return r.text(); })
+        .then(t => {
+          if (t.length < 800 && i === 0) throw new Error('too short');
+          loadSource(t);
+        })
+        .catch(() => tryFetchSource(i + 1));
+    }
+    tryFetchSource(0);
+
+    function renderSpec(spec, sourceLabel) {
+      const box = document.getElementById('spec-body');
+      const src = document.getElementById('spec-source');
+      if (!spec) {
+        box.textContent = '无法加载 specification.yaml';
+        return;
+      }
+      src.textContent = sourceLabel ? ' · ' + sourceLabel : '';
+      let html = '<p><strong>' + (spec.name || '') + '</strong>：' + (spec.description || '') + '</p>';
+      html += '<p class="spec-meta">入口：' + (spec.entry || '') + '<br>出口：' + (spec.exit || '') + '</p>';
+      html += '<p><strong>步骤</strong></p>';
+      (spec.steps || []).forEach((s, i) => {
+        html += '<div class="spec-step"><strong>' + (i + 1) + '. ' + s.name + '</strong> '
+          + '<span class="spec-meta">[' + (s.actor || 'ai') + '] → ' + (s.artifact || '') + '</span><br>'
+          + (s.check || '') + '</div>';
       });
+      if (spec.feedback && spec.feedback.length) {
+        html += '<p><strong>反馈点</strong></p><ul>';
+        spec.feedback.forEach(f => {
+          html += '<li>在「' + f.after + '」之后 — ' + (f.ask || '') + '</li>';
+        });
+        html += '</ul>';
+      }
+      if (spec.acceptance) {
+        html += '<p><strong>数值门槛</strong>：编造=' + spec.acceptance.fabrication_count
+          + '，来源通过率=' + spec.acceptance.source_quote_pass_rate + '</p>';
+      }
+      if (spec.locking) {
+        html += '<p class="spec-meta"><strong>锁定</strong>：' + JSON.stringify(spec.locking) + '</p>';
+      }
+      box.innerHTML = html;
+    }
+
+    async function loadSpec() {
+      try {
+        const r = await fetch('/api/specification', { cache: 'no-store' });
+        if (r.ok) {
+          const data = await r.json();
+          renderSpec(data.spec, data.path || 'api');
+          return;
+        }
+      } catch (_) { /* fallback */ }
+      const fb = document.getElementById('spec-embedded');
+      if (fb && fb.textContent.trim()) {
+        try {
+          let raw = fb.textContent.trim();
+          if (fb.dataset.encoding === 'base64') {
+            raw = decodeURIComponent(escape(atob(raw)));
+          }
+          renderSpec(JSON.parse(raw), '内嵌副本');
+          return;
+        } catch (e) { console.error(e); }
+      }
+      document.getElementById('spec-body').textContent =
+        '请用 start-with-ai.bat 打开，或运行 python scripts/sync_spec_embed.py';
+    }
+    loadSpec();
+
+    function setVerdict(v) {
+      verdict = v;
+      const cmd = document.getElementById('cmd');
+      const badge = document.getElementById('verdict-badge');
+      cmd.classList.remove('verdict-ok', 'verdict-revise', 'verdict-pending');
+      badge.classList.remove('ok', 'revise', 'pending');
+      if (v === 'ok') {
+        cmd.classList.add('verdict-ok');
+        badge.classList.add('ok');
+        badge.textContent = '已通过';
+      } else if (v === 'revise') {
+        cmd.classList.add('verdict-revise');
+        badge.classList.add('revise');
+        badge.textContent = '已打叉';
+      } else if (v === 'pending') {
+        cmd.classList.add('verdict-pending');
+        badge.classList.add('pending');
+        badge.textContent = '待生成 revise';
+      } else {
+        badge.classList.add('pending');
+        badge.textContent = '未确认';
+      }
+    }
+
+    function renderStories(stories) {
+      const box = document.getElementById('stories');
+      if (!stories || !stories.length) {
+        box.innerHTML = '<p style="color:#888;">AI 未返回故事。</p>';
+        return;
+      }
+      box.innerHTML = stories.map((s, i) => {
+        const lv = s.level === 'activity' ? 'task' : (s.level === 'story' ? 'storylv' : 'task');
+        const tag = s.level === 'story' ? '故事' : (s.level === 'activity' ? '活动' : '任务');
+        return '<div class="story" data-id="s' + i + '"><span class="tag ' + lv + '">' + tag +
+          '</span><strong>' + (s.text || '') + '</strong><div class="quote">来源：「' + (s.source_quote || '') + '」</div></div>';
+      }).join('');
+    }
+
+    async function checkServerMode() {
+      const banner = document.getElementById('server-banner');
+      const btn = document.getElementById('btn-ai');
+      const st = document.getElementById('ai-status');
+      if (location.protocol === 'file:') {
+        banner.style.display = 'block';
+        btn.disabled = true;
+        st.textContent = '请用 start-with-ai.bat 打开';
+        return false;
+      }
+      const onAiPort = (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
+        && location.port === '8765';
+      if (!onAiPort) {
+        banner.style.display = 'block';
+        st.textContent = '地址应为 http://127.0.0.1:8765/review.html';
+        return false;
+      }
+      try {
+        const r = await fetch('/api/ping', { cache: 'no-store' });
+        if (r.ok) {
+          const h = await r.json();
+          if (h.service !== 'stage0_server') {
+            st.textContent = '8765 端口被其它程序占用，请重新运行启动脚本';
+            banner.style.display = 'block';
+            btn.disabled = true;
+            return false;
+          }
+          if (!h.ai_configured) st.textContent = '未配置 project/.env 中的 API Key';
+          return true;
+        }
+      } catch (_) { /* 旧版服务无 health 接口时仍允许试抓 */ }
+      st.textContent = '本地服务已连接，可点 AI 试抓';
+      return true;
+    }
+    checkServerMode();
+    document.getElementById('page-url').textContent = '当前地址：' + location.href;
+
+    async function runAiDraft() {
+      const st = document.getElementById('ai-status');
+      const btn = document.getElementById('btn-ai');
+      if (location.protocol === 'file:') {
+        st.textContent = '请双击「启动阶段0验收.bat」或 start-with-ai.bat，不要用文件路径打开';
+        document.getElementById('server-banner').style.display = 'block';
+        return;
+      }
+      const apiBase = location.origin;
+      if (location.port !== '8765') {
+        st.textContent = '当前地址 ' + location.href + ' 无 AI 服务，请用启动脚本打开';
+        document.getElementById('server-banner').style.display = 'block';
+        return;
+      }
+      btn.disabled = true;
+      st.textContent = 'AI 运行中（约 30–90 秒，请勿关闭黑色服务窗口）…';
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 180000);
+      try {
+        const r = await fetch(apiBase + '/api/draft-stories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+          signal: ctrl.signal,
+        });
+        clearTimeout(timer);
+        let data = {};
+        const text = await r.text();
+        try { data = JSON.parse(text); } catch (_) { data = { error: text.slice(0, 200) }; }
+        if (!r.ok) {
+          throw new Error(data.error || ('HTTP ' + r.status));
+        }
+        renderStories(data.stories);
+        st.textContent = '完成，共 ' + data.stories.length + ' 条。请逐条对照左边原文。';
+        setVerdict(null);
+        document.getElementById('cmd').value = '';
+      } catch (e) {
+        clearTimeout(timer);
+        let msg = (e && e.message) ? e.message : String(e);
+        if (msg.includes('abort')) msg = '超时（3分钟）。请检查黑色窗口是否在运行、网络是否正常';
+        if (msg === 'Failed to fetch') {
+          msg = '连不上本地 AI 服务。请关闭页面，双击「启动阶段0验收.bat」，地址必须是 http://127.0.0.1:8765/review.html';
+        }
+        st.textContent = '失败：' + msg;
+        console.error(e);
+      } finally {
+        btn.disabled = false;
+      }
+    }
 
     document.querySelectorAll('.kw').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -270,15 +583,18 @@
     function pickOk() {
       reviseCode = null;
       document.querySelectorAll('button.bad').forEach(b => b.classList.remove('selected'));
+      document.querySelectorAll('button.ok').forEach(b => b.classList.add('selected'));
       document.getElementById('revise-hint').style.display = 'none';
       document.getElementById('builder').style.display = 'none';
       document.getElementById('reason').style.display = 'none';
       document.getElementById('revise-actions').style.display = 'none';
       document.getElementById('reason').classList.remove('missing');
       setCmd('ok');
+      setVerdict('ok');
     }
 
     function pickRevise(btn) {
+      document.querySelectorAll('button.ok').forEach(b => b.classList.remove('selected'));
       reviseCode = btn.dataset.code;
       document.querySelectorAll('button.bad').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
@@ -288,9 +604,11 @@
       document.getElementById('reason').style.display = 'block';
       document.getElementById('revise-actions').style.display = 'flex';
       document.getElementById('reason').value = '';
+      document.getElementById('cmd').value = '';
+      setVerdict('pending');
       renderTemplates();
       document.getElementById('status').textContent =
-        '已选「' + reviseCode + '」— 点一句现成的，或只填一个词，再生成 revise。';
+        '已取消「通过」，改为打叉流程。请写原因后点「生成 revise 指令」。';
     }
 
     function buildRevise() {
@@ -309,13 +627,14 @@
       ta.classList.remove('missing');
       const cmd = 'revise:' + reviseCode + ':' + reason;
       setCmd(cmd);
-      document.getElementById('status').textContent = '已生成 revise。只重跑当前步，已锁定内容不会动。';
+      setVerdict('revise');
+      document.getElementById('status').textContent = '已生成 revise（打叉）。之前点的「通过」已作废。';
     }
 
     function setCmd(v) {
       document.getElementById('cmd').value = v;
       const st = document.getElementById('status');
-      if (v === 'ok') st.textContent = '已选：通过并锁定。重跑时不会重复确认本步。';
+      if (v === 'ok') st.textContent = '已选：通过（ok）。若再点 ✗ 会清空并进入打叉。';
       else if (v.startsWith('unlock:')) st.textContent = '已选：解锁后才会重新确认该步。';
     }
 

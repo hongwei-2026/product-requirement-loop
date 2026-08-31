@@ -1,5 +1,6 @@
 # product-requirement — 产品需求梳理循环
 # 对齐 devops-code 字段；SQL 阶段 deferred
+# 阶段 2 定稿：2026-08-30（三步不拆细；锁定规则见 loop + locking）
 name: product-requirement
 description: 研发日志 → 需求故事（Markdown）→ 用户故事 JSON → 人工定稿
 
@@ -58,3 +59,7 @@ acceptance:
   sentence_coverage_rate: 1.0
   feedback_triggered: true
   min_rounds: 1
+
+deferred:
+  - name: JSON 转 SQL
+    reason: 官方 product-requirement index 有第三步，本期不实现

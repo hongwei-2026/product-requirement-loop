@@ -54,42 +54,51 @@ def main() -> int:
 
     # --- 文档产出 ---
     docs = [
-        ("D01", "阶段0实现报告", "阅读记录与结论", "阶段0实现报告.md"),
-        ("D02", "阶段0快速验收清单", "10条勾表认可", "阶段0快速验收清单.md"),
-        ("D03", "人机确认操作指南", "人怎么验收AI笔记", "人机确认操作指南.md"),
-        ("D04", "复核关键词卡", "不熟文件时怎么找", "复核关键词卡-case01.md"),
-        ("D05", "项目实现流程报告", "全阶段路线图", "项目实现流程报告.md"),
-        ("D06", "课题申请", "正式申请文档", "课题申请.md"),
-        ("D07", "资料清单", "材料索引", "资料清单.md"),
-        ("D08", "图文预览", "浏览器看图", "图文预览.html"),
+        ("D01", "阶段0实现报告", "阅读记录与结论", "docs/阶段0/阶段0实现报告.md"),
+        ("D02", "阶段0快速验收清单", "10条勾表认可", "docs/阶段0/阶段0快速验收清单.md"),
+        ("D03", "人机确认操作指南", "人怎么验收AI笔记", "docs/阶段0/人机确认操作指南.md"),
+        ("D04", "复核关键词卡", "不熟文件时怎么找", "docs/阶段0/复核关键词卡-case01.md"),
+        ("D05", "项目实现流程报告", "全阶段路线图", "docs/申请/项目实现流程报告.md"),
+        ("D06", "课题申请", "正式申请文档", "docs/申请/课题申请.md"),
+        ("D07", "资料清单", "材料索引", "docs/申请/资料清单.md"),
+        ("D08", "图文预览", "浏览器看图", "docs/阶段0/图文预览.html"),
     ]
     for cid, name, feat, rel in docs:
         ok, detail = check_exists(rel, feat, name)
         run(cid, name, feat, ok, detail)
 
     # --- 试点输入 ---
+    full_path = ROOT / "project/trials/case-01/input/journal-official-full.md"
+    excerpt_path = ROOT / "project/trials/case-01/input/journal-excerpt.md"
     run(
         "I01",
-        "官方日志摘录",
-        "输入不凭空编造",
-        (ROOT / "project/trials/case-01/input/journal-raw.md").exists(),
-        "journal-raw.md",
+        "官方原文（完整）",
+        "左侧展示原封不动",
+        full_path.exists(),
+        "journal-official-full.md",
     )
-    raw = (ROOT / "project/trials/case-01/input/journal-raw.md").read_text(encoding="utf-8")
+    full = full_path.read_text(encoding="utf-8") if full_path.exists() else ""
     run(
         "I02",
-        "摘录含核心句",
-        "与官方日志可对齐",
-        "捕捉用户故事" in raw and "零碎话语" in raw,
-        "含「捕捉用户故事」「零碎话语」",
+        "完整原文够长且含核心句",
+        "不是摘要冒充原文",
+        len(full) > 1500 and "捕捉用户故事" in full and "事件风暴" in full,
+        f"{len(full)} 字，含捕捉用户故事/事件风暴",
     )
     run(
         "I03",
-        "来源证明",
+        "摘录单独存放",
+        "关键词卡用短摘录",
+        excerpt_path.exists() and len(excerpt_path.read_text(encoding="utf-8")) < len(full),
+        "journal-excerpt.md 短于 full",
+    )
+    run(
+        "I04",
+        "来源证明与正确路径",
         "输入可追溯",
         (ROOT / "project/trials/case-01/input/SOURCE.md").exists()
-        and "quanttide-journal-of-product-development" in (ROOT / "project/trials/case-01/input/SOURCE.md").read_text(encoding="utf-8"),
-        "SOURCE.md 含官方仓库链接",
+        and "quanttide-devops/loops/devops-code" in (ROOT / "project/trials/case-01/input/SOURCE.md").read_text(encoding="utf-8"),
+        "SOURCE.md 含 quanttide-devops/loops/devops-code",
     )
 
     # --- 验收 UI ---
@@ -116,6 +125,27 @@ def main() -> int:
         "不重复确认已通过项",
         "锁定" in review_text and "unlock" in review_text,
         "含锁定/unlock 文案",
+    )
+    run(
+        "U05",
+        "左侧标题为完整原文",
+        "不标原始却给摘要",
+        "官方原文（完整" in review_text and "原始日志" not in review_text,
+        "标题含「官方原文（完整）」",
+    )
+    run(
+        "U06",
+        "AI 试抓按钮",
+        "右侧可跑 Agnes",
+        "runAiDraft" in review_text and "btn-ai" in review_text,
+        "含 AI 试抓与 runAiDraft",
+    )
+    run(
+        "U07",
+        "通过/打叉互斥",
+        "点叉后 ok 清空",
+        "setVerdict" in review_text and "verdict-pending" in review_text,
+        "含 setVerdict 与 pending 状态",
     )
 
     # --- Loop 骨架 ---
@@ -177,13 +207,13 @@ def main() -> int:
         run("S02-" + fn[:6], f"图证据 {fn}", "文档插图", ok, fn)
 
     # --- 阶段0验收手册 ---
-    manual = ROOT / "阶段0验收操作手册.md"
+    manual = ROOT / "docs/阶段0/阶段0验收操作手册.md"
     run(
         "M01",
         "阶段0验收操作手册",
         "逐步操作指导",
         manual.exists(),
-        "阶段0验收操作手册.md",
+        "docs/阶段0/阶段0验收操作手册.md",
     )
     if manual.exists():
         mtext = manual.read_text(encoding="utf-8")
@@ -233,6 +263,20 @@ def main() -> int:
     run("P04", "ps1 语法合法", "避免双击闪退", syntax_ok, syntax_detail)
     manifest = ROOT / "launcher-files.json"
     run("P05", "launcher-files.json", "中文路径清单", manifest.exists(), "launcher-files.json")
+    run(
+        "P07",
+        "start-with-ai.bat",
+        "带 AI 的本地服务入口",
+        (ROOT / "start-with-ai.bat").exists(),
+        "start-with-ai.bat",
+    )
+    run(
+        "P08",
+        "stage0_server.py",
+        "Agnes API 代理",
+        (ROOT / "scripts/stage0_server.py").exists(),
+        "scripts/stage0_server.py",
+    )
     if manifest.exists():
         mf = json.loads(manifest.read_text(encoding="utf-8"))
         for key in ("review_html", "preview_html", "acceptance_manual_md"):
