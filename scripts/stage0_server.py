@@ -406,7 +406,8 @@ class Handler(SimpleHTTPRequestHandler):
                 q = (qs.get("q") or [""])[0]
                 limit = int((qs.get("limit") or ["100"])[0])
                 if group and not jid:
-                    items = list_audit_journals(limit=limit, q=q)
+                    user = self._current_user()
+                    items = list_audit_journals(limit=limit, q=q, current_user=user)
                     self._send_json(200, {"ok": True, "group": "journal", "items": items, "count": len(items)})
                 else:
                     events = list_events(journal_id=jid, limit=limit)
@@ -461,17 +462,16 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 from urllib.parse import urlparse, parse_qs
 
+                from review_queue import actionable_pending_count, list_queue_enriched  # noqa: E402
+
                 qs = parse_qs(urlparse(self.path).query)
                 status = (qs.get("status") or [None])[0]
-                items = list_queue(status=status)
-                pending = len(
-                    [
-                        x
-                        for x in list_queue()
-                        if x.get("status")
-                        in {"pending_human", "pending_step1", "pending_step2", "in_review"}
-                    ]
+                claim_filter = (qs.get("claim") or ["all"])[0] or "all"
+                user = self._current_user()
+                items = list_queue_enriched(
+                    user=user, status=status, claim_filter=claim_filter
                 )
+                pending = actionable_pending_count(user)
                 self._send_json(
                     200,
                     {
@@ -479,6 +479,12 @@ class Handler(SimpleHTTPRequestHandler):
                         "items": items,
                         "count": len(items),
                         "pending_human": pending,
+                        "claim_filter": claim_filter,
+                        "me": {
+                            "id": (user or {}).get("id"),
+                            "name": (user or {}).get("display_name")
+                            or (user or {}).get("username"),
+                        },
                     },
                 )
             except Exception as e:
@@ -741,14 +747,32 @@ class Handler(SimpleHTTPRequestHandler):
                 if not isinstance(ids, list) or not ids:
                     self._send_json(400, {"ok": False, "error": "请提供 journal_ids 数组"})
                     return
-                actor = (payload.get("actor") or "批量任务").strip()
-                self._send_json(200, enqueue([str(x) for x in ids], actor=actor))
+                user = self._require_user()
+                if not user:
+                    return
+                actor = (
+                    (payload.get("actor") or "").strip()
+                    or user.get("display_name")
+                    or user.get("username")
+                    or "批量任务"
+                )
+                self._send_json(
+                    200,
+                    enqueue(
+                        [str(x) for x in ids],
+                        actor=actor,
+                        actor_user_id=user.get("id"),
+                    ),
+                )
             except Exception as e:
                 self._send_json(500, {"ok": False, "error": str(e)})
             return
 
         if path == "/api/queue/open":
             try:
+                user = self._require_user()
+                if not user:
+                    return
                 qid = (payload.get("id") or "").strip()
                 if not qid:
                     self._send_json(400, {"ok": False, "error": "缺少队列 id"})

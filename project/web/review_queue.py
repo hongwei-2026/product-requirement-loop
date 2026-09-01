@@ -38,9 +38,11 @@ def _load() -> dict:
         return {"version": 1, "items": []}
 
 
-def _save(data: dict) -> None:
+def _save(data: dict, *, upsert_all: bool = True) -> None:
     ensure_dirs()
     QUEUE_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    if not upsert_all:
+        return
     try:
         from db import db_queue_upsert  # noqa: E402
 
@@ -52,6 +54,20 @@ def _save(data: dict) -> None:
 
             for it in data.get("items") or []:
                 db_queue_upsert(it)
+        except Exception:
+            pass
+
+
+def _upsert_one(item: dict) -> None:
+    try:
+        from db import db_queue_upsert  # noqa: E402
+
+        db_queue_upsert(item)
+    except Exception:
+        try:
+            from web.db import db_queue_upsert  # noqa: E402
+
+            db_queue_upsert(item)
         except Exception:
             pass
 
@@ -107,7 +123,9 @@ def _update_item(item_id: str, **fields) -> dict | None:
             if it.get("id") == item_id:
                 it.update(fields)
                 it["updated_at"] = _now()
-                _save(data)
+                # 只写 JSON + 单条 SQLite，避免每次把整队刷进库把服务卡住
+                QUEUE_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+                _upsert_one(it)
                 return dict(it)
         # JSON 里没有时，从 DB 取回再写回，避免库与文件脱节
         hit = None
@@ -127,11 +145,16 @@ def _update_item(item_id: str, **fields) -> dict | None:
         hit.update(fields)
         hit["updated_at"] = _now()
         data.setdefault("items", []).insert(0, hit)
-        _save(data)
+        QUEUE_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        _upsert_one(hit)
         return dict(hit)
 
 
-def enqueue(journal_ids: list[str], actor: str = "系统") -> dict:
+def enqueue(
+    journal_ids: list[str],
+    actor: str = "系统",
+    actor_user_id: int | None = None,
+) -> dict:
     """将多条日志加入队列（status=queued），后台批量跑 AI。"""
     from journal_store import read_journal  # local import
 
@@ -181,6 +204,10 @@ def enqueue(journal_ids: list[str], actor: str = "系统") -> dict:
                 "product": meta.get("product"),
                 "status": "queued",
                 "actor": actor or "系统",
+                "actor_user_id": actor_user_id,
+                "assignee_user_id": None,
+                "assignee_name": None,
+                "claimed_at": None,
                 "created_at": _now(),
                 "updated_at": _now(),
                 "error": None,
@@ -192,7 +219,7 @@ def enqueue(journal_ids: list[str], actor: str = "系统") -> dict:
             created.append({"ok": True, **item})
         _save(data)
     _ensure_worker()
-    return {"ok": True, "enqueued": created, "pending_human": len(list_queue("pending_human"))}
+    return {"ok": True, "enqueued": created, "pending_human": actionable_pending_count()}
 
 
 def inject_pending(
@@ -231,7 +258,143 @@ def inject_pending(
     return {"ok": True, "item": item}
 
 
-def mark_opened(item_id: str) -> dict | None:
+def _user_display(user: dict | None) -> str:
+    if not user:
+        return ""
+    return (user.get("display_name") or user.get("username") or "").strip()
+
+
+def human_openable_statuses() -> set[str]:
+    return {
+        "pending_human",  # 兼容旧数据
+        "pending_step1",
+        "pending_step2",
+        "step1_passed",  # Step1 人审过，等人自己点跑 Step2 / 解锁
+        "in_review",
+        "failed",
+    }
+
+
+def claim_ownership(item: dict | None, user: dict | None) -> str:
+    """返回 unclaimed / mine / others。"""
+    if not item:
+        return "unclaimed"
+    aid = item.get("assignee_user_id")
+    aname = (item.get("assignee_name") or "").strip()
+    if aid is None and not aname:
+        return "unclaimed"
+    uid = (user or {}).get("id")
+    if uid is not None and aid is not None:
+        try:
+            if int(aid) == int(uid):
+                return "mine"
+        except (TypeError, ValueError):
+            pass
+    me = _user_display(user)
+    if me and aname and aname == me and (aid is None or uid is None):
+        return "mine"
+    return "others"
+
+
+def enrich_queue_item(item: dict, user: dict | None = None) -> dict:
+    """给前端加认领标签与是否可操作。"""
+    out = dict(item)
+    ownership = claim_ownership(item, user)
+    openable = (item.get("status") or "") in human_openable_statuses()
+    aname = (item.get("assignee_name") or "").strip()
+    if ownership == "unclaimed":
+        claim_label = "无人认领 · 可开始人审"
+        claim_short = "无人认领"
+    elif ownership == "mine":
+        claim_label = f"我已认领（{aname or '我'}）· 可继续"
+        claim_short = "我已认领"
+    else:
+        claim_label = f"待 {aname or '他人'} 继续 · 你不能操作"
+        claim_short = f"待 {aname or '他人'} 接受"
+    out["claim_ownership"] = ownership
+    out["claim_label"] = claim_label
+    out["claim_short"] = claim_short
+    out["can_open"] = bool(openable and ownership in {"unclaimed", "mine"})
+    out["assignee_name"] = aname or None
+    return out
+
+
+def list_queue_enriched(
+    *,
+    user: dict | None = None,
+    status: str | None = None,
+    claim_filter: str = "all",
+) -> list[dict]:
+    """claim_filter: all | mine | unclaimed | others"""
+    items = [enrich_queue_item(x, user) for x in list_queue(status=status)]
+    cf = (claim_filter or "all").strip().lower()
+    if cf == "mine":
+        items = [x for x in items if x.get("claim_ownership") == "mine"]
+    elif cf == "unclaimed":
+        items = [x for x in items if x.get("claim_ownership") == "unclaimed"]
+    elif cf in {"others", "theirs"}:
+        items = [x for x in items if x.get("claim_ownership") == "others"]
+    return items
+
+
+def actionable_pending_count(user: dict | None = None) -> int:
+    """侧栏数字：我还能处理的（无人认领 + 我已认领，且状态可人审）。"""
+    n = 0
+    for x in list_queue_enriched(user=user):
+        if x.get("can_open"):
+            n += 1
+    return n
+
+
+def claim_item(item_id: str, user: dict | None) -> dict:
+    """认领队列项。已被他人认领则拒绝。"""
+    if not user or user.get("id") is None:
+        return {"ok": False, "error": "请先登录再开始人审"}
+    item = get_item(item_id)
+    if not item:
+        return {"ok": False, "error": "队列项不存在"}
+    st = item.get("status")
+    prior_status = st
+    if st not in human_openable_statuses():
+        if st == "done":
+            return {"ok": False, "error": "该队列项已进定稿档案"}
+        if st in {"queued", "ai_running"}:
+            return {"ok": False, "error": "AI 还在跑，请稍后再打开"}
+        return {"ok": False, "error": f"队列状态不可人审: {st}"}
+    ownership = claim_ownership(item, user)
+    if ownership == "others":
+        who = (item.get("assignee_name") or "他人").strip()
+        return {
+            "ok": False,
+            "error": f"该条已由「{who}」认领审核中，你只能查看进度，不能再打开操作",
+            "claim_ownership": "others",
+            "assignee_name": who,
+            "item": enrich_queue_item(item, user),
+        }
+    name = _user_display(user) or "审核人"
+    fields: dict = {
+        "assignee_user_id": user.get("id"),
+        "assignee_name": name,
+    }
+    if ownership == "unclaimed" or not item.get("claimed_at"):
+        fields["claimed_at"] = _now()
+    # 打开即进入人审中；step1_passed / pending_step2 / in_review 保持原状态语义
+    if st in {"pending_step1", "pending_human", "failed"}:
+        fields["status"] = "in_review"
+    updated = _update_item(item_id, **fields)
+    return {
+        "ok": True,
+        "item": enrich_queue_item(updated or item, user),
+        "claimed": ownership == "unclaimed",
+        "prior_status": prior_status,
+    }
+
+
+def mark_opened(item_id: str, user: dict | None = None) -> dict | None:
+    """兼容旧调用；若带 user 则走认领。"""
+    if user is not None:
+        res = claim_item(item_id, user)
+        return res.get("item") if res.get("ok") else None
     return _update_item(item_id, status="in_review")
 
 
@@ -255,17 +418,6 @@ def load_artifacts(item_id: str) -> dict:
     if stories_path.exists():
         stories = json.loads(stories_path.read_text(encoding="utf-8"))
     return {"item": item, "requirement_story": story, "stories": stories}
-
-
-def human_openable_statuses() -> set[str]:
-    return {
-        "pending_human",  # 兼容旧数据
-        "pending_step1",
-        "pending_step2",
-        "step1_passed",  # Step1 人审过，等人自己点跑 Step2 / 解锁
-        "in_review",
-        "failed",
-    }
 
 
 def _process_one(item_id: str) -> None:

@@ -34,12 +34,40 @@ def _now_iso_expire(hours: int = 24 * 7) -> str:
     )
 
 
+def _migrate_queue_assignee(conn: sqlite3.Connection) -> None:
+    """旧库补认领字段（可重复执行）。"""
+    cols = {
+        r[1]
+        for r in conn.execute("PRAGMA table_info(review_queue)").fetchall()
+    }
+    if not cols:
+        return
+    alters = []
+    if "assignee_user_id" not in cols:
+        alters.append(
+            "ALTER TABLE review_queue ADD COLUMN assignee_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL"
+        )
+    if "assignee_name" not in cols:
+        alters.append("ALTER TABLE review_queue ADD COLUMN assignee_name TEXT")
+    if "claimed_at" not in cols:
+        alters.append("ALTER TABLE review_queue ADD COLUMN claimed_at TEXT")
+    for sql in alters:
+        conn.execute(sql)
+    try:
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_queue_assignee ON review_queue(assignee_user_id, status)"
+        )
+    except Exception:
+        pass
+
+
 def ensure_db() -> Path:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     with _lock:
         conn = sqlite3.connect(str(DB_PATH))
         try:
             conn.executescript(SCHEMA)
+            _migrate_queue_assignee(conn)
             conn.commit()
             _seed_demo_user(conn)
             conn.commit()
@@ -111,6 +139,9 @@ CREATE TABLE IF NOT EXISTS review_queue (
   status TEXT NOT NULL,
   actor_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   actor_name TEXT,
+  assignee_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  assignee_name TEXT,
+  claimed_at TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   error TEXT,
@@ -129,9 +160,14 @@ CREATE TABLE IF NOT EXISTS schema_meta (
 
 def connect() -> sqlite3.Connection:
     ensure_db()
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 30000")
+    try:
+        conn.execute("PRAGMA journal_mode = WAL")
+    except Exception:
+        pass
     return conn
 
 
@@ -502,15 +538,21 @@ def db_queue_upsert(item: dict) -> dict:
             """
             INSERT INTO review_queue(
               id, journal_id, journal_title, product, status, actor_user_id, actor_name,
+              assignee_user_id, assignee_name, claimed_at,
               created_at, updated_at, error, artifact_dir, story_chars, story_count
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
               status=excluded.status,
               updated_at=excluded.updated_at,
               error=excluded.error,
               story_chars=excluded.story_chars,
               story_count=excluded.story_count,
-              journal_title=excluded.journal_title
+              journal_title=excluded.journal_title,
+              actor_user_id=excluded.actor_user_id,
+              actor_name=excluded.actor_name,
+              assignee_user_id=excluded.assignee_user_id,
+              assignee_name=excluded.assignee_name,
+              claimed_at=excluded.claimed_at
             """,
             (
                 item["id"],
@@ -519,7 +561,10 @@ def db_queue_upsert(item: dict) -> dict:
                 item.get("product"),
                 item["status"],
                 item.get("actor_user_id"),
-                item.get("actor"),
+                item.get("actor") or item.get("actor_name"),
+                item.get("assignee_user_id"),
+                item.get("assignee_name"),
+                item.get("claimed_at"),
                 item.get("created_at") or _now(),
                 item.get("updated_at") or _now(),
                 item.get("error"),

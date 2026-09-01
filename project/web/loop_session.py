@@ -725,21 +725,19 @@ class LoopWebSession:
                 self.busy = False
 
     def open_queue_item(self, item_id: str) -> dict:
-        """从待人审队列加载到工作台。先只载入 Step1；Step2 等人审过 Step1 后再跑。"""
+        """从待人审队列加载到工作台。先认领，再载入 Step1/Step2 草稿。"""
         with _lock:
             if self.busy:
                 return {"ok": False, "error": "系统正忙，请稍候"}
-            from review_queue import human_openable_statuses  # local
+            from review_queue import claim_item, enrich_queue_item, get_item as rq_get  # local
 
+            user = self.current_user
+            claimed = claim_item(item_id, user)
+            if not claimed.get("ok"):
+                return claimed
+            prior_status = claimed.get("prior_status") or ""
             data = load_artifacts(item_id)
             item = data["item"]
-            st = item.get("status")
-            if st not in human_openable_statuses():
-                if st == "done":
-                    return {"ok": False, "error": "该队列项已进定稿档案"}
-                if st in {"queued", "ai_running"}:
-                    return {"ok": False, "error": "AI 还在跑，请稍后再打开"}
-                return {"ok": False, "error": f"队列状态不可人审: {st}"}
             if not (data.get("requirement_story") or "").strip():
                 return {"ok": False, "error": "队列里还没有 Step1 需求故事（AI 可能失败）。请看失败原因后重试。"}
             jid = item["journal_id"]
@@ -754,26 +752,39 @@ class LoopWebSession:
             self.client = None
             self.queue_item_id = item_id
             self._reset_outputs(keep_locked=False)
-            # 关键：只放需求故事，不放 stories，避免跳过 Step1
             self._story_path().write_text(data["requirement_story"], encoding="utf-8")
+            who = (claimed.get("item") or {}).get("assignee_name") or (
+                (user or {}).get("display_name") or (user or {}).get("username") or "审核人"
+            )
             phase = "step1_review"
-            msg = f"已载入「{item.get('journal_title') or jid}」。请先审 Step1 需求故事（通过/打叉都要写理由）。"
-            if st == "step1_passed":
+            msg = (
+                f"已认领并载入「{item.get('journal_title') or jid}」（审核人：{who}）。"
+                f"请先审 Step1 需求故事（通过/打叉都要写理由）。"
+            )
+            has_stories = bool((data.get("stories") or {}).get("stories"))
+            if prior_status == "step1_passed":
                 locked = self.out / "locked"
                 locked.mkdir(parents=True, exist_ok=True)
-                (locked / "step1-requirement-story.md").write_text(data["requirement_story"], encoding="utf-8")
+                (locked / "step1-requirement-story.md").write_text(
+                    data["requirement_story"], encoding="utf-8"
+                )
                 phase = "step2_ready"
-                msg = "Step1 已通过并锁定。请自己点「运行 Step2」，或先「解锁 Step1」重审。"
-            elif st in {"pending_step2", "pending_human"} and (data.get("stories") or {}).get("stories"):
+                msg = (
+                    f"已由「{who}」继续。Step1 已通过并锁定。"
+                    f"请自己点「运行 Step2」，或先「解锁 Step1」重审。"
+                )
+            elif prior_status in {"pending_step2", "pending_human", "in_review"} and has_stories:
                 self._stories_path().write_text(
                     json.dumps(data["stories"], ensure_ascii=False, indent=2), encoding="utf-8"
                 )
                 locked = self.out / "locked"
                 locked.mkdir(parents=True, exist_ok=True)
-                (locked / "step1-requirement-story.md").write_text(data["requirement_story"], encoding="utf-8")
+                (locked / "step1-requirement-story.md").write_text(
+                    data["requirement_story"], encoding="utf-8"
+                )
                 phase = "step2_review"
-                msg = f"已载入 Step2 草稿（{len(data['stories'].get('stories') or [])} 条）。请审「用户要…」；可随时解锁 Step1。"
-            mark_opened(item_id)
+                n = len(data["stories"].get("stories") or [])
+                msg = f"已认领并载入 Step2 草稿（{n} 条），当前由「{who}」审核；可随时解锁 Step1。"
             self._save_session_meta()
             return {
                 "ok": True,
@@ -781,6 +792,7 @@ class LoopWebSession:
                 "queue_item_id": item_id,
                 "journal_id": jid,
                 "message": msg,
+                "claim": enrich_queue_item(rq_get(item_id) or item, user),
             }
 
     def run_check(self, target: str = "accepted", actor: str = "") -> dict:

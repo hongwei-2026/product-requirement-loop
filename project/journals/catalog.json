@@ -9,10 +9,40 @@
     ],
     "source_repo": "https://github.com/quanttide/quanttide-journal-of-product-development"
   },
-  "synced_at": "2026-08-31T13:22:24Z",
+  "synced_at": "2026-09-01T03:16:50Z",
   "product_count": 31,
-  "journal_count": 61,
+  "journal_count": 63,
   "journals": [
+    {
+      "id": "qtrecurit-2026-08-17",
+      "title": "qtrecurit · 2026-08-17",
+      "product": "qtrecurit",
+      "date": "2026-08-17",
+      "file": "qtrecurit/2026-08-17.md",
+      "usage": "formal",
+      "speed": "快",
+      "why": "官方日日志全文（452 字，获取信息页确认入库）",
+      "when": "正式梳理/定稿时选对应产品流 + 日期",
+      "source": "quanttide-journal-of-product-development/qtrecurit/2026-08-17.md",
+      "source_url": "https://github.com/quanttide/quanttide-journal-of-product-development/blob/main/qtrecurit/2026-08-17.md",
+      "chars": 452,
+      "kind": "library"
+    },
+    {
+      "id": "qtrecurit-2026-08-18",
+      "title": "qtrecurit · 2026-08-18",
+      "product": "qtrecurit",
+      "date": "2026-08-18",
+      "file": "qtrecurit/2026-08-18.md",
+      "usage": "formal",
+      "speed": "快",
+      "why": "官方日日志全文（196 字，获取信息页确认入库）",
+      "when": "正式梳理/定稿时选对应产品流 + 日期",
+      "source": "quanttide-journal-of-product-development/qtrecurit/2026-08-18.md",
+      "source_url": "https://github.com/quanttide/quanttide-journal-of-product-development/blob/main/qtrecurit/2026-08-18.md",
+      "chars": 196,
+      "kind": "library"
+    },
     {
       "id": "qtcloud-learn-2026-08-31",
       "title": "qtcloud-learn · 2026-08-31",

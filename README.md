@@ -16,7 +16,8 @@ project\.venv\Scripts\python.exe scripts\sync_journals.py
 5. 浏览器打开 **http://127.0.0.1:8765/**  
 6. 按操作手册使用：
 
-**[docs/交付/产品操作手册.md](./docs/交付/产品操作手册.md)**
+**[docs/交付/产品操作手册.md](./docs/交付/产品操作手册.md)**  
+**[docs/delivery-guide/项目功能全景说明.md](./docs/delivery-guide/项目功能全景说明.md)**（每个功能的故事版说明 + 实机截图 + 流程图）
 
 ## 登录与数据库
 

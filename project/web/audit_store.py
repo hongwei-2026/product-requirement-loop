@@ -159,8 +159,8 @@ def _dedupe_events(rows: list[dict]) -> list[dict]:
     return out
 
 
-def list_audit_journals(*, limit: int = 80, q: str = "") -> list[dict]:
-    """按日志聚合：列表一行一个日志，阶段明细点开再看。并标注「现在在哪」。"""
+def list_audit_journals(*, limit: int = 80, q: str = "", current_user: dict | None = None) -> list[dict]:
+    """按日志聚合：列表一行一个日志，阶段明细点开再看。并标注「现在在哪」与认领/可否继续。"""
     events = list_events(limit=max(400, limit * 12))
     order: list[str] = []
     groups: dict[str, dict] = {}
@@ -206,7 +206,7 @@ def list_audit_journals(*, limit: int = 80, q: str = "") -> list[dict]:
     # 待人审队列（按 journal 取最新一条未完成）
     queue_by_jid: dict[str, dict] = {}
     try:
-        from review_queue import list_queue  # noqa: E402
+        from review_queue import claim_ownership, enrich_queue_item, list_queue  # noqa: E402
 
         openable = {
             "queued",
@@ -224,7 +224,7 @@ def list_audit_journals(*, limit: int = 80, q: str = "") -> list[dict]:
                 continue
             prev = queue_by_jid.get(jid)
             if not prev or (qi.get("updated_at") or "") >= (prev.get("updated_at") or ""):
-                queue_by_jid[jid] = qi
+                queue_by_jid[jid] = enrich_queue_item(qi, current_user)
     except Exception:
         pass
 
@@ -285,24 +285,47 @@ def list_audit_journals(*, limit: int = 80, q: str = "") -> list[dict]:
             loc = "queue"
             queue_id = qi.get("id")
             st = qi.get("status") or ""
-            loc_label = f"待人审 · {status_zh.get(st, st)}"
-            continue_action = "queue"
+            claim_short = qi.get("claim_short") or ""
+            base = f"待人审 · {status_zh.get(st, st)}"
+            if claim_short:
+                loc_label = f"{base} · {claim_short}"
+            else:
+                loc_label = base
+            ownership = qi.get("claim_ownership") or "unclaimed"
+            # 他人已认领：可看不可继续打开队列
+            if ownership == "others":
+                continue_action = "view_only"
+                it["can_continue"] = False
+                it["continue_blocked_reason"] = qi.get("claim_label") or "已被他人认领"
+            else:
+                continue_action = "queue"
+                it["can_continue"] = True
             it["queue_status"] = st
+            it["claim_ownership"] = ownership
+            it["claim_label"] = qi.get("claim_label")
+            it["assignee_name"] = qi.get("assignee_name")
         elif jid and jid == session_jid and session_phase not in {"", "idle", "done"}:
             loc = "workbench"
             loc_label = status_zh.get(session_phase, f"工作台 · {session_phase}")
             continue_action = "workbench"
             it["workbench_phase"] = session_phase
+            it["can_continue"] = True
         elif jid and jid == session_jid and session_phase == "done":
             # 工作台有定稿产物但台账可能已写；若未进定稿档案仍提示去定稿
             if not it["in_registry"]:
                 loc = "workbench"
                 loc_label = "工作台 · 有定稿产物未同步？"
                 continue_action = "workbench"
+                it["can_continue"] = True
             else:
                 loc = "registry"
                 loc_label = "定稿档案"
                 continue_action = "registry"
+                it["can_continue"] = True
+
+        if "can_continue" not in it:
+            # registry / history_only / reopen
+            it["can_continue"] = continue_action != "view_only"
 
         it["location"] = loc
         it["location_label"] = loc_label
@@ -317,6 +340,7 @@ def list_audit_journals(*, limit: int = 80, q: str = "") -> list[dict]:
             if qq in (it.get("journal_id") or "").lower()
             or qq in (it.get("journal_title") or "").lower()
             or qq in (it.get("location_label") or "").lower()
+            or qq in (it.get("claim_label") or "").lower()
             or any(qq in a.lower() for a in (it.get("actors") or []))
         ]
     return items[:limit]
@@ -368,6 +392,12 @@ def register_approved(
     approver_user_id: int | None = None,
     accepted_json: str | None = None,
 ) -> dict:
+    # 先查库：同一 journal_id 再定稿应是「更新」而不是「新增一条」
+    prev_db = None
+    try:
+        prev_db = get_approved(journal_id)
+    except Exception:
+        prev_db = None
     rec = {
         "journal_id": journal_id,
         "title": journal_title or journal_id,
@@ -382,6 +412,8 @@ def register_approved(
         "audit_event_ids": [audit_event_id] if audit_event_id else [],
         "accepted_json": accepted_json,
     }
+    was_update = bool(prev_db)
+    prev_file: dict = {}
     with _lock:
         ensure_data_dir()
         file_data = {"version": 1, "items": {}}
@@ -392,25 +424,38 @@ def register_approved(
                     file_data = {"version": 1, "items": {}}
             except Exception:
                 file_data = {"version": 1, "items": {}}
-        prev = file_data["items"].get(journal_id) or {}
-        event_ids = list(prev.get("audit_event_ids") or [])
+        prev_file = file_data["items"].get(journal_id) or {}
+        was_update = bool(prev_db) or bool(prev_file)
+        event_ids = list(
+            prev_file.get("audit_event_ids")
+            or (prev_db or {}).get("audit_event_ids")
+            or []
+        )
         for eid in rec["audit_event_ids"]:
             if eid and eid not in event_ids:
                 event_ids.append(eid)
         rec["audit_event_ids"] = event_ids
-        file_data["items"][journal_id] = rec
+        # JSON 台账不写 accepted_json（太大）；完整 JSON 在 SQLite
+        file_data["items"][journal_id] = {
+            k: v for k, v in rec.items() if k not in {"accepted_json"}
+        }
         save_registry(file_data)
     try:
         from db import db_register_approved  # noqa: E402
 
-        return db_register_approved(rec)
+        saved = db_register_approved(rec)
     except Exception:
         try:
             from web.db import db_register_approved  # noqa: E402
 
-            return db_register_approved(rec)
+            saved = db_register_approved(rec)
         except Exception:
-            return rec
+            saved = rec
+    saved = dict(saved or rec)
+    saved["updated"] = was_update
+    if was_update:
+        saved["previous_approved_at"] = (prev_db or prev_file or {}).get("approved_at")
+    return saved
 
 
 def get_approved(journal_id: str) -> dict | None:

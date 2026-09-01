@@ -161,6 +161,7 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
 .filters select,.filters input{padding:6px 8px;border:1px solid #d9d9d9;border-radius:6px;font-size:12px}
 .j-list{display:flex;flex-direction:column;gap:8px}
 .j-card{border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:.15s}
+.j-card.dimmed{opacity:.72;cursor:default;background:#fafafa}
 .j-card:hover{border-color:var(--primary-border);background:#fafcff}
 .j-card.selected{border-color:var(--primary);background:var(--primary-bg)}
 .j-card h4{margin:0 0 6px;font-size:14px}
@@ -416,10 +417,16 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
         <div class="journals-page">
           <div class="journals-toolbar">
             <div class="guide">
-              <strong>待人审怎么走：</strong>① 日志库勾选 → 批量 AI；② AI <em>只先写 Step1 需求故事</em>；③ 你点「开始人审 Step1」通过后，自己再跑 Step2；④ 你再审「用户要…」条目；⑤ Step3 定稿进「定稿档案」。<br/>
-              状态白话：排队中 / AI 正在写 / 等人审 Step1 / 等人审 Step2 / 失败可重看原因。
+              <strong>待人审怎么走：</strong>① 日志库勾选 → 批量 AI；② AI <em>只先写 Step1 需求故事</em>；③ 你点「开始人审」会<strong>认领</strong>这条；④ 别人仍能看见，但标着「待谁继续」，不能抢操作；⑤ Step3 定稿进「定稿档案」。<br/>
+              状态白话：排队中 / AI 正在写 / 无人认领 / 我已认领 / 待他人继续。
             </div>
-            <div class="btnrow">
+            <div class="filters" style="margin-top:8px">
+              <select id="queue-claim-filter" title="认领筛选">
+                <option value="all">全部可见</option>
+                <option value="unclaimed">无人认领</option>
+                <option value="mine">只看我的</option>
+                <option value="others">他人已认领</option>
+              </select>
               <button class="btn btn-primary" type="button" id="btn-queue-refresh">刷新队列</button>
             </div>
           </div>
@@ -430,9 +437,9 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
       <div class="view" id="view-audit">
         <div class="journals-page">
           <div class="journals-toolbar">
-            <div class="guide">这里<strong>一行就是一份日志</strong>的操作总览。
+            <div class="guide">这里<strong>一行就是一份日志</strong>的操作总览（全员可看）。
               <strong>未定稿 ≠ 消失</strong>：每条会标「现在在哪」（待人审 / 工作台 / 定稿档案 / 仅有历史）。
-              点进去可看阶段，也可点「继续处理」跳回去。只有定稿后才进「定稿档案」。
+              若在待人审且已被他人认领，只能看、不能点「继续」抢审。
             </div>
             <div class="filters">
               <input id="audit-q" placeholder="搜日志标题 / id / 审核人" style="min-width:220px" />
@@ -446,7 +453,7 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
       <div class="view" id="view-registry">
         <div class="journals-page">
           <div class="journals-toolbar">
-            <div class="guide">只列出<strong>已定稿</strong>的需求档案（按产品流分类）。「日志库」是原文；这里是审完归档的结果。审核历史里只跑过 AI / 人审但没点定稿的，不会出现在这里。</div>
+            <div class="guide">只列出<strong>已定稿</strong>的需求档案（按产品流分类）。「日志库」是原文；这里是审完归档的结果。<strong>强制复审同一条再定稿 = 更新这一条，总条数不会变</strong>；若条数 +1，说明定稿的是另一份日志 id。</div>
             <div class="filters">
               <select id="registry-product"><option value="">全部产品流</option></select>
               <input id="registry-q" placeholder="搜标题 / 定稿人 / 日志 id" style="min-width:220px" />
@@ -1149,22 +1156,30 @@ function renderAuditJournalCards(items) {
       (it.actors || []).slice(0, 3).join('、') || null,
     ].filter(Boolean);
     const continueLabel = it.location === 'queue'
-      ? '去待人审继续'
+      ? (it.can_continue === false ? '他人已认领（不可操作）' : '去待人审继续')
       : (it.location === 'workbench'
         ? '打开工作台继续'
         : (it.location === 'registry' ? '查看定稿档案' : '重新打开继续'));
+    const claimBit = it.claim_label
+      ? `<div class="bits" style="margin-top:4px"><strong>认领：</strong>${esc(it.claim_label)}</div>`
+      : '';
+    const continueBtn = (it.can_continue === false || it.continue_action === 'view_only')
+      ? `<button class="btn" type="button" disabled title="${esc(it.continue_blocked_reason || '不可操作')}">${esc(continueLabel)}</button>`
+      : `<button class="btn btn-primary btn-audit-continue" type="button">${esc(continueLabel)}</button>`;
     return `
       <div class="audit-card" data-jid="${esc(jid)}" data-title="${esc(it.journal_title || jid || '')}"
-           data-loc="${esc(it.location || '')}" data-qid="${esc(it.queue_id || '')}" data-action="${esc(it.continue_action || '')}">
+           data-loc="${esc(it.location || '')}" data-qid="${esc(it.queue_id || '')}" data-action="${esc(it.continue_action || '')}"
+           data-can="${it.can_continue === false ? '0' : '1'}">
         <h4>${esc(it.journal_title || jid || '（未选日志）')}
           <span class="badge ${finalized ? 'fast' : ''}" style="margin-left:8px;font-weight:500">${finalized ? '已定稿' : '未定稿'}</span>
         </h4>
         <div class="bits" style="margin-top:4px"><strong>现在在哪：</strong>${esc(loc)}</div>
+        ${claimBit}
         <div class="bits">${esc(it.last_at || '')} · 最近：${esc(it.last_summary || '—')}</div>
         <div class="bits" style="margin-top:4px">${esc(bits.join(' · '))}</div>
         <div class="actions" style="margin-top:8px">
           <button class="btn btn-audit-detail" type="button">看阶段</button>
-          <button class="btn btn-primary btn-audit-continue" type="button">${esc(continueLabel)}</button>
+          ${continueBtn}
         </div>
       </div>`;
   }).join('');
@@ -1176,10 +1191,17 @@ function renderAuditJournalCards(items) {
       location_label: (card.querySelector('.bits strong') && card.querySelector('.bits').textContent) || ''
     });
     card.querySelector('.btn-audit-detail').onclick = (e) => { e.stopPropagation(); detail(); };
-    card.querySelector('.btn-audit-continue').onclick = (e) => {
-      e.stopPropagation();
-      continueFromAudit(card.dataset.jid, card.dataset.action, card.dataset.qid);
-    };
+    const cont = card.querySelector('.btn-audit-continue');
+    if (cont) {
+      cont.onclick = (e) => {
+        e.stopPropagation();
+        if (card.dataset.can === '0') {
+          toast('该条已被他人认领，你不能继续操作', false);
+          return;
+        }
+        continueFromAudit(card.dataset.jid, card.dataset.action, card.dataset.qid);
+      };
+    }
     card.onclick = (e) => {
       if (e.target.closest('button')) return;
       detail();
@@ -1188,6 +1210,10 @@ function renderAuditJournalCards(items) {
 }
 
 async function continueFromAudit(journalId, action, queueId) {
+  if (action === 'view_only') {
+    toast('该条已被他人认领，你只能查看进度，不能继续操作', false);
+    return;
+  }
   if (!journalId && action !== 'queue') {
     toast('没有 journal_id，无法继续', false);
     return;
@@ -1796,7 +1822,13 @@ async function finalize() {
     });
     if (!res.ok) { toast(res.error || '定稿失败', false); return; }
     const jid = (res.registry && (res.registry.journal_id || res.registry.journalId)) || (state && state.journal_id) || '';
-    toast('已写入定稿档案' + (jid ? ('：' + jid) : '') + '。已打开「定稿档案」列表。', true);
+    const title = (res.registry && res.registry.title) || jid;
+    const updated = !!(res.registry && res.registry.updated);
+    if (updated) {
+      toast('已更新定稿档案「' + (title || jid) + '」（同一日志复审，条数不变）。', true);
+    } else {
+      toast('已新增定稿「' + (title || jid) + '」。已打开「定稿档案」列表。', true);
+    }
     await refresh();
     await loadRegistry();
     switchView('registry');
@@ -1826,52 +1858,63 @@ async function runCheck() {
 }
 
 async function loadQueue() {
-  const data = await api('/api/queue');
+  const claim = (document.getElementById('queue-claim-filter') && document.getElementById('queue-claim-filter').value) || 'all';
+  const data = await api('/api/queue?claim=' + encodeURIComponent(claim));
   const list = document.getElementById('queue-list');
   if (!data.ok) { list.innerHTML = '<p class="meta">加载失败</p>'; return; }
   document.getElementById('nav-queue-count').textContent =
-    (data.pending_human || 0) + ' 待审';
+    (data.pending_human || 0) + ' 可审';
   const items = data.items || [];
   if (!items.length) {
-    list.innerHTML = '<p class="meta">队列为空。去日志库勾选后点「批量 AI → 待人审」。AI 只会先写 Step1，不会跳过人审。</p>';
+    list.innerHTML = '<p class="meta">当前筛选下没有条目。可换筛选，或去日志库勾选后点「批量 AI → 待人审」。</p>';
     return;
   }
   const statusMap = {
     queued: { label: '排队等 AI', tip: '还没开始跑' },
     ai_running: { label: 'AI 正在写', tip: '请稍候刷新' },
-    pending_step1: { label: '等人审 · Step1', tip: '需求故事已写好，点开始人审' },
-    pending_step2: { label: '等人审 · Step2', tip: '用户要…条目已抽出，点开始人审' },
+    pending_step1: { label: '等人审 · Step1', tip: '需求故事已写好，点开始人审即认领' },
+    pending_step2: { label: '等人审 · Step2', tip: '用户要…条目已抽出，点开始人审即认领' },
     pending_human: { label: '等人审（旧）', tip: '兼容旧队列项' },
-    in_review: { label: '人审进行中', tip: '已在工作台打开过，可继续审' },
-    step1_passed: { label: 'Step1 已过 · 等人点 Step2', tip: '不会自动跑 Step2，打开后可运行或解锁' },
+    in_review: { label: '人审进行中', tip: '已有人认领并在工作台打开' },
+    step1_passed: { label: 'Step1 已过 · 等人点 Step2', tip: '认领人可继续跑 Step2 / 解锁' },
     done: { label: '已进定稿档案', tip: '' },
     failed: { label: '失败', tip: '看下方错误' },
   };
-  const canOpen = new Set(['pending_step1', 'pending_step2', 'pending_human', 'in_review', 'step1_passed', 'failed']);
   list.innerHTML = items.map(it => {
     const sm = statusMap[it.status] || { label: it.status, tip: '' };
+    const ownership = it.claim_ownership || 'unclaimed';
+    const claimBadge = it.claim_short
+      ? `<span class="badge ${ownership === 'others' ? 'slow' : (ownership === 'mine' ? 'fast' : '')}">${esc(it.claim_short)}</span>`
+      : '';
+    const canOpen = !!it.can_open;
     const btnLabel = it.status === 'pending_step2'
       ? '开始人审 Step2'
       : (it.status === 'step1_passed'
         ? '继续（跑 Step2 / 解锁）'
         : (it.status === 'pending_step1' || it.status === 'pending_human'
-          ? '开始人审 Step1'
+          ? '开始人审 Step1（认领）'
           : '继续人审'));
+    let actionHtml = '';
+    if (canOpen) {
+      actionHtml = `<button class="btn btn-primary btn-open-q" data-id="${esc(it.id)}" type="button">${btnLabel}</button>`;
+    } else if (ownership === 'others') {
+      actionHtml = `<span class="meta" style="color:var(--text2)">${esc(it.claim_label || '他人审核中，你不能操作')}</span>`;
+    } else {
+      actionHtml = `<span class="meta">${esc(sm.label)} · 请点刷新</span>`;
+    }
     return `
-    <div class="j-card">
+    <div class="j-card ${ownership === 'others' ? 'dimmed' : ''}">
       <h4>${esc(it.journal_title || it.journal_id)}</h4>
       <div class="row">
         <span class="badge">${esc(sm.label)}</span>
+        ${claimBadge}
         <span class="badge">${it.story_count || 0} 条故事</span>
         <span class="badge">${esc(it.updated_at || '')}</span>
       </div>
-      ${sm.tip ? `<p class="meta">${esc(sm.tip)}</p>` : ''}
+      ${it.claim_label ? `<p class="meta">${esc(it.claim_label)}</p>` : (sm.tip ? `<p class="meta">${esc(sm.tip)}</p>` : '')}
+      ${it.assignee_name ? `<p class="meta">认领人：${esc(it.assignee_name)}${it.claimed_at ? (' · ' + esc(it.claimed_at)) : ''}</p>` : ''}
       ${it.error ? `<p class="meta" style="color:var(--error)">${esc(it.error)}</p>` : ''}
-      <div class="actions">
-        ${canOpen.has(it.status)
-          ? `<button class="btn btn-primary btn-open-q" data-id="${esc(it.id)}" type="button">${btnLabel}</button>`
-          : `<span class="meta">${esc(sm.label)} · 请点刷新</span>`}
-      </div>
+      <div class="actions">${actionHtml}</div>
     </div>`;
   }).join('');
   list.querySelectorAll('.btn-open-q').forEach(btn => {
@@ -2433,6 +2476,7 @@ document.getElementById('jp-filter-q').oninput = renderJournalsPage;
 document.getElementById('btn-jp-refresh').onclick = () => loadJournalList();
 document.getElementById('btn-jp-batch').onclick = batchEnqueue;
 document.getElementById('btn-queue-refresh').onclick = loadQueue;
+document.getElementById('queue-claim-filter').onchange = loadQueue;
 document.getElementById('btn-registry-refresh').onclick = loadRegistry;
 document.getElementById('registry-q').oninput = () => loadRegistry();
 document.getElementById('btn-jp-paste').onclick = () => {
