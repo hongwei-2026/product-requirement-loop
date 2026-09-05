@@ -67,16 +67,29 @@ jobs:
             echo "::error::Secret-like tracked files found"
             exit 1
           fi
-          # Scan ALL tracked text including markdown (training repos often paste keys into docs)
-          hits=$(git grep -nIE '(sk-[A-Za-z0-9]{20,}|AGNES_API_KEY[[:space:]]*=[[:space:]]*[^y[:space:]]|DEEPSEEK_API_KEY[[:space:]]*=[[:space:]]*[^y[:space:]]|OPENAI_API_KEY[[:space:]]*=[[:space:]]*sk-)' -- . \
+          # Real key material only (avoid matching source like startswith("DEEPSEEK_API_KEY="))
+          hits=$(git grep -nE 'sk-[A-Za-z0-9]{20,}' -- . \
             ':(exclude)project/.env.example' \
             || true)
           if [[ -n "${hits}" ]]; then
-            echo "::error::Possible API key committed"
+            echo "::error::Possible API key token committed (sk-...)"
             echo "$hits"
             exit 1
           fi
-          echo "[OK] no tracked .env / obvious secret assignments"
+          # Doc/config paste: KEY=<non-placeholder value> outside .py/.yml workflow code
+          hits2=$(git grep -nIE '(AGNES_API_KEY|DEEPSEEK_API_KEY|OPENAI_API_KEY)[[:space:]]*=[[:space:]]*[^[:space:]#"'\''y][^[:space:]]{8,}' -- \
+            '*.md' '*.txt' '*.json' '*.bat' '*.cmd' '*.env.example' \
+            || true)
+          # Allow only known placeholders in .env.example
+          if [[ -n "${hits2}" ]]; then
+            filtered=$(echo "$hits2" | grep -vE 'your-key-here|changeme|REPLACE_ME|xxx' || true)
+            if [[ -n "${filtered}" ]]; then
+              echo "::error::Possible API key assignment in docs/config"
+              echo "$filtered"
+              exit 1
+            fi
+          fi
+          echo "[OK] no tracked .env / obvious secret tokens"
 
       - name: Python syntax compile (strict)
         run: |
