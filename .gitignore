@@ -4,6 +4,8 @@ __pycache__/
 *.pyc
 .env
 .env.*
+!.env.example
+!project/.env.example
 
 # Node
 node_modules/
