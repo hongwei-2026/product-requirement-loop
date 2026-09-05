@@ -2,6 +2,8 @@
 
 量潮 **产品需求梳理智能体**（product-requirement Loop）交付仓库。
 
+[![CI](https://github.com/hongwei-2026/product-requirement-loop/actions/workflows/ci.yml/badge.svg)](https://github.com/hongwei-2026/product-requirement-loop/actions/workflows/ci.yml)
+
 ## 结项审阅（请先看）
 
 审阅同事请先打开：
