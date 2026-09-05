@@ -62,6 +62,13 @@ from db import (  # noqa: E402
     migrate_json_registry_once,
     verify_login,
 )
+from security_guard import (  # noqa: E402
+    allow_auth_attempt,
+    client_key,
+    registration_allowed,
+    resolve_bind_host,
+    security_headers,
+)
 
 COOKIE_NAME = "qt_session"
 PUBLIC_API = {
@@ -240,7 +247,8 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(out)))
-        self.send_header("Cache-Control", "no-store")
+        for hk, hv in security_headers():
+            self.send_header(hk, hv)
         if set_cookie:
             self.send_header(
                 "Set-Cookie",
@@ -288,6 +296,8 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(content)))
+        for hk, hv in security_headers():
+            self.send_header(hk, hv)
         self.end_headers()
         self.wfile.write(content)
 
@@ -539,6 +549,12 @@ class Handler(SimpleHTTPRequestHandler):
         payload = self._read_json_body()
 
         if path == "/api/auth/register":
+            if not registration_allowed():
+                self._send_json(403, {"ok": False, "error": "已关闭自助注册（SECURITY_DISABLE_REGISTER=1）"})
+                return
+            if not allow_auth_attempt(client_key(self)):
+                self._send_json(429, {"ok": False, "error": "尝试过于频繁，请稍后再试"})
+                return
             try:
                 user = create_user(
                     username=(payload.get("username") or "").strip(),
@@ -554,6 +570,9 @@ class Handler(SimpleHTTPRequestHandler):
             return
 
         if path == "/api/auth/login":
+            if not allow_auth_attempt(client_key(self)):
+                self._send_json(429, {"ok": False, "error": "尝试过于频繁，请稍后再试"})
+                return
             try:
                 user = verify_login(
                     (payload.get("username") or "").strip(),
@@ -562,7 +581,7 @@ class Handler(SimpleHTTPRequestHandler):
                 token = create_session(user["id"])
                 self._send_json(200, {"ok": True, "user": user, "token": token}, set_cookie=token)
             except ValueError as e:
-                self._send_json(400, {"ok": False, "error": str(e)})
+                self._send_json(401, {"ok": False, "error": str(e)})
             except Exception as e:
                 self._send_json(500, {"ok": False, "error": str(e)})
             return
@@ -849,24 +868,31 @@ def main() -> None:
         raise SystemExit(f"Missing {CASE / 'app.html'}")
 
     port = args.port
-    url = f"http://127.0.0.1:{port}/"
-    login_url = f"http://127.0.0.1:{port}/login.html"
-    review_url = f"http://127.0.0.1:{port}/review.html"
-    report_url = f"http://127.0.0.1:{port}/report/"
     try:
-        server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+        host = resolve_bind_host()
+    except RuntimeError as e:
+        raise SystemExit(str(e)) from e
+    url = f"http://{host if host != '0.0.0.0' else '127.0.0.1'}:{port}/"
+    login_url = f"http://{host if host != '0.0.0.0' else '127.0.0.1'}:{port}/login.html"
+    review_url = f"http://{host if host != '0.0.0.0' else '127.0.0.1'}:{port}/review.html"
+    report_url = f"http://{host if host != '0.0.0.0' else '127.0.0.1'}:{port}/report/"
+    try:
+        server = ThreadingHTTPServer((host, port), Handler)
     except OSError as e:
         raise SystemExit(
-            f"Cannot bind port {port} ({e}).\n"
-            f"Close other windows using this port, then run start-with-ai.bat again."
+            f"Cannot bind {host}:{port} ({e}).\n"
+            f"Close other windows using this port, then start again."
         ) from e
 
     print(f"Serving {CASE}")
+    print(f"Bind: {host}:{port} (localhost-first; set SECURITY_ALLOW_LAN=1 only if needed)")
     print(f"Login: {login_url}  (demo / demo1234)")
     print(f"Product UI: {url}")
     print(f"DB: {PROJECT / 'data' / 'product_requirement.db'}")
     print(f"Review (legacy): {review_url}")
     print(f"Report: {report_url}")
+    if not registration_allowed():
+        print("Security: self-registration DISABLED")
     if not os.environ.get("AGNES_API_KEY", "").strip():
         print("WARN: AGNES_API_KEY missing — copy project/.env.example to project/.env")
     else:

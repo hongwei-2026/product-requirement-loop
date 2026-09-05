@@ -307,7 +307,9 @@ def verify_login(username: str, password: str) -> dict:
 
 
 def create_session(user_id: int) -> str:
-    token = uuid.uuid4().hex + uuid.uuid4().hex
+    import secrets
+
+    token = secrets.token_urlsafe(32)
     conn = connect()
     try:
         conn.execute(

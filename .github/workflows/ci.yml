@@ -39,6 +39,7 @@ jobs:
             "README.md"
             "docs/交付/结项说明-给审阅同事.md"
             "docs/交付/产品操作手册.md"
+            "docs/交付/安全说明.md"
             "project/trials/case-01/trial-report.md"
             "project/trials/case-01/golden/accepted.json"
             "project/trials/case-01/golden/active-journal.md"
@@ -123,6 +124,11 @@ jobs:
           assert review.get("approved") is True, "review.approved != true"
           print(f"[OK] golden accepted: {len(stories)} stories, all approved")
           PY
+
+      - name: Anti-intrusion security static checks
+        run: |
+          set -euo pipefail
+          python scripts/verify_security.py
 
       - name: Acceptance gates (check.py + trial-report)
         run: |
