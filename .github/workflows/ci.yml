@@ -67,17 +67,16 @@ jobs:
             echo "::error::Secret-like tracked files found"
             exit 1
           fi
-          hits=$(git grep -nE 'sk-[A-Za-z0-9]{20,}' -- . \
+          # Scan ALL tracked text including markdown (training repos often paste keys into docs)
+          hits=$(git grep -nIE '(sk-[A-Za-z0-9]{20,}|AGNES_API_KEY[[:space:]]*=[[:space:]]*[^y[:space:]]|DEEPSEEK_API_KEY[[:space:]]*=[[:space:]]*[^y[:space:]]|OPENAI_API_KEY[[:space:]]*=[[:space:]]*sk-)' -- . \
             ':(exclude)project/.env.example' \
-            ':(exclude)*.md' \
-            ':(exclude).github/**' \
             || true)
           if [[ -n "${hits}" ]]; then
             echo "::error::Possible API key committed"
             echo "$hits"
             exit 1
           fi
-          echo "[OK] no tracked .env / obvious sk- keys"
+          echo "[OK] no tracked .env / obvious secret assignments"
 
       - name: Python syntax compile (strict)
         run: |
