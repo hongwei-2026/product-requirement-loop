@@ -64,8 +64,14 @@ jobs:
       - name: Forbid secrets / local env in git tree
         run: |
           set -euo pipefail
-          if git ls-files | grep -E '(^|/)\.env$|(^|/)\.env\.|credentials\.json|\.pem$'; then
+          if git ls-files | grep -E '(^|/)\.env$|credentials\.json|\.pem$' ; then
             echo "::error::Secret-like tracked files found"
+            exit 1
+          fi
+          bad_env=$(git ls-files | grep -E '(^|/)\.env\.' | grep -vE '\.env\.example$' || true)
+          if [[ -n "${bad_env}" ]]; then
+            echo "::error::Tracked env secret files found (only .env.example is allowed)"
+            echo "$bad_env"
             exit 1
           fi
           # Real key material only (avoid matching source like startswith("DEEPSEEK_API_KEY="))
