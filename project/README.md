@@ -70,3 +70,13 @@ project/
 | 反馈点 | ≥ 1 次 |
 
 实测见 `trials/case-01/trial-report.md`（勿与门槛混写）。
+
+结项审阅入口（人话说明 + 一键复验）：
+
+- [`docs/交付/结项说明-给审阅同事.md`](../docs/交付/结项说明-给审阅同事.md)
+- 仓库根目录：`python scripts/verify_acceptance.py`
+
+执行器关系（官方 LangGraph 仍在）：
+
+- `implementation.py` = 官方执行器本地化入口  
+- `loop_runner.py` = 本课题闭环（反馈 / 锁定 / 定稿）；默认由 `implementation.py` 调用

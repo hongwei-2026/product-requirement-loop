@@ -44,3 +44,8 @@ audit_journal.json
 *.pem
 credentials.json
 *.key
+
+# Local capture helpers / start leftovers
+screenshots/_cap*.mjs
+start-debug.txt
+start-log.txt

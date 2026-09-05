@@ -250,6 +250,15 @@ def main() -> int:
 
             # cleanup markers from unit test so UI not stuck oddly
             session3.reset(keep_locked=False)
+            golden = CASE / "golden" / "accepted.json"
+            if golden.exists():
+                import shutil
+
+                (CASE / "output").mkdir(exist_ok=True)
+                shutil.copy2(golden, CASE / "output" / "accepted.json")
+                gsrc = CASE / "golden" / "active-journal.md"
+                if gsrc.exists():
+                    shutil.copy2(gsrc, CASE / "input" / "active-journal.md")
             ok("cleanup after phase unit test")
     except Exception as e:
         bad("phase machine unit", f"{e}\n{traceback.format_exc()}")

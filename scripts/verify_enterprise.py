@@ -376,8 +376,9 @@ def main() -> int:
 
     if qid:
         opened = http_json("/api/queue/open", "POST", {"id": qid})
-        if opened.get("ok") and opened.get("phase") == "step1_review":
-            ok("queue open → workbench step1_review")
+        # inject 同时带了 Step1 故事 + Step2 stories → 打开应直接进入 step2_review
+        if opened.get("ok") and opened.get("phase") == "step2_review":
+            ok("queue open → workbench step2_review")
         else:
             bad("queue open", str(opened)[:240])
 
@@ -385,7 +386,7 @@ def main() -> int:
     try:
         req = urllib.request.Request(BASE + "/", headers={"Cookie": COOKIE} if COOKIE else {})
         home = urllib.request.urlopen(req, timeout=10).read().decode("utf-8", errors="replace")
-        need = ["待人审", "定稿档案", "审核历史", "audit-timeline", "批量 AI", "使用手册", "view-manual", "btn-logout"]
+        need = ["待人审", "定稿档案", "审核历史", "audit-list", "批量 AI", "使用手册", "view-manual", "btn-logout"]
         missing = [x for x in need if x not in home]
         if not missing:
             ok("UI has queue/registry/audit/manual/logout")
@@ -401,7 +402,17 @@ def main() -> int:
 
     # cleanup workbench outputs so user not stuck in done
     http_json("/api/loop/reset", "POST", {"keep_locked": False})
-    ok("cleanup reset")
+    # 冒烟会清空 output/；若有 golden 定稿则还原，避免冲掉结项验收产物
+    golden = CASE / "golden" / "accepted.json"
+    if golden.exists():
+        (CASE / "output").mkdir(exist_ok=True)
+        shutil.copy2(golden, CASE / "output" / "accepted.json")
+        src_golden = CASE / "golden" / "active-journal.md"
+        if src_golden.exists():
+            shutil.copy2(src_golden, CASE / "input" / "active-journal.md")
+        ok("cleanup reset + restore golden accepted")
+    else:
+        ok("cleanup reset")
 
     print(f"\n== summary: PASS={PASS} FAIL={FAIL} ==")
     return 1 if FAIL else 0
