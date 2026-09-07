@@ -98,9 +98,11 @@ jobs:
             echo "$hits_tok"
             exit 1
           fi
-          # Private key blocks
-          hits_pem=$(git grep -nF 'BEGIN PRIVATE KEY' -- . || true)
-          hits_rsa=$(git grep -nF 'BEGIN RSA PRIVATE KEY' -- . || true)
+          # Private key blocks (split markers so this workflow file is not a false hit)
+          pem_mark="BEGIN PRIVATE"$'\x20'"KEY"
+          rsa_mark="BEGIN RSA PRIVATE"$'\x20'"KEY"
+          hits_pem=$(git grep -nF "$pem_mark" -- . ':(exclude).github/workflows/ci.yml' || true)
+          hits_rsa=$(git grep -nF "$rsa_mark" -- . ':(exclude).github/workflows/ci.yml' || true)
           if [[ -n "${hits_pem}${hits_rsa}" ]]; then
             echo "::error::Private key material committed"
             echo "$hits_pem"
