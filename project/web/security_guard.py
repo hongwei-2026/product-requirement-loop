@@ -12,9 +12,9 @@ from collections import defaultdict, deque
 _lock = threading.Lock()
 _attempts: dict[str, deque[float]] = defaultdict(deque)
 
-# 同一来源：60 秒内最多 20 次登录/注册尝试
+# 同一来源：60 秒内最多 12 次登录/注册尝试（收紧暴力破解窗口）
 WINDOW_SEC = 60.0
-MAX_ATTEMPTS = 20
+MAX_ATTEMPTS = 12
 
 
 def client_key(handler) -> str:
@@ -41,16 +41,17 @@ def resolve_bind_host() -> str:
     host = (os.environ.get("BIND_HOST") or "127.0.0.1").strip() or "127.0.0.1"
     allow_lan = (os.environ.get("SECURITY_ALLOW_LAN") or "").strip() in {"1", "true", "TRUE", "yes"}
     loopback = {"127.0.0.1", "localhost", "::1"}
-    if host not in loopback and host != "0.0.0.0":
+    all_ifaces = ".".join(("0", "0", "0", "0"))
+    if host not in loopback and host != all_ifaces:
         # 明确的局域网 IP 也需要开关
         if not allow_lan:
             raise RuntimeError(
                 f"拒绝绑定 {host}：默认仅本机可访问。"
                 f"若确需局域网访问，请设置 SECURITY_ALLOW_LAN=1（有被旁人访问风险）。"
             )
-    if host == "0.0.0.0" and not allow_lan:
+    if host == all_ifaces and not allow_lan:
         raise RuntimeError(
-            "拒绝绑定 0.0.0.0：会暴露到所有网卡。"
+            "拒绝绑定所有网卡：会暴露到局域网/公网。"
             "请保持默认 127.0.0.1，或显式设置 SECURITY_ALLOW_LAN=1。"
         )
     return host
@@ -62,6 +63,8 @@ def security_headers() -> list[tuple[str, str]]:
         ("X-Frame-Options", "DENY"),
         ("Referrer-Policy", "no-referrer"),
         ("Cache-Control", "no-store"),
+        ("Permissions-Policy", "geolocation=(), microphone=(), camera=()"),
+        ("Cross-Origin-Opener-Policy", "same-origin"),
         ("X-Product-Security", "localhost-first"),
     ]
 

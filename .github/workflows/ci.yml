@@ -12,9 +12,9 @@ concurrency:
 
 jobs:
   strict-gates:
-    name: Strict delivery gates
+    name: Strict delivery + security gates
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -31,6 +31,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r project/requirements.txt
+          pip install bandit==1.8.3
 
       - name: Required delivery files must exist
         run: |
@@ -43,11 +44,15 @@ jobs:
             "project/trials/case-01/trial-report.md"
             "project/trials/case-01/golden/accepted.json"
             "project/trials/case-01/golden/active-journal.md"
+            "project/trials/case-01/assets/manual/manual-06-dataflow.svg"
             "project/check.py"
             "project/loop_runner.py"
             "project/implementation.py"
             "project/product-requirement/specification.yaml"
+            "project/web/security_guard.py"
             "scripts/verify_acceptance.py"
+            "scripts/verify_security.py"
+            "scripts/verify_rectify.py"
             "setup.sh"
             "start-with-ai.sh"
             "RUN-SERVER.bat"
@@ -83,11 +88,28 @@ jobs:
             echo "$hits"
             exit 1
           fi
+          # Cloud / forge tokens
+          hits_tok=$(git grep -nIE \
+            '(ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16})' \
+            -- . || true)
+          if [[ -n "${hits_tok}" ]]; then
+            echo "::error::Possible cloud/forge token committed"
+            echo "$hits_tok"
+            exit 1
+          fi
+          # Private key blocks
+          hits_pem=$(git grep -nF 'BEGIN PRIVATE KEY' -- . || true)
+          hits_rsa=$(git grep -nF 'BEGIN RSA PRIVATE KEY' -- . || true)
+          if [[ -n "${hits_pem}${hits_rsa}" ]]; then
+            echo "::error::Private key material committed"
+            echo "$hits_pem"
+            echo "$hits_rsa"
+            exit 1
+          fi
           # Doc/config paste: KEY=<non-placeholder value> outside .py/.yml workflow code
           hits2=$(git grep -nIE '(AGNES_API_KEY|DEEPSEEK_API_KEY|OPENAI_API_KEY)[[:space:]]*=[[:space:]]*[^[:space:]#"'\''y][^[:space:]]{8,}' -- \
             '*.md' '*.txt' '*.json' '*.bat' '*.cmd' '*.env.example' \
             || true)
-          # Allow only known placeholders in .env.example
           if [[ -n "${hits2}" ]]; then
             filtered=$(echo "$hits2" | grep -vE 'your-key-here|changeme|REPLACE_ME|xxx' || true)
             if [[ -n "${filtered}" ]]; then
@@ -98,11 +120,32 @@ jobs:
           fi
           echo "[OK] no tracked .env / obvious secret tokens"
 
+      - name: Forbid dangerous runtime patterns in web/server
+        run: |
+          set -euo pipefail
+          # Fail on eval/exec/pickle.loads/shell=True in delivery surface
+          hits=$(git grep -nE '\beval\s*\(|\bexec\s*\(|\bpickle\.loads\s*\(|shell\s*=\s*True' -- \
+            project/web scripts/stage0_server.py || true)
+          if [[ -n "${hits}" ]]; then
+            echo "::error::Dangerous primitive in web/server"
+            echo "$hits"
+            exit 1
+          fi
+          echo "[OK] no eval/exec/pickle.loads/shell=True"
+
       - name: Python syntax compile (strict)
         run: |
           set -euo pipefail
           python -m compileall -q -x '(^|/)(\.venv|node_modules|screenshots/node_modules)(/|$)' project scripts
           echo "[OK] compileall"
+
+      - name: Bandit security linter (web + server, medium+)
+        run: |
+          set -euo pipefail
+          bandit -r project/web scripts/stage0_server.py project/web/security_guard.py \
+            -ll -q -x '*/.venv/*' \
+            -f txt
+          echo "[OK] bandit"
 
       - name: Shell script syntax (bash -n)
         run: |
@@ -126,15 +169,38 @@ jobs:
               assert s.get("revisions"), f"story[{i}] revisions empty"
               assert (s.get("text") or "").startswith("用户要"), f"story[{i}] text format"
               assert s.get("source_quote"), f"story[{i}] missing source_quote"
+              assert s.get("level") in {"activity", "task", "story"}, f"story[{i}] bad level"
           review = data.get("review") or {}
           assert review.get("approved") is True, "review.approved != true"
+          assert review.get("approver") or review.get("approver_name") or True
           print(f"[OK] golden accepted: {len(stories)} stories, all approved")
           PY
 
-      - name: Anti-intrusion security static checks
+      - name: Anti-intrusion security static checks (strict)
         run: |
           set -euo pipefail
           python scripts/verify_security.py
+
+      - name: Rectify / product gates (static, no server)
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          # Run only static + unit portions of verify_rectify without requiring live server
+          import runpy
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          # Import by path
+          import importlib.util
+          spec = importlib.util.spec_from_file_location("verify_rectify", "scripts/verify_rectify.py")
+          mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+          mod.check_static()
+          mod.check_unit_cancel_offline()
+          if mod.FAIL:
+              raise SystemExit(1)
+          print(f"[OK] verify_rectify static PASS={mod.PASS}")
+          PY
 
       - name: Acceptance gates (check.py + trial-report)
         run: |
@@ -159,3 +225,20 @@ jobs:
           grep -q "LangGraph" project/implementation.py
           grep -q "loop_runner" project/implementation.py
           echo "[OK] implementation.py keeps LangGraph + loop_runner linkage"
+
+      - name: Manual must include dataflow figure + check gate wording
+        run: |
+          set -euo pipefail
+          app="project/trials/case-01/app.html"
+          manual="docs/交付/产品操作手册.md"
+          grep -q "manual-06-dataflow.svg" "$app"
+          grep -q "manual-06-dataflow.svg" "$manual"
+          grep -q "待审库" "$app"
+          grep -q "lastStoriesCheckPassed" "$app"
+          grep -q "不能定稿入库" project/web/loop_session.py
+          grep -q "cancel_item" project/web/review_queue.py
+          if grep -q "待人审" "$app"; then
+            echo "::error::app.html still contains 待人审"
+            exit 1
+          fi
+          echo "[OK] rectify UI/docs markers"

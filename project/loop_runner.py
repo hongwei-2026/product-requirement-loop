@@ -67,9 +67,124 @@ def _repair_json_text(text: str) -> str:
     return s
 
 
+def _close_truncated_json(text: str) -> str | None:
+    """把被截断的 JSON（缺闭合引号/括号）尽量补全到可 loads。"""
+    s = strip_fence(text or "").lstrip("\ufeff").strip()
+    s = (
+        s.replace("\u201c", '"')
+        .replace("\u201d", '"')
+        .replace("\u2018", "'")
+        .replace("\u2019", "'")
+    )
+    start = s.find("{")
+    if start < 0:
+        start = s.find("[")
+    if start < 0:
+        return None
+    s = s[start:]
+
+    out: list[str] = []
+    stack: list[str] = []
+    in_str = False
+    esc = False
+    for ch in s:
+        out.append(ch)
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch in "{[":
+            stack.append("}" if ch == "{" else "]")
+        elif ch in "}]":
+            if stack and stack[-1] == ch:
+                stack.pop()
+
+    # 截断在字符串内：先关掉引号
+    if in_str:
+        out.append('"')
+    # 去掉末尾悬空逗号 / 冒号后半截
+    joined = "".join(out).rstrip()
+    joined = re.sub(r",\s*$", "", joined)
+    joined = re.sub(r":\s*$", ': ""', joined)
+    # 若最后一个完整结构后还有残缺 key，裁到最后一个 } 或 ]
+    # 再补齐未闭合括号
+    while True:
+        try:
+            json.loads(joined + "".join(reversed(stack)))
+            return joined + "".join(reversed(stack))
+        except Exception:
+            pass
+        # 尝试丢掉最后一个不完整对象：从 stories 数组里砍到上一个完整 }
+        cut = max(joined.rfind("},"), joined.rfind("}]"))
+        if cut <= 0:
+            closed = joined + "".join(reversed(stack))
+            closed = re.sub(r",\s*([}\]])", r"\1", closed)
+            try:
+                json.loads(closed)
+                return closed
+            except Exception:
+                return closed if stack or joined.endswith(("}", "]")) else None
+        joined = joined[: cut + 1]
+        # 重算 stack
+        stack = []
+        in_str = False
+        esc = False
+        for ch in joined:
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+                continue
+            if ch == '"':
+                in_str = True
+            elif ch in "{[":
+                stack.append("}" if ch == "{" else "]")
+            elif ch in "}]":
+                if stack and stack[-1] == ch:
+                    stack.pop()
+        joined = re.sub(r",\s*$", "", joined)
+
+
+def _extract_complete_story_objects(text: str) -> list[dict]:
+    """从半截 JSON 里捞出能独立解析的 story 对象。"""
+    s = strip_fence(text or "")
+    stories: list[dict] = []
+    # 粗找每个 { ... }，用 raw_decode 吃完整对象
+    i = 0
+    dec = json.JSONDecoder()
+    while i < len(s):
+        if s[i] != "{":
+            i += 1
+            continue
+        try:
+            obj, end = dec.raw_decode(s, i)
+        except Exception:
+            i += 1
+            continue
+        i = end
+        if not isinstance(obj, dict):
+            continue
+        if "text" in obj or "source_quote" in obj or "level" in obj:
+            stories.append(obj)
+    return stories
+
+
 def _try_load_json(text: str):
     """尝试多种方式解析为 dict；失败返回 None。"""
     candidates = [text, _repair_json_text(text)]
+    closed = _close_truncated_json(text)
+    if closed:
+        candidates.append(closed)
+        candidates.append(_repair_json_text(closed))
     for cand in candidates:
         if not cand:
             continue
@@ -99,6 +214,10 @@ def _try_load_json(text: str):
                     return {"stories": arr}
             except Exception:
                 pass
+    # 最后手段：拼出 stories 数组
+    partial = _extract_complete_story_objects(text or "")
+    if partial:
+        return {"stories": partial, "meta": {"repaired": "partial_objects"}}
     return None
 
 
@@ -110,23 +229,67 @@ def load_prompt(name: str, task_dir: Path) -> str:
     raise FileNotFoundError(name)
 
 
-def chat(client, prompt: str) -> str:
-    resp = client.chat.completions.create(
-        model=get_model(),
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "按提示词输出产物。禁止编造原文没有的需求。"
-                    "若要求 JSON，只输出可被解析的 JSON。"
-                ),
-            },
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.2,
-        max_tokens=8192,
-    )
+def chat(client, prompt: str, *, max_tokens: int = 8192, temperature: float = 0.2) -> str:
+    try:
+        resp = client.chat.completions.create(
+            model=get_model(),
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "按提示词输出产物。禁止编造原文没有的需求。"
+                        "若要求 JSON，只输出可被解析的 JSON。"
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+    except Exception as e:
+        raise RuntimeError(_friendly_llm_error(e)) from e
     return resp.choices[0].message.content or ""
+
+
+def _friendly_llm_error(exc: BaseException) -> str:
+    """把 OpenAI SDK 的 Connection error 等转成可操作的中文说明。"""
+    name = type(exc).__name__
+    raw = str(exc) or name
+    cause = getattr(exc, "__cause__", None)
+    cause_s = str(cause) if cause else ""
+    blob = f"{name} {raw} {cause_s}".lower()
+    if (
+        "connection" in blob
+        or "connecterror" in blob
+        or "10061" in blob
+        or "timed out" in blob
+        or "timeout" in blob
+        or "name or service not known" in blob
+        or "getaddrinfo" in blob
+    ):
+        from llm_config import get_provider, provider_summary
+
+        try:
+            p = get_provider()
+            summary = provider_summary()
+        except Exception:
+            p, summary = "agnes", "llm"
+        tip = (
+            f"AI 接口连不上（{summary}）。"
+            "本机到模型服务的网络被拒绝或超时，所以 Step1/Step2 出不了结果。"
+            "请检查：① 能否访问外网；② project/.env 里 API Key / BASE_URL 是否有效；"
+        )
+        if p == "agnes":
+            tip += "③ 若 Agnes 不可用，把 LLM_PROVIDER 改成 deepseek 并填写 DEEPSEEK_API_KEY 后重启服务。"
+        else:
+            tip += "③ 改好 .env 后重启 start-with-ai.bat。"
+        return tip
+    if "401" in blob or "unauthorized" in blob or "invalid api key" in blob:
+        return f"AI Key 无效或过期（{raw}）。请检查 project/.env 后重启服务。"
+    if "429" in blob or "rate" in blob:
+        return f"AI 调用过于频繁被限流（{raw}）。请稍后再试。"
+    return f"AI 调用失败：{raw}"
+
 
 
 def parse_feedback(raw: str) -> dict:
@@ -351,63 +514,104 @@ class ProductRequirementLoop:
     def run_step2(self, revise_note: str = "") -> Path:
         story = (self.out / "requirement-story.md").read_text(encoding="utf-8")
         template = load_prompt("step2-json.md", self.task_dir)
+        # 日志过长时截断对照原文，降低模型输出被截断概率（仍保留开头+结尾）
+        journal_for_prompt = self.journal
+        if len(journal_for_prompt) > 12000:
+            journal_for_prompt = (
+                journal_for_prompt[:7000]
+                + "\n\n…(中间省略)…\n\n"
+                + journal_for_prompt[-4000:]
+            )
         prompt = (
             template.replace("{{REQUIREMENT_STORY}}", story)
-            .replace("{{JOURNAL_RAW}}", self.journal)
+            .replace("{{JOURNAL_RAW}}", journal_for_prompt)
         )
         if revise_note:
             prompt += f"\n\n## 人工 revise 意见（必须落实）\n{revise_note}\n"
+        prompt += (
+            "\n\n## 输出纪律（必须）\n"
+            "- 只输出一个 JSON 对象，不要 Markdown 围栏，不要解释。\n"
+            "- 优先 3～6 条；source_quote 用短原句（一般不超过 40 字）。\n"
+            "- 字符串内引号必须写成 \\\"；写完后自行检查括号已闭合。\n"
+        )
         print(">>> Step2 提取用户故事 JSON …")
-        raw = chat(self.client, prompt)
+        raw = chat(self.client, prompt, max_tokens=4096)
         # 落盘原始回复，便于排查坏 JSON
         try:
             (self.out / "step2-raw.txt").write_text(raw or "", encoding="utf-8")
         except Exception:
             pass
 
-        def _parse_or_repair(src: str) -> dict:
+        def _parse_local(src: str) -> dict | None:
             try:
                 return normalize_stories(extract_json_object(src), self.journal)
-            except Exception as e1:
-                # 请模型只修 JSON，不再扩写需求
-                fix_prompt = (
-                    "下面是一段本应是 JSON 的文本，但解析失败。"
-                    "请只输出合法 JSON 对象，键含 stories 数组；不要 Markdown 围栏，不要解释。\n"
-                    f"解析错误：{e1}\n\n----\n{src[:12000]}\n----"
-                )
-                fixed = chat(self.client, fix_prompt)
-                try:
-                    (self.out / "step2-raw-fixed.txt").write_text(fixed or "", encoding="utf-8")
-                except Exception:
-                    pass
-                return normalize_stories(extract_json_object(fixed), self.journal)
+            except Exception:
+                return None
+
+        def _parse_or_repair(src: str) -> dict:
+            hit = _parse_local(src)
+            if hit is not None and (hit.get("stories") or []):
+                return hit
+            # 本地截断修补已在 extract_json_object → _try_load_json 里做；
+            # 仍失败再请模型只修 JSON（失败时吞掉，抛出更清楚的人话）
+            fix_prompt = (
+                "下面是一段本应是 JSON 的文本，但解析失败或被截断。"
+                "请补全并只输出合法 JSON 对象，键含 stories 数组（3～6 条即可）；"
+                "不要 Markdown 围栏，不要解释。\n"
+                f"----\n{(src or '')[:8000]}\n----"
+            )
+            try:
+                fixed = chat(self.client, fix_prompt, max_tokens=3072, temperature=0.1)
+            except Exception as e_fix:
+                if hit is not None:
+                    return hit
+                raise RuntimeError(str(e_fix)) from e_fix
+            try:
+                (self.out / "step2-raw-fixed.txt").write_text(fixed or "", encoding="utf-8")
+            except Exception:
+                pass
+            hit2 = _parse_local(fixed)
+            if hit2 is not None and (hit2.get("stories") or []):
+                return hit2
+            if hit is not None:
+                return hit
+            raise RuntimeError(
+                "Step2 返回的 JSON 无法解析（模型输出格式坏了或被截断）。"
+                f"片段：{strip_fence(src or '')[:180].replace(chr(10), ' ')}"
+            )
 
         try:
             payload = _parse_or_repair(raw)
         except Exception as e:
             raise RuntimeError(
-                f"Step2 JSON 解析失败：{e}。可打开 output/step2-raw.txt 查看模型原文，然后重试运行 Step2。"
+                f"Step2 失败：{e}。"
+                "可打开 output/step2-raw.txt 查看模型原文，然后点「运行 Step2」重试。"
             ) from e
 
-        # 有效条太少时，带着失败原因再抽一次
+        # 有效条太少时，带着失败原因再抽一次（本地已有 ≥1 条也可再试）
         if len(payload.get("stories") or []) < 2:
             retry_note = (
-                "\n\n## 系统纠偏\n上一稿有效条目过少（source_quote 对不上或重复）。"
-                "请重新抽取 4～8 条：每条 text 以「用户要」开头；"
-                "source_quote 必须是原始日志中连续原句；层级含 1 条 activity。"
-                "只输出合法 JSON，字符串内引号必须转义。"
+                "\n\n## 系统纠偏\n上一稿有效条目过少（source_quote 对不上、重复或 JSON 被截断）。"
+                "请重新抽取 3～6 条：每条 text 以「用户要」开头；"
+                "source_quote 必须是原始日志中较短连续原句；层级含 1 条 activity。"
+                "只输出合法且括号闭合的 JSON。"
             )
-            raw2 = chat(self.client, prompt + retry_note)
             try:
-                (self.out / "step2-raw-retry.txt").write_text(raw2 or "", encoding="utf-8")
-            except Exception:
-                pass
-            try:
+                raw2 = chat(self.client, prompt + retry_note, max_tokens=4096)
+                try:
+                    (self.out / "step2-raw-retry.txt").write_text(raw2 or "", encoding="utf-8")
+                except Exception:
+                    pass
                 payload2 = _parse_or_repair(raw2)
                 if len(payload2.get("stories") or []) > len(payload.get("stories") or []):
                     payload = payload2
             except Exception:
                 pass  # 保留第一稿
+            if not (payload.get("stories") or []):
+                raise RuntimeError(
+                    "Step2 未抽出有效条目（source_quote 对不上原文，或 JSON 损坏）。"
+                    "请打叉重跑，或换更短的日志再试。"
+                )
         path = self.out / "stories.json"
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"已写 {path}（{len(payload['stories'])} 条）")

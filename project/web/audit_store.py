@@ -93,7 +93,7 @@ def _default_summary(step: str, action: str, reason: str, code: str | None) -> s
     if action == "check":
         return f"机器验收：{reason or action}"
     if action == "ai_ready":
-        return f"AI 已生成待人审草稿（{step}）"
+        return f"AI 已生成待审库草稿（{step}）"
     if action == "reopen":
         return f"强制复审：{reason or '人工重新打开'}"
     return f"{step}/{action}: {reason or ''}".strip()
@@ -272,7 +272,7 @@ def list_audit_journals(*, limit: int = 80, q: str = "", current_user: dict | No
             it["finalize_count"] = 1
 
         loc = "history_only"
-        loc_label = "仅有历史（不在待人审/定稿档案）"
+        loc_label = "仅有历史（不在待审库/定稿档案）"
         continue_action = "reopen"
         queue_id = None
 
@@ -286,7 +286,7 @@ def list_audit_journals(*, limit: int = 80, q: str = "", current_user: dict | No
             queue_id = qi.get("id")
             st = qi.get("status") or ""
             claim_short = qi.get("claim_short") or ""
-            base = f"待人审 · {status_zh.get(st, st)}"
+            base = f"待审库 · {status_zh.get(st, st)}"
             if claim_short:
                 loc_label = f"{base} · {claim_short}"
             else:

@@ -51,15 +51,28 @@ def _now() -> str:
     return datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _require_https(url: str) -> str:
+    u = (url or "").strip()
+    if not u.startswith("https://"):
+        raise ValueError(f"仅允许 https URL，拒绝: {u[:80]}")
+    return u
+
+
 def _http_json(url: str):
-    req = urllib.request.Request(url, headers={"User-Agent": "quanttide-product-requirement-inbox"})
-    with urllib.request.urlopen(req, timeout=90) as resp:
+    req = urllib.request.Request(
+        _require_https(url),
+        headers={"User-Agent": "quanttide-product-requirement-inbox"},
+    )
+    with urllib.request.urlopen(req, timeout=90) as resp:  # nosec B310
         return json.loads(resp.read().decode("utf-8"))
 
 
 def _http_text(url: str) -> str:
-    req = urllib.request.Request(url, headers={"User-Agent": "quanttide-product-requirement-inbox"})
-    with urllib.request.urlopen(req, timeout=90) as resp:
+    req = urllib.request.Request(
+        _require_https(url),
+        headers={"User-Agent": "quanttide-product-requirement-inbox"},
+    )
+    with urllib.request.urlopen(req, timeout=90) as resp:  # nosec B310
         return resp.read().decode("utf-8")
 
 

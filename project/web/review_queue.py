@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""待人审队列：批量 AI 生成草稿 → 人工逐条审核。"""
+"""待审库队列：批量 AI 生成草稿 → 人工逐条审核。"""
 
 from __future__ import annotations
 
@@ -315,8 +315,80 @@ def enrich_queue_item(item: dict, user: dict | None = None) -> dict:
     out["claim_label"] = claim_label
     out["claim_short"] = claim_short
     out["can_open"] = bool(openable and ownership in {"unclaimed", "mine"})
+    out["can_cancel"] = can_cancel_item(item, user)
     out["assignee_name"] = aname or None
     return out
+
+
+def cancelable_statuses() -> set[str]:
+    """可取消：排队/AI 中/失败，以及尚未定稿的人审态。"""
+    return {
+        "queued",
+        "ai_running",
+        "failed",
+        "pending_human",
+        "pending_step1",
+        "pending_step2",
+        "in_review",
+        "step1_passed",
+    }
+
+
+def can_cancel_item(item: dict | None, user: dict | None) -> bool:
+    if not item or not user:
+        return False
+    st = item.get("status") or ""
+    if st not in cancelable_statuses():
+        return False
+    # AI 排队/进行中/失败：登录用户可取消，避免占位导致无法重新入队
+    if st in {"queued", "ai_running", "failed"}:
+        return True
+    ownership = claim_ownership(item, user)
+    # 人审态：无人认领或本人认领可取消；他人认领不可抢
+    return ownership in {"unclaimed", "mine"}
+
+
+def cancel_item(
+    item_id: str,
+    user: dict | None,
+    reason: str = "",
+) -> dict:
+    """取消队列任务，释放 journal 占位，便于重新入队。"""
+    if not user or user.get("id") is None:
+        return {"ok": False, "error": "请先登录再取消任务"}
+    item = get_item(item_id)
+    if not item:
+        return {"ok": False, "error": "队列项不存在"}
+    st = item.get("status") or ""
+    if st == "cancelled":
+        return {"ok": True, "item": enrich_queue_item(item, user), "message": "已是取消状态"}
+    if st == "done":
+        return {"ok": False, "error": "已进定稿档案，不能取消；如需重做请走强制复审"}
+    if not can_cancel_item(item, user):
+        ownership = claim_ownership(item, user)
+        if ownership == "others":
+            who = (item.get("assignee_name") or "他人").strip()
+            return {"ok": False, "error": f"该条已由「{who}」认领，你不能取消"}
+        return {"ok": False, "error": f"当前状态不可取消: {st}"}
+    who = (user.get("display_name") or user.get("username") or "用户").strip()
+    note = (reason or "").strip() or f"{who} 取消任务"
+    updated = _update_item(
+        item_id,
+        status="cancelled",
+        error=note,
+        cancelled_by=who,
+        cancelled_at=_now(),
+        # 释放认领，避免历史残留
+        assignee_user_id=None,
+        assignee_name=None,
+        claimed_at=None,
+    )
+    return {
+        "ok": True,
+        "item": enrich_queue_item(updated or item, user),
+        "message": "已取消。同一日志可重新勾选入队。",
+        "pending_human": actionable_pending_count(user),
+    }
 
 
 def list_queue_enriched(
@@ -429,6 +501,8 @@ def _process_one(item_id: str) -> None:
     item = get_item(item_id)
     if not item:
         return
+    if item.get("status") == "cancelled":
+        return
     _update_item(item_id, status="ai_running", error=None, phase="step1")
     try:
         jid = item["journal_id"]
@@ -447,6 +521,10 @@ def _process_one(item_id: str) -> None:
         if "全局故事" not in story_text and len(story_text.strip()) < 40:
             raise RuntimeError("Step1 需求故事过短或结构不完整，请重试")
         (work / "requirement-story.md").write_text(story_text, encoding="utf-8")
+        # 若运行中被取消，不要把结果写回「等人审」
+        cur = get_item(item_id)
+        if cur and cur.get("status") == "cancelled":
+            return
         # 故意不写 stories.json，避免工作台跳过 Step1 人审
         _update_item(
             item_id,
@@ -473,6 +551,9 @@ def _process_one(item_id: str) -> None:
         except Exception:
             pass
     except Exception as e:
+        cur = get_item(item_id)
+        if cur and cur.get("status") == "cancelled":
+            return
         _update_item(item_id, status="failed", error=str(e))
         traceback.print_exc()
 

@@ -286,7 +286,18 @@ def main() -> int:
     else:
         bad("GET /api/audit", str(audit)[:240])
 
-    # step2 fake + ok
+    # step2 fake + ok（source_quote 必须出自原文，否则 finalize 门禁会拦）
+    from journal_store import read_journal
+
+    src = (read_journal(target["id"]).get("content") or "").strip()
+    quote = next(
+        (
+            ln.strip()[:80]
+            for ln in src.splitlines()
+            if len(ln.strip()) >= 8 and not ln.strip().startswith("#")
+        ),
+        src[:40] or "日志",
+    )
     (out / "stories.json").write_text(
         json.dumps(
             {
@@ -294,8 +305,8 @@ def main() -> int:
                     {
                         "id": "s1",
                         "level": "task",
-                        "text": "用户要测试",
-                        "source_quote": "测试",
+                        "text": "用户要梳理本日志需求",
+                        "source_quote": quote,
                         "reason": "t",
                         "approved": False,
                         "revisions": [{"round": 1, "action": "created"}],
@@ -386,7 +397,7 @@ def main() -> int:
     try:
         req = urllib.request.Request(BASE + "/", headers={"Cookie": COOKIE} if COOKIE else {})
         home = urllib.request.urlopen(req, timeout=10).read().decode("utf-8", errors="replace")
-        need = ["待人审", "定稿档案", "审核历史", "audit-list", "批量 AI", "使用手册", "view-manual", "btn-logout"]
+        need = ["待审库", "定稿档案", "审核历史", "audit-list", "批量 AI", "使用手册", "view-manual", "btn-logout"]
         missing = [x for x in need if x not in home]
         if not missing:
             ok("UI has queue/registry/audit/manual/logout")

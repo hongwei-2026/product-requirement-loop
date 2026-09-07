@@ -104,6 +104,7 @@ button{font-family:inherit;cursor:pointer}
 .reg-group{margin-bottom:18px}
 .reg-group h3{margin:0 0 8px;font-size:14px;color:var(--text);border-left:3px solid var(--primary);padding-left:8px}
 .manual-page .shot{display:block;max-width:min(100%,480px);max-height:200px;width:auto;height:auto;object-fit:cover;object-position:top left;border-radius:8px;border:1px solid var(--border);margin:8px 0}
+.manual-page .shot.flow-shot{max-width:min(100%,920px);max-height:none;width:100%;height:auto;object-fit:contain}
 .manual-page .cap{font-size:12px;color:var(--text3);margin:0 0 14px}
 .toolbar{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;flex-shrink:0}
 .toolbar h4{margin:0 0 8px;font-size:13px}
@@ -149,6 +150,7 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
 .excerpt-modal-card .meta{margin-top:10px;color:var(--text2)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:400;padding:20px}
 .modal.show{display:flex}
+.confirm-modal{z-index:520} /* 必须高于 journal-modal，否则快速更换时确认框被挡住 */
 .modal-card{background:#fff;border-radius:12px;width:min(860px,100%);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.18)}
 .modal-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 .modal-head h3{margin:0;font-size:16px}
@@ -195,18 +197,35 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
 .help-body li{margin:4px 0}
 .help-body .tip{background:var(--primary-bg);border-left:3px solid var(--primary);padding:8px 10px;border-radius:0 6px 6px 0;margin:8px 0;font-size:12px}
 .help-body a{color:var(--primary)}
-.manual-page{flex:1;min-height:0;overflow:auto;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 22px 40px}
+.manual-page{flex:1;min-height:0;overflow:auto;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:0}
+.manual-layout{display:flex;align-items:stretch;min-height:100%}
+.manual-sidebar{width:200px;flex-shrink:0;border-right:1px solid var(--border);padding:18px 12px;position:sticky;top:0;align-self:flex-start;max-height:100%;overflow:auto;background:#fafafa}
+.manual-sidebar .toc-title{font-size:12px;font-weight:700;color:var(--text3);margin:0 0 10px;letter-spacing:.04em}
+.manual-sidebar a{display:block;font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text2);text-decoration:none;margin-bottom:2px;line-height:1.35}
+.manual-sidebar a:hover{background:var(--primary-bg);color:var(--primary)}
+.manual-body{flex:1;min-width:0;padding:20px 22px 40px}
 .manual-page h2{margin:0 0 8px;font-size:22px}
 .manual-page .lead{color:var(--text2);margin:0 0 20px;line-height:1.7}
 .manual-page h3{margin:28px 0 10px;font-size:16px;border-left:4px solid var(--primary);padding-left:10px}
+.manual-page h3:first-of-type{margin-top:8px}
 .manual-page p,.manual-page li{line-height:1.75;color:var(--text);font-size:14px}
 .manual-page ol,.manual-page ul{padding-left:20px;margin:8px 0 12px}
-.manual-page .shot{display:block;width:100%;max-width:920px;border:1px solid var(--border);border-radius:8px;margin:12px 0 6px;background:#fafafa}
+.manual-page .shot{display:block;width:100%;max-width:920px;max-height:200px;object-fit:cover;object-position:top left;border:1px solid var(--border);border-radius:8px;margin:12px 0 6px;background:#fafafa}
+.manual-page .shot.flow-shot{max-height:none;object-fit:contain;background:#fafcff}
 .manual-page .cap{font-size:12px;color:var(--text3);margin:0 0 16px}
 .manual-page .callout{background:var(--primary-bg);border-left:4px solid var(--primary);padding:10px 12px;border-radius:0 8px 8px 0;margin:12px 0;line-height:1.65}
-.manual-toc{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
-.manual-toc a{font-size:12px;padding:6px 10px;border:1px solid #d9d9d9;border-radius:999px;color:var(--text2);text-decoration:none;background:#fff}
-.manual-toc a:hover{border-color:var(--primary);color:var(--primary)}
+.manual-flow{display:grid;gap:8px;margin:12px 0 16px}
+.manual-flow .flow-row{display:grid;grid-template-columns:72px 1fr 1fr;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:13px;line-height:1.55}
+.manual-flow .flow-step{font-weight:700;color:var(--primary)}
+.manual-flow .flow-out{color:var(--text2)}
+.manual-flow .flow-in{color:var(--text)}
+.manual-flow .flow-head{font-size:11px;color:var(--text3);font-weight:600;padding:0 4px}
+@media (max-width:900px){
+  .manual-layout{flex-direction:column}
+  .manual-sidebar{width:auto;position:static;border-right:none;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:4px;max-height:none}
+  .manual-sidebar .toc-title{width:100%}
+  .manual-flow .flow-row{grid-template-columns:1fr}
+}
 @media(max-width:900px){
   html,body{overflow:auto}
   .app{height:auto;min-height:100vh;overflow:visible}
@@ -251,7 +270,7 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
       </div>
       <div class="nav-link" id="nav-queue" data-view="queue">
         <div class="dot">审</div>
-        <div><div class="step-title">待人审</div><div class="step-sub" id="nav-queue-count">AI 后等人</div></div>
+        <div><div class="step-title">待审库</div><div class="step-sub" id="nav-queue-count">AI 后等人</div></div>
       </div>
       <div class="nav-link" id="nav-audit" data-view="audit">
         <div class="dot">史</div>
@@ -303,7 +322,7 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
           <div class="panel-body md-view" id="journal-text">加载中…</div>
         </section>
         <section class="panel">
-          <div class="panel-head"><span id="output-title">电脑整理结果</span><span class="scroll-hint">↕ 独立滚动</span></div>
+          <div class="panel-head"><span id="output-title">电脑整理结果</span><span><span class="meta" id="output-len"></span> · <span class="scroll-hint">↕ 独立滚动</span></span></div>
           <div class="panel-body md-view" id="output-area"><p style="color:var(--text3)">点击下方「运行」开始</p></div>
         </section>
       </div>
@@ -331,13 +350,15 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
           <button class="btn btn-primary" id="btn-revise-confirm" type="button">确认提交并继续</button>
           <button class="btn" id="btn-revise-cancel" type="button">取消</button>
         </div>
-        <div class="btnrow" id="step3-actions" style="display:none">
-          <div class="guide" id="step3-banner" style="flex:1;margin:0">
-            Step1/Step2 人审通过还<strong>不算定稿</strong>。必须点右边蓝色按钮，才会出现在「定稿档案」。
+        <div id="step3-actions" style="display:none">
+          <div class="guide" id="step3-banner" style="margin:0 0 8px">
+            Step2 通过还<strong>不算定稿</strong>。请先点「① 运行 check」；通过后点右边「② 生成定稿并归档」入库。
           </div>
-          <input class="approver" id="approver" placeholder="定稿人姓名" value="" />
-          <button class="btn btn-primary" id="btn-finalize">生成定稿并归档</button>
-          <button class="btn" id="btn-check">运行 check 验收</button>
+          <div class="btnrow" style="margin:0;align-items:center">
+            <input class="approver" id="approver" placeholder="定稿人姓名" value="" />
+            <button class="btn btn-primary" id="btn-check" type="button">① 运行 check 验收</button>
+            <button class="btn" id="btn-finalize" type="button" disabled title="请先运行 check 并通过">② 生成定稿并归档（入库）</button>
+          </div>
         </div>
         <div class="history" id="history"></div>
         <div class="btnrow" style="margin-top:8px">
@@ -372,20 +393,20 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
                 <option value="new">未定稿</option>
                 <option value="approved">已定稿</option>
               </select>
-              <select id="jp-filter-speed">
+              <select id="jp-filter-speed" title="按正文字数估算 AI 耗时：快&lt;1200字 · 中1200–3499 · 慢≥3500">
                 <option value="">全部速度</option>
-                <option value="快">快</option>
-                <option value="中">中</option>
-                <option value="慢">慢</option>
+                <option value="快">快（&lt;1200 字）</option>
+                <option value="中">中（1200–3499 字）</option>
+                <option value="慢">慢（≥3500 字）</option>
               </select>
               <input id="jp-filter-q" placeholder="搜标题 / 产品流 / 日期" style="min-width:180px" />
               <button class="btn" type="button" id="btn-jp-select-all">全选当前列表</button>
               <button class="btn" type="button" id="btn-jp-select-none">取消全选</button>
               <button class="btn" type="button" id="btn-jp-paste">粘贴新日志</button>
-              <button class="btn" type="button" id="btn-jp-batch">批量 AI → 待人审</button>
+              <button class="btn" type="button" id="btn-jp-batch">批量 AI → 待审库</button>
               <button class="btn btn-primary" type="button" id="btn-jp-refresh">刷新列表</button>
             </div>
-            <div class="meta" id="jp-usage-hint" style="margin-top:8px">用途分类：<strong>试跑/摘录</strong>=字少快速验证；<strong>正式全文</strong>=按日完整日志定稿用；<strong>自定义</strong>=粘贴/上传。是否已定稿另看「已定稿」筛选（与「日志库」原文不是一回事）。</div>
+            <div class="meta" id="jp-usage-hint" style="margin-top:8px">用途：<strong>试跑/摘录</strong>=字少验证；<strong>正式全文</strong>=定稿用；<strong>自定义</strong>=粘贴/上传。速度按字数：<strong>快 &lt;1200</strong> · <strong>中 1200–3499</strong> · <strong>慢 ≥3500</strong>（估算 AI 耗时，不是质量分）。</div>
             <div class="meta" id="jp-sync-hint" style="margin-top:8px"></div>
           </div>
           <div class="journals-scroll" id="journals-page-list"></div>
@@ -417,8 +438,9 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
         <div class="journals-page">
           <div class="journals-toolbar">
             <div class="guide">
-              <strong>待人审怎么走：</strong>① 日志库勾选 → 批量 AI；② AI <em>只先写 Step1 需求故事</em>；③ 你点「开始人审」会<strong>认领</strong>这条；④ 别人仍能看见，但标着「待谁继续」，不能抢操作；⑤ Step3 定稿进「定稿档案」。<br/>
-              状态白话：排队中 / AI 正在写 / 无人认领 / 我已认领 / 待他人继续。
+              <strong>待审库怎么走：</strong>① 日志库勾选 → 批量 AI；② AI <em>只先写 Step1 需求故事</em>；③ 你点「开始人审」会<strong>认领</strong>这条；④ 别人仍能看见，但标着「待谁继续」，不能抢操作；⑤ Step3 定稿进「定稿档案」。<br/>
+              排队中 / AI 写稿中 / 失败，以及无人认领或本人认领的条目，可点<strong>取消任务</strong>释放占位，避免无法重新入队。<br/>
+              状态白话：排队中 / AI 正在写 / 无人认领 / 我已认领 / 待他人继续 / 已取消。
             </div>
             <div class="filters" style="margin-top:8px">
               <select id="queue-claim-filter" title="认领筛选">
@@ -438,8 +460,8 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
         <div class="journals-page">
           <div class="journals-toolbar">
             <div class="guide">这里<strong>一行就是一份日志</strong>的操作总览（全员可看）。
-              <strong>未定稿 ≠ 消失</strong>：每条会标「现在在哪」（待人审 / 工作台 / 定稿档案 / 仅有历史）。
-              若在待人审且已被他人认领，只能看、不能点「继续」抢审。
+              <strong>未定稿 ≠ 消失</strong>：每条会标「现在在哪」（待审库 / 工作台 / 定稿档案 / 仅有历史）。
+              若在待审库且已被他人认领，只能看、不能点「继续」抢审。
             </div>
             <div class="filters">
               <input id="audit-q" placeholder="搜日志标题 / id / 审核人" style="min-width:220px" />
@@ -466,110 +488,98 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
 
       <div class="view" id="view-manual">
         <div class="manual-page" id="manual-page">
-          <h2>使用手册（白话版）</h2>
-          <p class="lead">这个工具帮你把「研发日志里乱七八糟的话」整理成「用户要什么」的条目，并且<strong>每次你点通过或打叉都要写理由</strong>，以后出问题能查回来。下面按真实界面说明，配的是本机刚截的图。</p>
-          <div class="callout">使用前先<strong>登录</strong>（可注册新账号）。演示账号：用户名 <code>demo</code>，密码 <code>demo1234</code>。你的审核记录会记进本地数据库，和账号绑在一起。</div>
-          <div class="manual-toc">
-            <a href="#m-what">这是干什么的</a>
-            <a href="#m-nav">左边入口</a>
-            <a href="#m-pick">怎么选日志</a>
-            <a href="#m-one">怎么一条条审</a>
-            <a href="#m-match">怎么对照原文（非 AI）</a>
-            <a href="#m-batch">怎么批量给 AI 先跑</a>
-            <a href="#m-done">审完去哪找</a>
-            <a href="#m-faq">卡住了怎么办</a>
+          <div class="manual-layout">
+            <nav class="manual-sidebar" aria-label="手册目录">
+              <div class="toc-title">目录</div>
+              <a href="#m-what">1. 这是干什么的</a>
+              <a href="#m-flow">2. 数据流简图</a>
+              <a href="#m-nav">3. 左边入口</a>
+              <a href="#m-pick">4. 怎么选日志</a>
+              <a href="#m-one">5. 工作台 SOP</a>
+              <a href="#m-match">6. 对照原文</a>
+              <a href="#m-batch">7. 批量 → 待审库</a>
+              <a href="#m-done">8. 定稿档案</a>
+              <a href="#m-faq">9. 卡住了怎么办</a>
+            </nav>
+            <div class="manual-body">
+              <h2>使用手册</h2>
+              <p class="lead">把研发日志整理成可定稿的「用户要什么」条目。<strong>通过/打叉都要写理由</strong>；定稿前必须 <strong>check 通过</strong>。演示账号：<code>demo</code> / <code>demo1234</code>。</p>
+
+              <h3 id="m-what">1. 这是干什么的？</h3>
+              <ol>
+                <li>挑一份研发日志；</li>
+                <li>AI 先写草稿；</li>
+                <li><strong>人审两轮</strong>（Step1 需求故事 → Step2 用户故事）；</li>
+                <li>Step3：先 <strong>check 通过</strong>，再定稿进「定稿档案」。</li>
+              </ol>
+              <div class="callout"><strong>电脑帮忙写，人拍板。</strong>批量只是先排队写草稿，不能一键全过。</div>
+
+              <h3 id="m-flow">2. 数据流简图（每步产出 → 下一步输入）</h3>
+              <img class="shot flow-shot" src="assets/manual/manual-06-dataflow.svg" alt="工作台数据流简图：选日志→Step1→Step2→check→定稿入库，旁路批量AI到待审库" />
+              <p class="cap">图：工作台数据流。实线为主路径；虚线为批量旁路。check 未通过不能入库。</p>
+              <div class="manual-flow">
+                <div class="flow-row flow-head"><span>步骤</span><span>本步产出</span><span>交给下一步当输入</span></div>
+                <div class="flow-row"><span class="flow-step">选日志</span><span class="flow-out">当前 journal 原文</span><span class="flow-in">Step1 对照与抽取的唯一依据</span></div>
+                <div class="flow-row"><span class="flow-step">Step1</span><span class="flow-out">需求故事 .md（人审通过后锁定）</span><span class="flow-in">Step2 抽取「用户要…」的底稿</span></div>
+                <div class="flow-row"><span class="flow-step">Step2</span><span class="flow-out">stories.json（人审通过）</span><span class="flow-in">Step3 check + 定稿的条目源</span></div>
+                <div class="flow-row"><span class="flow-step">Step3 check</span><span class="flow-out">编造/句式等门槛结果</span><span class="flow-in"><strong>通过后才允许</strong>定稿入库</span></div>
+                <div class="flow-row"><span class="flow-step">定稿</span><span class="flow-out">accepted.json + 定稿档案</span><span class="flow-in">检索、复审、结项证据</span></div>
+                <div class="flow-row"><span class="flow-step">批量 AI</span><span class="flow-out">待审库里的 Step1 草稿</span><span class="flow-in">「开始人审」→ 回到工作台 SOP</span></div>
+              </div>
+
+              <h3 id="m-nav">3. 左边入口</h3>
+              <ul>
+                <li><strong>工作台</strong>：审稿主战场。</li>
+                <li><strong>日志库</strong>：全部日志；可筛用途/速度（快&lt;1200 · 中1200–3499 · 慢≥3500 字）。</li>
+                <li><strong>待审库</strong>：批量 AI 后的排队。</li>
+                <li><strong>审核历史 / 定稿档案</strong>：回溯与已定稿台账。</li>
+              </ul>
+
+              <h3 id="m-pick">4. 怎么选日志？</h3>
+              <p>日志库筛选后点「选用并去工作台」；工作台「快速更换」选中后会<strong>自动关窗</strong>。</p>
+              <img class="shot" src="assets/manual/manual-02-journals.png" alt="日志库界面截图" />
+              <p class="cap">图：日志库。</p>
+              <ul>
+                <li>试跑：选「试跑/摘录」；正式定稿：选产品流+日期的<strong>全文</strong>。</li>
+                <li>已定稿一般不必再审；要重做用「强制复审」。</li>
+              </ul>
+
+              <h3 id="m-one">5. 工作台标准步骤</h3>
+              <img class="shot" src="assets/manual/manual-01-workbench.png" alt="工作台界面截图" />
+              <p class="cap">图：工作台。右侧标题旁显示当前产物字数。</p>
+              <ol>
+                <li>填<strong>审核人</strong>。</li>
+                <li>运行 Step1 → 对照 → 通过/打叉（都写理由）。</li>
+                <li>运行 Step2 → 同上；可点右侧条目高亮左侧原文。</li>
+                <li>进入 Step3：先点「① 运行 check」；<strong>只有通过后</strong>「② 生成定稿并归档」才可点。</li>
+                <li>定稿成功后去「定稿档案」核对。</li>
+              </ol>
+              <img class="shot" src="assets/manual/manual-05-review.png" alt="人审通过打叉截图" />
+              <p class="cap">图：人审区。</p>
+              <div class="callout">Step2 通过<strong>还不算定稿</strong>。check 不过 → 不能入库；改条目后需重新 check。</div>
+
+              <h3 id="m-match">6. 对照原文（非 AI）</h3>
+              <p>Step2/定稿后点右侧「用户要…」→ 左侧滚到匹配段（黄/蓝/绿表示匹配强度）。</p>
+
+              <h3 id="m-batch">7. 批量 → 待审库</h3>
+              <p>日志库勾选 →「批量 AI → 待审库」→ 待审库「开始人审」→ 回工作台按第 5 步。<strong>仍须逐条写理由</strong>。排队中 / AI 写稿中可点<strong>取消任务</strong>释放占位后再入队。</p>
+              <img class="shot" src="assets/manual/manual-03-queue.png" alt="待审库队列截图" />
+              <p class="cap">图：待审库。</p>
+
+              <h3 id="m-done">8. 定稿档案</h3>
+              <img class="shot" src="assets/manual/manual-04-registry.png" alt="定稿档案列表截图" />
+              <p class="cap">图：定稿档案。</p>
+              <p>按产品流分组；同一日志复审再定稿会<strong>更新</strong>该条，不会无故 +1。</p>
+
+              <h3 id="m-faq">9. 卡住了怎么办？</h3>
+              <ul>
+                <li>打不开页：确认启动黑窗还在，地址 <code>http://127.0.0.1:8765/</code>。</li>
+                <li>定稿按钮灰：先跑 check 并看是否通过。</li>
+                <li>通过没反应：检查审核人与理由是否填写。</li>
+                <li>日志很少：跑 <code>scripts/sync_journals.py</code> 或粘贴自定义日志。</li>
+              </ul>
+            </div>
           </div>
-
-          <h3 id="m-what">1. 这是干什么的？</h3>
-          <p>想象开会留下一堆记录。你要做的是：</p>
-          <ol>
-            <li>先挑一份记录；</li>
-            <li>让电脑先整理一稿；</li>
-            <li><strong>你自己看一遍</strong>——对了写「为什么对」，错了写「哪里错」并让它重做；</li>
-            <li>最后签字定稿，放进「定稿档案」；以后同一份就不用再从头审。</li>
-          </ol>
-          <div class="callout">记住一句话：<strong>电脑可以帮忙写，但最后拍板的是人</strong>。批量也只是让电脑先写好草稿排队，不能一键全过。</div>
-
-          <h3 id="m-nav">2. 左边入口分别干什么？</h3>
-          <ul>
-            <li><strong>工作台</strong>：真正审稿的地方（看原文、看整理结果、点通过/打叉）。</li>
-            <li><strong>日志库</strong>：所有可选的研发日志，像书架（按产品流 × 日期）。</li>
-            <li><strong>待人审</strong>：电脑批量跑完、等你来看的队列。</li>
-            <li><strong>审核历史</strong>：按<strong>一份日志一行</strong>汇总；点进去才看各阶段（Step1/Step2/定稿）。</li>
-            <li><strong>定稿档案</strong>：正式定稿记录，按<strong>产品流分类</strong>；可点开看详情。与「日志库」原文不是一回事。</li>
-            <li><strong>使用手册</strong>：就是本页。</li>
-          </ul>
-          <div class="callout">从工作台跳到别的页后，顶部会出现<strong>「← 返回上一页」</strong>，不用每次重新点「工作台」。</div>
-          <p>右上角「使用手册」也会打开本页。</p>
-
-          <h3 id="m-pick">3. 怎么选日志？</h3>
-          <p>点左侧<strong>日志库</strong>。上面有筛选：产品、用途、是否已定稿、快慢、搜索。每条卡片会告诉你「为什么选它」。</p>
-          <img class="shot" src="assets/manual/manual-02-journals.png" alt="日志库界面截图" />
-          <p class="cap">图：日志库。可勾选多条，也可点「选用并去工作台」。</p>
-          <ul>
-            <li>想<strong>快点试一下</strong>：选「试跑 / 摘录」（字少）。</li>
-            <li>要<strong>正式留档</strong>：选对应产品、那天的<strong>全文</strong>。</li>
-            <li>刚开完会：用「粘贴新日志」或上传文件。</li>
-            <li>已经标着<strong>已定稿</strong>的：一般不用再审；真要重做，点「强制复审」。</li>
-          </ul>
-
-          <h3 id="m-one">4. 怎么在工作台一条条审？</h3>
-          <p>选好日志后会进<strong>工作台</strong>。左边是原文，右边是电脑整理出来的内容，两边可以各自上下滚。</p>
-          <img class="shot" src="assets/manual/manual-01-workbench.png" alt="工作台界面截图" />
-          <p class="cap">图：工作台（缩略）。先看当前日志，再点「运行」。</p>
-          <ol>
-            <li>在「审核人」框里填上<strong>你的名字</strong>（以后查记录要用）。</li>
-            <li>点蓝色按钮，让电脑先整理一稿（可能要等一会儿，转圈是正常的）。</li>
-            <li>对照原文看：有没有瞎编？有没有漏？一件事说清楚了吗？</li>
-            <li>
-              <strong>对了</strong>：点「通过」→ 在理由框写一句人话（比如「和原文对得上，一件事清楚」）→ 点「确认提交并继续」。<br/>
-              <strong>错了</strong>：点红按钮里的原因类型（编造/漏了/…）→ 写清楚错在哪 → 确认提交，电脑会按你的意见重做。
-            </li>
-            <li>第一轮过了再跑第二轮（拆成「用户要……」条目），同样要写通过或打叉理由。</li>
-            <li>都过了之后：填定稿人姓名 → 点「生成定稿并归档」→ 再点「运行 check 验收」（主要查：有没有编造、格式对不对）。</li>
-          </ol>
-          <img class="shot" src="assets/manual/manual-05-review.png" alt="人审通过打叉截图" />
-          <p class="cap">图：人审区。通过、打叉都要写理由。</p>
-          <div class="callout">要回溯时去左边<strong>审核历史</strong>：先按日志找，再点开看每个阶段谁做了什么决定。</div>
-
-          <h3 id="m-match">5. 原文很长时，怎么快速对照？（非 AI 工具）</h3>
-          <p>AI 只负责抽出条目；人审还要核对「这句话是不是原文里有的」。全文很长时不要整页硬找：</p>
-          <ol>
-            <li>进入 Step2（或定稿结果）后，右侧每条「用户要…」卡片都可以点。</li>
-            <li>点一下：左侧全文会<strong>自动滚到相关段落并高亮</strong>。</li>
-            <li>颜色含义：<strong>黄</strong>=精确/极高 · <strong>蓝</strong>=很可能 · <strong>绿</strong>=可能相关。</li>
-            <li>可连点多条，快速扫完一遍，比肉眼从头滚高效得多。</li>
-          </ol>
-          <div class="callout">这是本地文本匹配，不调用 AI。用来帮人提效，最终对不对仍由你拍板。</div>
-
-          <h3 id="m-batch">6. 日志很多，能不能让电脑先批量跑？</h3>
-          <p>可以。在日志库里<strong>勾选</strong>几条 → 点「批量 AI → 待人审」。电脑会在后台一条条先写草稿。</p>
-          <p>然后打开左侧<strong>待人审</strong>，看到排好的条目后点「开始人审」，再回到工作台按第 4 步做人审。<strong>仍然要你一条条写理由</strong>，不会批量一键全过。</p>
-          <img class="shot" src="assets/manual/manual-03-queue.png" alt="待人审队列截图" />
-          <p class="cap">图：待人审（缩略）。</p>
-
-          <h3 id="m-done">7. 审完了去哪找？还会不会让我再审一遍？</h3>
-          <p>定稿成功后，会出现在<strong>定稿档案</strong>。列表按<strong>产品流</strong>分组（产品云、业务云…），和官方研发日志仓库的分类一致。可按产品筛选，也可搜标题/定稿人。</p>
-          <img class="shot" src="assets/manual/manual-04-registry.png" alt="定稿档案列表截图" />
-          <p class="cap">图：定稿档案（缩略）。点卡片可看定稿条目与审核阶段。</p>
-          <ul>
-            <li><strong>点卡片 / 查看详情</strong>：看定稿了哪些「用户要…」、当时各阶段谁过的。</li>
-            <li>同一份内容<strong>没改过</strong>：日志库会标「已定稿」，一般不用再审。</li>
-            <li>原文<strong>后来改了</strong>：系统会提醒可能要复审。</li>
-            <li>你主动想重做：点「强制复审」。</li>
-          </ul>
-
-          <h3 id="m-faq">8. 卡住了怎么办？</h3>
-          <ul>
-            <li>页面打不开：确认启动时那个<strong>黑窗口还在</strong>，地址是 <code>http://127.0.0.1:8765/</code>。</li>
-            <li>转圈一直不结束：等一两分钟；仍不行就刷新（Ctrl+F5），看黑窗口有没有报错退出。</li>
-            <li>点通过没反应：是不是没填<strong>审核人</strong>？是不是没写<strong>通过理由</strong>？</li>
-            <li>定稿报错 / 验收弹奇怪提示：先刷新再试；若仍失败把黑窗口最后几行错误发给维护人。</li>
-            <li>跳到日志库回不来：点页面上方<strong>「← 返回上一页」</strong>，或点左侧「工作台」。</li>
-            <li>日志很少：找会技术的同事跑一次官方日志同步；或自己粘贴一段先用。</li>
-            <li>想重来：工作台里清空本轮产物，或换一份日志（会提示清空）。</li>
-          </ul>
-          <p class="lead" style="margin-top:24px">更细的交付说明还在仓库文档里；日常操作以<strong>本页截图版手册</strong>为准。</p>
         </div>
       </div>
     </main>
@@ -676,7 +686,7 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
     </div>
     <div class="modal-body">
       <div class="guide" id="journal-guide">
-        先定今天要梳理的<strong>一件事</strong>，再选日志。<br/>
+        先定今天要梳理的<strong>一件事</strong>，再选日志。<strong>点卡片即可选用并关闭本窗</strong>。<br/>
         <strong>想快：</strong>选「聚焦摘录」或粘贴一小段。　
         <strong>要正式：</strong>选按日全文。　
         <strong>刚开完会：</strong>用粘贴 / 上传。
@@ -721,6 +731,7 @@ let state = null;
 let currentStep = 1;
 let pendingReviseCode = null;
 let pendingAction = null; // 'ok' | 'revise'
+let lastStoriesCheckPassed = false; // Step3：check 通过后才允许定稿入库
 
 const phaseLabel = {
   idle: '待开始',
@@ -948,6 +959,26 @@ function showReadable(el, raw) {
   el.innerHTML = mdToReadableHtml(raw);
 }
 
+function updateOutputLen() {
+  const el = document.getElementById('output-len');
+  if (!el) return;
+  const art = (state && state.artifacts) || {};
+  const phase = (state && state.phase) || '';
+  let n = 0;
+  if (phase === 'done' && art.accepted) {
+    const stories = art.accepted.stories || [];
+    n = stories.reduce((s, x) => s + String((x && x.text) || '').length, 0);
+    if (art.accepted.requirement_story) n += String(art.accepted.requirement_story).length;
+  } else if (art.stories && (phase === 'step2_review' || phase === 'step2_ready' || phase === 'step3_ready')) {
+    const stories = art.stories.stories || art.stories || [];
+    const list = Array.isArray(stories) ? stories : [];
+    n = list.reduce((s, x) => s + String((x && x.text) || '').length, 0);
+  } else if (art.requirement_story) {
+    n = String(art.requirement_story).length;
+  }
+  el.textContent = n ? (n + ' 字') : '';
+}
+
 function renderOutput() {
   const area = document.getElementById('output-area');
   area.classList.add('md-view');
@@ -987,7 +1018,7 @@ function renderOutput() {
       phase === 'step1_review' ? '电脑整理的需求故事（请人审）' : '电脑整理的需求故事';
     if (hint) hint.textContent = 'Step1 审的是右侧需求故事全文；进入 Step2 后，点右侧条目可匹配原文。';
     if (art.requirement_story) showReadable(area, art.requirement_story);
-    else area.innerHTML = '<p style="color:var(--text3)">还没开始整理，点下面「运行」按钮；若从待人审打开仍为空，请刷新队列重开。</p>';
+    else area.innerHTML = '<p style="color:var(--text3)">还没开始整理，点下面「运行」按钮；若从待审库打开仍为空，请刷新队列重开。</p>';
   } else {
     document.getElementById('output-title').textContent = '电脑整理结果';
     if (hint) hint.textContent = '';
@@ -999,6 +1030,7 @@ function renderOutput() {
       area.innerHTML = '<p style="color:var(--text3)">暂无产物</p>';
     }
   }
+  updateOutputLen();
 }
 
 function updateNav() {
@@ -1018,15 +1050,17 @@ function updateToolbar() {
   reviseRow.style.display = 'none';
   pendingReviseCode = null;
 
-  if (state.last_error) {
-    toast('上次错误：' + state.last_error, false);
-    state.last_error = null;
-  }
+  // 刷新只同步界面，不弹「上次错误」（失败已在点按钮当时 toast 过）
+  // last_error 仍可在 /api/state 里查看，避免每次 F5 都打断
 
   if (state.phase === 'done') {
     document.getElementById('action-title').textContent = '已定稿 · 可运行 check，或清空本轮重新梳理';
-    step3.style.display = 'flex';
+    step3.style.display = 'block';
     document.getElementById('btn-finalize').style.display = 'none';
+    const chk = document.getElementById('btn-check');
+    if (chk) { chk.style.display = 'inline-block'; chk.className = 'btn btn-primary'; }
+    const banner = document.getElementById('step3-banner');
+    if (banner) banner.innerHTML = '已入库定稿。可再跑 check，或清空本轮重新梳理。';
     primary.innerHTML = '<button class="btn btn-primary" id="btn-reset">↺ 清空本轮产物，重新梳理</button>';
     document.getElementById('btn-reset').onclick = resetDemo;
     currentStep = 3;
@@ -1075,9 +1109,29 @@ function updateToolbar() {
 
   if (state.phase === 'step3_ready') {
     document.getElementById('action-title').textContent =
-      'Step3 · 人工定稿：填写定稿人 → 点「生成定稿并归档」。Step2 通过还不算定稿。';
-    step3.style.display = 'flex';
-    document.getElementById('btn-finalize').style.display = 'inline-block';
+      'Step3 · 必须先运行 check 并通过，才能定稿入库。';
+    step3.style.display = 'block';
+    const fin = document.getElementById('btn-finalize');
+    const chk = document.getElementById('btn-check');
+    if (chk) {
+      chk.style.display = 'inline-block';
+      chk.className = lastStoriesCheckPassed ? 'btn' : 'btn btn-primary';
+    }
+    if (fin) {
+      fin.style.display = 'inline-block';
+      fin.disabled = !lastStoriesCheckPassed;
+      fin.title = lastStoriesCheckPassed
+        ? 'check 已通过，可以定稿入库'
+        : '请先点「① 运行 check」并通过，才能入库';
+      fin.className = lastStoriesCheckPassed ? 'btn btn-primary' : 'btn';
+      fin.textContent = '② 生成定稿并归档（入库）';
+    }
+    const banner = document.getElementById('step3-banner');
+    if (banner) {
+      banner.innerHTML = lastStoriesCheckPassed
+        ? 'check <strong>已通过</strong>。请确认定稿人，再点「② 生成定稿并归档（入库）」。'
+        : 'Step2 通过还<strong>不算定稿</strong>。必须先点「① 运行 check」；<strong>只有校验通过后</strong>，「入库」按钮才会亮起。未 check 不能入库。';
+    }
     const ap = document.getElementById('approver');
     if (ap && !ap.value.trim()) {
       ap.value = getActor() || (state.user && (state.user.display_name || state.user.username)) || '';
@@ -1133,6 +1187,17 @@ async function refresh() {
   if (state.phase === 'step1_review' || state.phase === 'idle') currentStep = 1;
   else if (state.phase === 'step2_ready' || state.phase === 'step2_review') currentStep = 2;
   else if (state.phase === 'step3_ready' || state.phase === 'done') currentStep = 3;
+  if (state.phase === 'step3_ready') {
+    // 恢复本日志已通过的 check（避免刷新后入库键又灰掉）
+    try {
+      const jid = state.journal_id || '';
+      if (jid && sessionStorage.getItem('qt_check_ok_' + jid) === '1') {
+        lastStoriesCheckPassed = true;
+      }
+    } catch (e) {}
+  } else if (state.phase !== 'done') {
+    lastStoriesCheckPassed = false;
+  }
   renderOutput();
   updateNav();
   updateToolbar();
@@ -1156,7 +1221,7 @@ function renderAuditJournalCards(items) {
       (it.actors || []).slice(0, 3).join('、') || null,
     ].filter(Boolean);
     const continueLabel = it.location === 'queue'
-      ? (it.can_continue === false ? '他人已认领（不可操作）' : '去待人审继续')
+      ? (it.can_continue === false ? '他人已认领（不可操作）' : '去待审库继续')
       : (it.location === 'workbench'
         ? '打开工作台继续'
         : (it.location === 'registry' ? '查看定稿档案' : '重新打开继续'));
@@ -1224,7 +1289,7 @@ async function continueFromAudit(journalId, action, queueId) {
     return;
   }
   if (action === 'queue' && !queueId) {
-    toast('队列项已不在，改去待人审页查看，或重新打开日志', false);
+    toast('队列项已不在，改去待审库页查看，或重新打开日志', false);
     switchView('queue');
     return;
   }
@@ -1352,7 +1417,7 @@ async function openAuditDetail(journalId, title, locInfo) {
   }
   body.innerHTML =
     `<div class="guide" style="margin:0 0 10px">日志 <code>${esc(journalId)}</code> · 共 ${events.length} 条阶段<br/>
-      <strong>现在在哪：</strong>${esc(locLabel)}（未定稿时不会出现在「定稿档案」；若在待人审/工作台，点下方继续）</div>
+      <strong>现在在哪：</strong>${esc(locLabel)}（未定稿时不会出现在「定稿档案」；若在待审库/工作台，点下方继续）</div>
     <div class="btnrow" style="margin:0 0 12px">
       <button class="btn btn-primary" type="button" id="btn-audit-cont">继续处理</button>
     </div>` +
@@ -1428,7 +1493,9 @@ async function loadJournalList() {
   const guide = data.guide || {};
   if (guide.principle) {
     document.getElementById('journal-guide').innerHTML =
-      esc(guide.principle) + '<br/><strong>筛选维度：</strong>' + esc((guide.filters || []).join(' / '));
+      esc(guide.principle) +
+      '<br/><strong>点卡片或「选用并关闭」即可立刻更换并关窗。</strong>' +
+      '<br/><strong>筛选维度：</strong>' + esc((guide.filters || []).join(' / '));
     document.getElementById('journals-page-guide').innerHTML =
       esc(guide.principle) + ' 来源：' + esc((data.stats && data.stats.source_repo) || '');
   }
@@ -1480,12 +1547,12 @@ function filteredJournals(productSel, usageSel, qInput, speedSel, reviewSel) {
 function journalCardHtml(j, selectedId, withUseBtn) {
   const approved = j.review_status === 'approved';
   return `
-    <div class="j-card ${j.id === selectedId ? 'selected' : ''}" data-id="${esc(j.id)}" data-approved="${approved ? '1' : '0'}">
+    <div class="j-card ${j.id === selectedId ? 'selected' : ''}" data-id="${esc(j.id)}" data-approved="${approved ? '1' : '0'}" title="${withUseBtn ? '' : '点击即选用并关闭窗口'}">
       <h4>${withUseBtn ? `<label style="margin-right:8px"><input type="checkbox" class="batch-check" data-id="${esc(j.id)}" onclick="event.stopPropagation()" /></label>` : ''}${esc(j.title || j.id)}</h4>
       <div class="row">
         <span class="badge">${esc(j.product || '')}</span>
         <span class="badge">${esc(j.date || '无日期')}</span>
-        <span class="badge ${j.speed === '快' ? 'fast' : (j.speed === '慢' ? 'slow' : '')}">${esc(j.speed || '')} · ${j.chars || 0} 字</span>
+        <span class="badge ${j.speed === '快' ? 'fast' : (j.speed === '慢' ? 'slow' : '')}">${esc(j.speed || '')}${j.speed === '快' ? '(&lt;1200)' : (j.speed === '中' ? '(1200–3499)' : (j.speed === '慢' ? '(≥3500)' : ''))} · ${j.chars || 0} 字</span>
         <span class="badge">${esc({try:'试跑摘录', formal:'正式全文', custom:'自定义'}[j.usage] || j.usage || '')}</span>
         <span class="badge ${approved ? 'fast' : ''}">${esc(j.review_label || '未定稿')}</span>
       </div>
@@ -1495,7 +1562,9 @@ function journalCardHtml(j, selectedId, withUseBtn) {
       ${withUseBtn ? `<div class="actions">
         <button class="btn btn-preview-j" type="button" data-id="${esc(j.id)}">看全文</button>
         <button class="btn btn-primary btn-use" type="button" data-id="${esc(j.id)}" data-approved="${approved ? '1' : '0'}">${approved ? '强制复审并去工作台' : '选用并去工作台'}</button>
-      </div>` : ''}
+      </div>` : `<div class="actions">
+        <button class="btn btn-primary btn-pick-now" type="button" data-id="${esc(j.id)}" data-approved="${approved ? '1' : '0'}">${approved ? '强制复审并选用' : '选用并关闭'}</button>
+      </div>`}
     </div>`;
 }
 
@@ -1513,9 +1582,31 @@ function renderJournalCards() {
     return;
   }
   list.innerHTML = items.map(j => journalCardHtml(j, selectedId, false)).join('');
+  const pick = (id, approved) => pickJournalFromModal(id, approved);
   list.querySelectorAll('.j-card').forEach(card => {
-    card.onclick = () => selectJournal(card.dataset.id);
+    card.onclick = (e) => {
+      if (e.target.closest('.btn-pick-now')) return; // 按钮自己处理
+      pick(card.dataset.id, card.dataset.approved === '1');
+    };
   });
+  list.querySelectorAll('.btn-pick-now').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      pick(btn.dataset.id, btn.dataset.approved === '1');
+    };
+  });
+}
+
+/** 工作台「快速更换」：点选后立刻关窗并切换（有未定稿产物时仍会确认，确认框在最上层） */
+async function pickJournalFromModal(id, approved) {
+  if (!id) return false;
+  // 先关日志窗，避免挡住确认框 / 让「立刻更换」手感成立
+  closeJournalModal();
+  if (state && state.journal_id === id && state.phase === 'idle') {
+    toast('已是当前日志', true);
+    return true;
+  }
+  return selectJournal(id, { forceReopen: !!approved, fromModal: true });
 }
 
 function renderJournalsPage() {
@@ -1562,7 +1653,7 @@ const VIEW_LABELS = {
   work: '工作台',
   journals: '日志库',
   fetch: '获取信息',
-  queue: '待人审',
+  queue: '待审库',
   audit: '审核历史',
   registry: '定稿档案',
   manual: '使用手册'
@@ -1613,13 +1704,23 @@ async function selectJournal(id, opts) {
   if (!id) return false;
   opts = (typeof opts === 'boolean') ? { forceReopen: opts } : (opts || {});
   const forceReopen = !!opts.forceReopen; // 仅对「已定稿」的日志用强制复审
-  if (state && state.phase !== 'idle') {
-    const ok = await confirmAsk(
-      forceReopen
-        ? '这份日志已经进过定稿档案。强制复审会清空当前工作台产物并重新打开。确定继续？'
-        : '切换日志会清空当前工作台里未定稿的产物。确定切换吗？（只想看内容请点「看全文」，不必选用）',
-      forceReopen ? '强制复审' : '切换日志'
-    );
+  const fromModal = !!opts.fromModal;
+  if (fromModal) closeJournalModal();
+  const phase = (state && state.phase) || 'idle';
+  if (phase !== 'idle') {
+    let msg;
+    let title;
+    if (forceReopen) {
+      title = '强制复审';
+      msg = '这份日志已经进过定稿档案。强制复审会清空当前工作台显示并重新打开。确定继续？';
+    } else if (phase === 'done') {
+      title = '切换日志';
+      msg = '当前日志已经定稿入库。切换只会清空工作台显示、打开另一份日志；定稿档案里的记录不会丢。确定切换吗？';
+    } else {
+      title = '切换日志';
+      msg = '当前还有未定稿的工作台产物。切换日志会清空这些未定稿内容（已入库的定稿档案不受影响）。确定切换吗？';
+    }
+    const ok = await confirmAsk(msg, title);
     if (!ok) return false;
   } else if (forceReopen) {
     const ok = await confirmAsk(
@@ -1636,6 +1737,11 @@ async function selectJournal(id, opts) {
       body: JSON.stringify({ id, force_reopen: forceReopen })
     });
     if (!res.ok) { toast(res.error || '切换失败', false); return false; }
+    lastStoriesCheckPassed = false;
+    try {
+      const jidClear = (state && state.journal_id) || '';
+      if (jidClear) sessionStorage.removeItem('qt_check_ok_' + jidClear);
+    } catch (e) {}
     toast(res.message || '已切换', true);
     if (res.hint) toast(res.hint, true);
     closeJournalModal();
@@ -1652,7 +1758,10 @@ async function pasteJournal() {
   const title = document.getElementById('paste-title').value.trim();
   const content = document.getElementById('paste-content').value;
   if (state && state.phase !== 'idle') {
-    const ok = await confirmAsk('粘贴新日志会清空当前产物，确定继续？', '粘贴新日志');
+    const msg = state.phase === 'done'
+      ? '当前已定稿入库。粘贴新日志只会清空工作台显示；定稿档案不会丢。确定继续？'
+      : '粘贴新日志会清空当前未定稿产物，确定继续？';
+    const ok = await confirmAsk(msg, '粘贴新日志');
     if (!ok) return;
   }
   showBusy('保存粘贴日志…');
@@ -1676,7 +1785,10 @@ async function pasteJournal() {
 async function uploadJournal(file) {
   if (!file) return;
   if (state && state.phase !== 'idle') {
-    const ok = await confirmAsk('上传新日志会清空当前产物，确定继续？', '上传日志');
+    const msg = state.phase === 'done'
+      ? '当前已定稿入库。上传新日志只会清空工作台显示；定稿档案不会丢。确定继续？'
+      : '上传新日志会清空当前未定稿产物，确定继续？';
+    const ok = await confirmAsk(msg, '上传日志');
     if (!ok) return;
   }
   const text = await file.text();
@@ -1800,11 +1912,12 @@ async function submitFeedback(kind, code) {
     await refresh();
     // Step2 通过后进入 Step3，必须人自己点定稿；禁止自动跳过
     if (kind === 'ok' && (res.phase === 'step3_ready' || (state && state.phase === 'step3_ready'))) {
+      lastStoriesCheckPassed = false;
       const ap = document.getElementById('approver');
       if (ap && !ap.value.trim()) {
         ap.value = getActor() || (state.user && (state.user.display_name || state.user.username)) || '';
       }
-      toast('Step2 已通过，已进入 Step3。请确认定稿人后点「生成定稿并归档」。', true);
+      toast('Step2 已通过，已进入 Step3。请先「运行 check」通过后再定稿入库。', true);
     }
   } finally { hideBusy(); }
 }
@@ -1813,6 +1926,11 @@ async function finalize() {
   const approver = document.getElementById('approver').value.trim() || getActor();
   if (!approver) { toast('请填写定稿人姓名', false); return; }
   document.getElementById('approver').value = approver;
+  if (!lastStoriesCheckPassed) {
+    toast('还没 check 或未通过，不能入库。请先点「① 运行 check 验收」', false);
+    updateToolbar();
+    return;
+  }
   showBusy('正在生成定稿并归档…');
   try {
     const res = await api('/api/loop/finalize', {
@@ -1821,6 +1939,11 @@ async function finalize() {
       body: JSON.stringify({ approver, note: '人工定稿归档' })
     });
     if (!res.ok) { toast(res.error || '定稿失败', false); return; }
+    lastStoriesCheckPassed = false;
+    try {
+      const jid0 = (state && state.journal_id) || '';
+      if (jid0) sessionStorage.removeItem('qt_check_ok_' + jid0);
+    } catch (e) {}
     const jid = (res.registry && (res.registry.journal_id || res.registry.journalId)) || (state && state.journal_id) || '';
     const title = (res.registry && res.registry.title) || jid;
     const updated = !!(res.registry && res.registry.updated);
@@ -1839,21 +1962,45 @@ async function finalize() {
 async function runCheck() {
   showBusy('运行 check 验收…');
   try {
+    const phaseBefore = (state && state.phase) || '';
     const res = await api('/api/check', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
-        target: state.phase === 'done' ? 'accepted' : 'stories',
+        target: phaseBefore === 'done' ? 'accepted' : 'stories',
         actor: getActor()
       })
     });
-    if (res.passed) {
+    const passed = !!(res && res.passed);
+    // Step3：无论随后 refresh 与否，先锁定门禁状态，避免「过了却看不到入库」
+    if (phaseBefore === 'step3_ready' || (state && state.phase === 'step3_ready')) {
+      lastStoriesCheckPassed = passed;
+      try {
+        const jid = (state && state.journal_id) || '';
+        if (jid) sessionStorage.setItem('qt_check_ok_' + jid, passed ? '1' : '0');
+      } catch (e) {}
+    }
+    if (passed) {
       const tip = (res.warnings && res.warnings.length) ? ('；' + res.warnings[0]) : '';
-      toast('[OK] 验收门槛通过' + tip, true);
+      toast(
+        '[OK] 验收门槛通过' + tip +
+          ((phaseBefore === 'step3_ready' || (state && state.phase === 'step3_ready'))
+            ? ' · 请点「② 生成定稿并归档（入库）」'
+            : ''),
+        true
+      );
     } else {
+      if (phaseBefore === 'step3_ready' || (state && state.phase === 'step3_ready')) {
+        lastStoriesCheckPassed = false;
+      }
       toast('未通过：' + (res.errors || [res.error || '未知错误']).slice(0,2).join('；'), false);
     }
     await refresh();
+    // refresh 后若仍在 Step3，用刚才的结果再刷一次工具栏（防止状态被冲掉）
+    if (state && state.phase === 'step3_ready' && passed) {
+      lastStoriesCheckPassed = true;
+    }
+    updateToolbar();
   } finally { hideBusy(); }
 }
 
@@ -1866,7 +2013,7 @@ async function loadQueue() {
     (data.pending_human || 0) + ' 可审';
   const items = data.items || [];
   if (!items.length) {
-    list.innerHTML = '<p class="meta">当前筛选下没有条目。可换筛选，或去日志库勾选后点「批量 AI → 待人审」。</p>';
+    list.innerHTML = '<p class="meta">当前筛选下没有条目。可换筛选，或去日志库勾选后点「批量 AI → 待审库」。</p>';
     return;
   }
   const statusMap = {
@@ -1878,7 +2025,8 @@ async function loadQueue() {
     in_review: { label: '人审进行中', tip: '已有人认领并在工作台打开' },
     step1_passed: { label: 'Step1 已过 · 等人点 Step2', tip: '认领人可继续跑 Step2 / 解锁' },
     done: { label: '已进定稿档案', tip: '' },
-    failed: { label: '失败', tip: '看下方错误' },
+    failed: { label: '失败', tip: '可取消后重新入队' },
+    cancelled: { label: '已取消', tip: '占位已释放，可重新勾选入队' },
   };
   list.innerHTML = items.map(it => {
     const sm = statusMap[it.status] || { label: it.status, tip: '' };
@@ -1887,6 +2035,7 @@ async function loadQueue() {
       ? `<span class="badge ${ownership === 'others' ? 'slow' : (ownership === 'mine' ? 'fast' : '')}">${esc(it.claim_short)}</span>`
       : '';
     const canOpen = !!it.can_open;
+    const canCancel = !!it.can_cancel;
     const btnLabel = it.status === 'pending_step2'
       ? '开始人审 Step2'
       : (it.status === 'step1_passed'
@@ -1899,8 +2048,11 @@ async function loadQueue() {
       actionHtml = `<button class="btn btn-primary btn-open-q" data-id="${esc(it.id)}" type="button">${btnLabel}</button>`;
     } else if (ownership === 'others') {
       actionHtml = `<span class="meta" style="color:var(--text2)">${esc(it.claim_label || '他人审核中，你不能操作')}</span>`;
-    } else {
+    } else if (it.status !== 'cancelled' && it.status !== 'done') {
       actionHtml = `<span class="meta">${esc(sm.label)} · 请点刷新</span>`;
+    }
+    if (canCancel) {
+      actionHtml += ` <button class="btn btn-danger btn-cancel-q" data-id="${esc(it.id)}" type="button" title="取消后可重新入队">取消任务</button>`;
     }
     return `
     <div class="j-card ${ownership === 'others' ? 'dimmed' : ''}">
@@ -1920,6 +2072,29 @@ async function loadQueue() {
   list.querySelectorAll('.btn-open-q').forEach(btn => {
     btn.onclick = () => openQueueItem(btn.dataset.id);
   });
+  list.querySelectorAll('.btn-cancel-q').forEach(btn => {
+    btn.onclick = () => cancelQueueItem(btn.dataset.id);
+  });
+}
+
+async function cancelQueueItem(id) {
+  if (!id) return;
+  const okAsk = await confirmAsk(
+    '取消后，这条不再占「待审库」名额，同一日志可以重新勾选入队。进行中的 AI 写稿结果也不会再进入人审。确定取消？',
+    '取消任务'
+  );
+  if (!okAsk) return;
+  showBusy('取消任务…');
+  try {
+    const res = await api('/api/queue/cancel', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id, reason: '用户取消' })
+    });
+    if (!res.ok) { toast(res.error || '取消失败', false); return; }
+    toast(res.message || '已取消', true);
+    await loadQueue();
+  } finally { hideBusy(); }
 }
 
 async function loadFetchInbox() {
@@ -2167,7 +2342,7 @@ async function rejectFetchSelected() {
 }
 
 async function openQueueItem(id) {
-  showBusy('载入待人审…');
+  showBusy('载入待审库…');
   try {
     const res = await api('/api/queue/open', {
       method: 'POST',
@@ -2314,7 +2489,7 @@ async function batchEnqueue() {
       body: JSON.stringify({ journal_ids: ids, actor })
     });
     if (!res.ok) { toast(res.error || '入队失败', false); return; }
-    toast('已入队 ' + (res.enqueued || []).length + ' 条，可在「待人审」查看进度', true);
+    toast('已入队 ' + (res.enqueued || []).length + ' 条，可在「待审库」查看进度', true);
     switchView('queue');
   } finally { hideBusy(); }
 }

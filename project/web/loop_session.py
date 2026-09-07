@@ -651,6 +651,15 @@ class LoopWebSession:
                 name = (approver or "").strip()
                 if not name:
                     return {"ok": False, "error": "请填写定稿人姓名"}
+                # 门禁：定稿入库前必须 stories check 通过（编造/句式等硬门槛）
+                chk = self.run_check(target="stories", actor=name)
+                if not chk.get("passed"):
+                    errs = chk.get("errors") or [chk.get("error") or "未知错误"]
+                    return {
+                        "ok": False,
+                        "error": "check 未通过，不能定稿入库：" + "；".join(str(e) for e in errs[:3]),
+                        "check": chk,
+                    }
                 loop.metrics["feedback_triggered"] += 1
                 loop.history.append(f"{STEP3}:{name}")
                 path = loop.finalize(name)
