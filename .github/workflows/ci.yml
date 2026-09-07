@@ -53,6 +53,7 @@ jobs:
             "scripts/verify_acceptance.py"
             "scripts/verify_security.py"
             "scripts/verify_rectify.py"
+            "scripts/verify_lessons.py"
             "setup.sh"
             "start-with-ai.sh"
             "RUN-SERVER.bat"
@@ -181,17 +182,17 @@ jobs:
           set -euo pipefail
           python scripts/verify_security.py
 
+      - name: Project lessons-learned regression gates
+        run: |
+          set -euo pipefail
+          python scripts/verify_lessons.py
+
       - name: Rectify / product gates (static, no server)
         run: |
           set -euo pipefail
           python - <<'PY'
-          # Run only static + unit portions of verify_rectify without requiring live server
-          import runpy
-          import sys
-          from pathlib import Path
-          sys.path.insert(0, str(Path("scripts").resolve()))
-          # Import by path
           import importlib.util
+          from pathlib import Path
           spec = importlib.util.spec_from_file_location("verify_rectify", "scripts/verify_rectify.py")
           mod = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(mod)
