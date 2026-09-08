@@ -249,6 +249,18 @@ def main() -> int:
     else:
         bad("queue cancel", "review_queue.cancel_item missing")
 
+    # 9b) LLM client must not inherit host SOCKS/HTTP proxy by default
+    llm_path = ROOT / "project" / "llm_config.py"
+    llm = llm_path.read_text(encoding="utf-8") if llm_path.exists() else ""
+    if "httpx.Client" in llm and "LLM_TRUST_ENV" in llm and "trust_env(" in llm:
+        ok("LLM httpx trust_env gated (default off)")
+    else:
+        bad("LLM proxy isolation", "llm_config.make_client must use httpx.Client(trust_env=…)")
+    if "LLM_TIMEOUT" in llm:
+        ok("LLM_TIMEOUT configurable")
+    else:
+        bad("LLM_TIMEOUT", "missing timeout env knob")
+
     # 10) dangerous primitives in web + server
     py_files = list(WEB_DIR.rglob("*.py")) + [SERVER]
     dang = _scan_dangerous_calls(py_files)

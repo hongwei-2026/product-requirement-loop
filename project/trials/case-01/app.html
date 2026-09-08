@@ -197,13 +197,14 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
 .help-body li{margin:4px 0}
 .help-body .tip{background:var(--primary-bg);border-left:3px solid var(--primary);padding:8px 10px;border-radius:0 6px 6px 0;margin:8px 0;font-size:12px}
 .help-body a{color:var(--primary)}
-.manual-page{flex:1;min-height:0;overflow:auto;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:0}
-.manual-layout{display:flex;align-items:stretch;min-height:100%}
-.manual-sidebar{width:200px;flex-shrink:0;border-right:1px solid var(--border);padding:18px 12px;position:sticky;top:0;align-self:flex-start;max-height:100%;overflow:auto;background:#fafafa}
+/* 手册：左侧目录固定，只滚右侧正文（不要 sticky 跟着整页滚走） */
+.manual-page{flex:1;min-height:0;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:0;display:flex;flex-direction:column}
+.manual-layout{display:flex;align-items:stretch;flex:1;min-height:0;overflow:hidden}
+.manual-sidebar{width:210px;flex-shrink:0;border-right:1px solid var(--border);padding:16px 10px;overflow:auto;background:#fafafa;height:100%}
 .manual-sidebar .toc-title{font-size:12px;font-weight:700;color:var(--text3);margin:0 0 10px;letter-spacing:.04em}
 .manual-sidebar a{display:block;font-size:13px;padding:7px 10px;border-radius:6px;color:var(--text2);text-decoration:none;margin-bottom:2px;line-height:1.35}
-.manual-sidebar a:hover{background:var(--primary-bg);color:var(--primary)}
-.manual-body{flex:1;min-width:0;padding:20px 22px 40px}
+.manual-sidebar a:hover,.manual-sidebar a.active{background:var(--primary-bg);color:var(--primary)}
+.manual-body{flex:1;min-width:0;min-height:0;overflow:auto;padding:20px 22px 40px;scroll-behavior:smooth}
 .manual-page h2{margin:0 0 8px;font-size:22px}
 .manual-page .lead{color:var(--text2);margin:0 0 20px;line-height:1.7}
 .manual-page h3{margin:28px 0 10px;font-size:16px;border-left:4px solid var(--primary);padding-left:10px}
@@ -220,10 +221,22 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
 .manual-flow .flow-out{color:var(--text2)}
 .manual-flow .flow-in{color:var(--text)}
 .manual-flow .flow-head{font-size:11px;color:var(--text3);font-weight:600;padding:0 4px}
+/* 数据流图 + 界面截图同屏对照 */
+.manual-combo{display:grid;grid-template-columns:1.15fr 0.85fr;gap:14px;margin:12px 0 8px;align-items:start}
+.manual-combo .combo-main,.manual-combo .combo-shots{min-width:0}
+.manual-combo .combo-shots{display:grid;gap:10px}
+.manual-combo .combo-shots .shot{max-height:140px;margin:0}
+.manual-combo .combo-shots .cap{margin:4px 0 0}
+.manual-storyboard{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:8px 0 16px}
+.manual-storyboard .card{border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff}
+.manual-storyboard .card .shot{max-height:110px;margin:0 0 6px;width:100%}
+.manual-storyboard .card .lbl{font-size:12px;font-weight:700;color:var(--primary);margin:0 0 2px}
+.manual-storyboard .card .cap{margin:0;font-size:11px}
 @media (max-width:900px){
   .manual-layout{flex-direction:column}
-  .manual-sidebar{width:auto;position:static;border-right:none;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:4px;max-height:none}
-  .manual-sidebar .toc-title{width:100%}
+  .manual-sidebar{width:auto;height:auto;max-height:42vh;border-right:none;border-bottom:1px solid var(--border)}
+  .manual-combo{grid-template-columns:1fr}
+  .manual-storyboard{grid-template-columns:1fr}
   .manual-flow .flow-row{grid-template-columns:1fr}
 }
 @media(max-width:900px){
@@ -514,9 +527,28 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
               </ol>
               <div class="callout"><strong>电脑帮忙写，人拍板。</strong>批量只是先排队写草稿，不能一键全过。</div>
 
-              <h3 id="m-flow">2. 数据流简图（每步产出 → 下一步输入）</h3>
-              <img class="shot flow-shot" src="assets/manual/manual-06-dataflow.svg" alt="工作台数据流简图：选日志→Step1→Step2→check→定稿入库，旁路批量AI到待审库" />
-              <p class="cap">图：工作台数据流。实线为主路径；虚线为批量旁路。check 未通过不能入库。</p>
+              <h3 id="m-flow">2. 数据流 + 界面对照（图与截图一起看）</h3>
+              <p>左边是整条流水；右边是对应界面。滚手册时左侧<strong>目录栏固定不动</strong>，点目录可跳回任意节。</p>
+              <div class="manual-combo">
+                <div class="combo-main">
+                  <img class="shot flow-shot" src="assets/manual/manual-06-dataflow.svg" alt="工作台数据流简图：选日志→Step1→Step2→check→定稿入库，旁路批量AI到待审库" />
+                  <p class="cap">图：工作台数据流。实线主路径；虚线批量旁路。check 未通过不能入库。</p>
+                </div>
+                <div class="combo-shots">
+                  <div>
+                    <img class="shot" src="assets/manual/manual-02-journals.png" alt="日志库截图" />
+                    <p class="cap">对应：选日志（日志库）</p>
+                  </div>
+                  <div>
+                    <img class="shot" src="assets/manual/manual-01-workbench.png" alt="工作台截图" />
+                    <p class="cap">对应：Step1～3 工作台</p>
+                  </div>
+                  <div>
+                    <img class="shot" src="assets/manual/manual-04-registry.png" alt="定稿档案截图" />
+                    <p class="cap">对应：定稿入库后的档案</p>
+                  </div>
+                </div>
+              </div>
               <div class="manual-flow">
                 <div class="flow-row flow-head"><span>步骤</span><span>本步产出</span><span>交给下一步当输入</span></div>
                 <div class="flow-row"><span class="flow-step">选日志</span><span class="flow-out">当前 journal 原文</span><span class="flow-in">Step1 对照与抽取的唯一依据</span></div>
@@ -525,6 +557,23 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
                 <div class="flow-row"><span class="flow-step">Step3 check</span><span class="flow-out">编造/句式等门槛结果</span><span class="flow-in"><strong>通过后才允许</strong>定稿入库</span></div>
                 <div class="flow-row"><span class="flow-step">定稿</span><span class="flow-out">accepted.json + 定稿档案</span><span class="flow-in">检索、复审、结项证据</span></div>
                 <div class="flow-row"><span class="flow-step">批量 AI</span><span class="flow-out">待审库里的 Step1 草稿</span><span class="flow-in">「开始人审」→ 回到工作台 SOP</span></div>
+              </div>
+              <div class="manual-storyboard">
+                <div class="card">
+                  <img class="shot" src="assets/manual/manual-05-review.png" alt="人审截图" />
+                  <p class="lbl">人审（通过/打叉）</p>
+                  <p class="cap">必须写理由；打叉会重跑当前步</p>
+                </div>
+                <div class="card">
+                  <img class="shot" src="assets/manual/manual-03-queue.png" alt="待审库截图" />
+                  <p class="lbl">待审库（批量旁路）</p>
+                  <p class="cap">可取消排队/写稿中任务，防隐性覆盖</p>
+                </div>
+                <div class="card">
+                  <img class="shot" src="assets/manual/manual-01-workbench.png" alt="check与定稿" />
+                  <p class="lbl">Check → 定稿</p>
+                  <p class="cap">未 check 通过则入库按钮禁用</p>
+                </div>
               </div>
 
               <h3 id="m-nav">3. 左边入口</h3>
@@ -536,17 +585,14 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
               </ul>
 
               <h3 id="m-pick">4. 怎么选日志？</h3>
-              <p>日志库筛选后点「选用并去工作台」；工作台「快速更换」选中后会<strong>自动关窗</strong>。</p>
-              <img class="shot" src="assets/manual/manual-02-journals.png" alt="日志库界面截图" />
-              <p class="cap">图：日志库。</p>
+              <p>日志库筛选后点「选用并去工作台」；工作台「快速更换」选中后会<strong>自动关窗</strong>。界面见图节「2. 数据流 + 界面对照」右侧「选日志」。</p>
               <ul>
                 <li>试跑：选「试跑/摘录」；正式定稿：选产品流+日期的<strong>全文</strong>。</li>
                 <li>已定稿一般不必再审；要重做用「强制复审」。</li>
               </ul>
 
               <h3 id="m-one">5. 工作台标准步骤</h3>
-              <img class="shot" src="assets/manual/manual-01-workbench.png" alt="工作台界面截图" />
-              <p class="cap">图：工作台。右侧标题旁显示当前产物字数。</p>
+              <p>界面总览见第 2 节右侧「工作台」截图；人审区见同节下方故事板。</p>
               <ol>
                 <li>填<strong>审核人</strong>。</li>
                 <li>运行 Step1 → 对照 → 通过/打叉（都写理由）。</li>
@@ -554,28 +600,24 @@ input.approver{padding:7px 10px;border:1px solid #d9d9d9;border-radius:8px;font-
                 <li>进入 Step3：先点「① 运行 check」；<strong>只有通过后</strong>「② 生成定稿并归档」才可点。</li>
                 <li>定稿成功后去「定稿档案」核对。</li>
               </ol>
-              <img class="shot" src="assets/manual/manual-05-review.png" alt="人审通过打叉截图" />
-              <p class="cap">图：人审区。</p>
               <div class="callout">Step2 通过<strong>还不算定稿</strong>。check 不过 → 不能入库；改条目后需重新 check。</div>
 
               <h3 id="m-match">6. 对照原文（非 AI）</h3>
               <p>Step2/定稿后点右侧「用户要…」→ 左侧滚到匹配段（黄/蓝/绿表示匹配强度）。</p>
 
               <h3 id="m-batch">7. 批量 → 待审库</h3>
-              <p>日志库勾选 →「批量 AI → 待审库」→ 待审库「开始人审」→ 回工作台按第 5 步。<strong>仍须逐条写理由</strong>。排队中 / AI 写稿中可点<strong>取消任务</strong>释放占位后再入队。</p>
-              <img class="shot" src="assets/manual/manual-03-queue.png" alt="待审库队列截图" />
-              <p class="cap">图：待审库。</p>
+              <p>日志库勾选 →「批量 AI → 待审库」→ 待审库「开始人审」→ 回工作台按第 5 步。<strong>仍须逐条写理由</strong>。排队中 / AI 写稿中可点<strong>取消任务</strong>释放占位后再入队。界面见第 2 节故事板「待审库」。</p>
 
               <h3 id="m-done">8. 定稿档案</h3>
-              <img class="shot" src="assets/manual/manual-04-registry.png" alt="定稿档案列表截图" />
-              <p class="cap">图：定稿档案。</p>
-              <p>按产品流分组；同一日志复审再定稿会<strong>更新</strong>该条，不会无故 +1。</p>
+              <p>界面见第 2 节右侧「定稿档案」。按产品流分组；同一日志复审再定稿会<strong>更新</strong>该条，不会无故 +1。</p>
 
               <h3 id="m-faq">9. 卡住了怎么办？</h3>
               <ul>
                 <li>打不开页：确认启动黑窗还在，地址 <code>http://127.0.0.1:8765/</code>。</li>
                 <li>定稿按钮灰：先跑 check 并看是否通过。</li>
                 <li>通过没反应：检查审核人与理由是否填写。</li>
+                <li>Step1/Step2 很久才报错：可能是<strong>AI 推理超时</strong>（长日志 + 慢模型），不是服务没启动。可把模型改成 flash，或加大 <code>LLM_TIMEOUT</code> 后重启。</li>
+                <li>提示「连不上服务」但黑窗还在：多半是浏览器到本机请求失败或中途被掐断；看黑窗是否还在跑、报错里是超时还是真宕机。</li>
                 <li>日志很少：跑 <code>scripts/sync_journals.py</code> 或粘贴自定义日志。</li>
               </ul>
             </div>
@@ -755,7 +797,7 @@ async function api(path, opts) {
     if (r.status === 409) data.error = data.error || '系统正忙，请稍候';
     return data;
   } catch (e) {
-    return { ok: false, error: '连不上服务：请确认已启动 start-with-ai.bat（' + (e.message || e) + ')' };
+    return { ok: false, error: '连不上服务：请确认已启动 start-with-ai.bat。若黑窗还在、只是 Step1/Step2 很久才失败，更可能是 AI 超时或代理问题，不是服务没开（' + (e.message || e) + ')' };
   }
 }
 
@@ -1695,9 +1737,40 @@ function switchView(name, opts) {
   if (name === 'audit') loadAuditList();
   if (name === 'registry') loadRegistry();
   if (name === 'manual') {
-    const page = document.getElementById('manual-page');
-    if (page) page.scrollTop = 0;
+    const body = document.querySelector('#view-manual .manual-body');
+    if (body) body.scrollTop = 0;
+    wireManualToc();
   }
+}
+
+function wireManualToc() {
+  const root = document.getElementById('view-manual');
+  if (!root || root.dataset.tocWired === '1') return;
+  root.dataset.tocWired = '1';
+  const body = root.querySelector('.manual-body');
+  const links = Array.from(root.querySelectorAll('.manual-sidebar a[href^="#"]'));
+  if (!body || !links.length) return;
+  links.forEach((a) => {
+    a.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      const id = (a.getAttribute('href') || '').slice(1);
+      const el = id ? document.getElementById(id) : null;
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      links.forEach((x) => x.classList.toggle('active', x === a));
+    });
+  });
+  const syncActive = () => {
+    let current = links[0];
+    for (const a of links) {
+      const id = (a.getAttribute('href') || '').slice(1);
+      const el = id ? document.getElementById(id) : null;
+      if (!el) continue;
+      if (el.getBoundingClientRect().top - body.getBoundingClientRect().top <= 48) current = a;
+    }
+    links.forEach((x) => x.classList.toggle('active', x === current));
+  };
+  body.addEventListener('scroll', syncActive, { passive: true });
+  syncActive();
 }
 
 async function selectJournal(id, opts) {

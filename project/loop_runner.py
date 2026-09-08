@@ -230,22 +230,28 @@ def load_prompt(name: str, task_dir: Path) -> str:
 
 
 def chat(client, prompt: str, *, max_tokens: int = 8192, temperature: float = 0.2) -> str:
+    from llm_config import chat_extra_body, get_model
+
+    kwargs = {
+        "model": get_model(),
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "按提示词输出产物。禁止编造原文没有的需求。"
+                    "若要求 JSON，只输出可被解析的 JSON。"
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    extra = chat_extra_body()
+    if extra:
+        kwargs["extra_body"] = extra
     try:
-        resp = client.chat.completions.create(
-            model=get_model(),
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "按提示词输出产物。禁止编造原文没有的需求。"
-                        "若要求 JSON，只输出可被解析的 JSON。"
-                    ),
-                },
-                {"role": "user", "content": prompt},
-            ],
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        resp = client.chat.completions.create(**kwargs)
     except Exception as e:
         raise RuntimeError(_friendly_llm_error(e)) from e
     return resp.choices[0].message.content or ""
@@ -257,13 +263,44 @@ def _friendly_llm_error(exc: BaseException) -> str:
     raw = str(exc) or name
     cause = getattr(exc, "__cause__", None)
     cause_s = str(cause) if cause else ""
-    blob = f"{name} {raw} {cause_s}".lower()
+    # 展开一层 __cause__ / args，方便抓 socksio
+    parts = [name, raw, cause_s]
+    cur: BaseException | None = exc
+    for _ in range(4):
+        if cur is None:
+            break
+        parts.append(type(cur).__name__)
+        parts.append(str(cur))
+        cur = cur.__cause__ or cur.__context__  # type: ignore[assignment]
+    blob = " ".join(parts).lower()
+
+    if "socksio" in blob or ("socks" in blob and "not installed" in blob):
+        return (
+            "AI 客户端初始化失败：检测到系统 SOCKS 代理，但未安装 socksio。"
+            "本产品默认已关闭读取系统代理（LLM_TRUST_ENV=0）。"
+            "请确认已拉取最新 llm_config 并重启服务；"
+            "若必须走代理，再 pip install 'httpx[socks]' 并设 LLM_TRUST_ENV=1。"
+        )
+
+    if "timed out" in blob or "timeout" in blob or "readtimeout" in blob:
+        from llm_config import get_timeout, provider_summary
+
+        try:
+            summary = provider_summary()
+            t = get_timeout()
+        except Exception:
+            summary, t = "llm", 600
+        return (
+            f"AI 推理超时（{summary}，当前超时 {t:.0f}s）。"
+            "常见于长日志 + 推理/Pro 模型。建议：① 改用 flash 类模型；"
+            "② 增大 LLM_TIMEOUT（如 600）；③ 保持 LLM_DISABLE_THINKING=1。"
+            "这与「服务没启动」不是同一类问题。"
+        )
+
     if (
         "connection" in blob
         or "connecterror" in blob
         or "10061" in blob
-        or "timed out" in blob
-        or "timeout" in blob
         or "name or service not known" in blob
         or "getaddrinfo" in blob
     ):
@@ -276,7 +313,7 @@ def _friendly_llm_error(exc: BaseException) -> str:
             p, summary = "agnes", "llm"
         tip = (
             f"AI 接口连不上（{summary}）。"
-            "本机到模型服务的网络被拒绝或超时，所以 Step1/Step2 出不了结果。"
+            "本机到模型服务的网络被拒绝，所以 Step1/Step2 出不了结果。"
             "请检查：① 能否访问外网；② project/.env 里 API Key / BASE_URL 是否有效；"
         )
         if p == "agnes":

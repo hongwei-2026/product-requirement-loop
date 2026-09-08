@@ -244,6 +244,48 @@ def check_lessons() -> None:
     else:
         bad("出站拉取强制 https", "journal_inbox 应对 URL 做 https 校验")
 
+    # --- 2026-09 实测：代理 / 超时 / UI 手册 ---
+    print("-- 2026-09 network & manual UX --")
+    llm = _read(ROOT / "project" / "llm_config.py")
+    if "trust_env=False" in llm.replace(" ", "") or "trust_env=trust_env()" in llm:
+        if "httpx.Client" in llm and "LLM_TRUST_ENV" in llm:
+            ok("LLM 默认不读系统代理", "httpx + LLM_TRUST_ENV")
+        else:
+            bad("LLM 默认不读系统代理", "llm_config 需 httpx.Client + LLM_TRUST_ENV")
+    else:
+        bad("LLM 默认不读系统代理", "未见 trust_env 控制")
+
+    if "LLM_TIMEOUT" in llm and "get_timeout" in llm:
+        ok("LLM 超时可配置", "LLM_TIMEOUT")
+    else:
+        bad("LLM 超时可配置", "缺 LLM_TIMEOUT / get_timeout")
+
+    if "chat_extra_body" in llm and "thinking" in llm:
+        ok("可关闭深度思考链", "chat_extra_body")
+    else:
+        bad("可关闭深度思考链", "缺 chat_extra_body / thinking")
+
+    if "socksio" in loop_run and "推理超时" in loop_run:
+        ok("友好报错区分代理与超时")
+    else:
+        bad("友好报错区分代理与超时", "loop_runner._friendly_llm_error 需覆盖 socksio/超时")
+
+    if "manual-combo" in app and "wireManualToc" in app:
+        ok("UI 手册：侧栏+数据流截图结合")
+    else:
+        bad("UI 手册：侧栏+数据流截图结合", "app.html 需 manual-combo / wireManualToc")
+
+    # 侧栏应与正文分栏滚动，而不是整页 overflow 把目录滚走
+    if "manual-page" in app and "overflow:hidden" in app and "manual-body" in app:
+        # crude: manual-page overflow hidden appears near manual styles
+        chunk = app
+        if ".manual-page{" in chunk and "overflow:hidden" in chunk.split(".manual-page{", 1)[1][:200]:
+            ok("UI 手册目录栏不随正文滚走")
+        else:
+            bad("UI 手册目录栏不随正文滚走", ".manual-page 应为 overflow:hidden + body 自滚")
+    else:
+        bad("UI 手册目录栏不随正文滚走", "样式结构不符")
+
 
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):

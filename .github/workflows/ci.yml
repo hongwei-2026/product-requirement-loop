@@ -54,6 +54,11 @@ jobs:
             "scripts/verify_security.py"
             "scripts/verify_rectify.py"
             "scripts/verify_lessons.py"
+            "scripts/verify_docs_layout.py"
+            "scripts/smoke_llm_providers.py"
+            "docs/交付/README.md"
+            "docs/交付/问题反馈整理-2026-09-08.md"
+            "docs/交付/评审意见与处理情况.md"
             "setup.sh"
             "start-with-ai.sh"
             "RUN-SERVER.bat"
@@ -110,7 +115,7 @@ jobs:
             exit 1
           fi
           # Doc/config paste: KEY=<non-placeholder value> outside .py/.yml workflow code
-          hits2=$(git grep -nIE '(AGNES_API_KEY|DEEPSEEK_API_KEY|OPENAI_API_KEY)[[:space:]]*=[[:space:]]*[^[:space:]#"'\''y][^[:space:]]{8,}' -- \
+          hits2=$(git grep -nIE '(AGNES_API_KEY|DEEPSEEK_API_KEY|OPENAI_API_KEY|MOONSHOT_API_KEY|ZHIPU_API_KEY|MINIMAX_API_KEY|MIMO_API_KEY)[[:space:]]*=[[:space:]]*[^[:space:]#"'\''y][^[:space:]]{8,}' -- \
             '*.md' '*.txt' '*.json' '*.bat' '*.cmd' '*.env.example' \
             || true)
           if [[ -n "${hits2}" ]]; then
@@ -120,6 +125,16 @@ jobs:
               echo "$filtered"
               exit 1
             fi
+          fi
+          # Zhipu-style keys: hex.alnum (avoid matching normal prose)
+          hits_zp=$(git grep -nIE '[0-9a-f]{32}\.[A-Za-z0-9]{10,}' -- \
+            '*.md' '*.txt' '*.json' '*.bat' '*.py' '*.yml' '*.yaml' \
+            ':(exclude)project/.env.example' \
+            || true)
+          if [[ -n "${hits_zp}" ]]; then
+            echo "::error::Possible Zhipu-like API key committed"
+            echo "$hits_zp"
+            exit 1
           fi
           echo "[OK] no tracked .env / obvious secret tokens"
 
@@ -184,10 +199,35 @@ jobs:
           set -euo pipefail
           python scripts/verify_security.py
 
+      - name: Delivery docs layout (community facade)
+        run: |
+          set -euo pipefail
+          python scripts/verify_docs_layout.py
+
       - name: Project lessons-learned regression gates
         run: |
           set -euo pipefail
           python scripts/verify_lessons.py
+
+      - name: LLM client isolation unit (no network)
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, sys
+          from pathlib import Path
+          sys.path.insert(0, "project")
+          # Ensure defaults without real keys
+          os.environ.pop("LLM_TRUST_ENV", None)
+          os.environ.pop("LLM_TIMEOUT", None)
+          from llm_config import get_timeout, trust_env, thinking_disabled, chat_extra_body
+          assert trust_env() is False, "default trust_env must be False"
+          assert get_timeout() >= 300, "default timeout should allow long jobs"
+          assert thinking_disabled() is True
+          assert chat_extra_body() == {"thinking": {"type": "disabled"}}
+          src = Path("project/llm_config.py").read_text(encoding="utf-8")
+          assert "httpx.Client" in src and "LLM_TRUST_ENV" in src
+          print("[OK] llm_config isolation defaults")
+          PY
 
       - name: Rectify / product gates (static, no server)
         run: |
