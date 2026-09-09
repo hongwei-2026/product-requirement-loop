@@ -1,0 +1,435 @@
+name: Enterprise PR
+
+# 企业级 PR 套件：分类打标 · 交付物 · 设计门禁 · 体量守卫 · 任务锁定
+# 触发：PR 变更；PR 评论 /recheck|/rerun|/rerun-checks；手动 workflow_dispatch
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to check"
+        required: true
+        type: string
+
+concurrency:
+  group: enterprise-pr-${{ github.event.pull_request.number || github.event.issue.number || github.event.inputs.pr_number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  checks: write
+  actions: read
+  reactions: write
+
+jobs:
+  gatekeeper:
+    name: gatekeeper
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_run: ${{ steps.decide.outputs.should_run }}
+      pr_number: ${{ steps.decide.outputs.pr_number }}
+      head_sha: ${{ steps.decide.outputs.head_sha }}
+      title: ${{ steps.decide.outputs.title }}
+      body: ${{ steps.decide.outputs.body }}
+      author: ${{ steps.decide.outputs.author }}
+      kind: ${{ steps.decide.outputs.kind }}
+      trigger: ${{ steps.decide.outputs.trigger }}
+    steps:
+      - name: Decide whether / how to run
+        id: decide
+        env:
+          DISPATCH_PR: ${{ github.event.inputs.pr_number }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ALLOWED_CMD = /^\/(recheck|rerun|rerun-checks)\b/i;
+            const SCORERS = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
+            const event = context.eventName;
+            let pr = null;
+            let trigger = event;
+            let should = false;
+
+            if (event === 'pull_request') {
+              pr = context.payload.pull_request;
+              should = true;
+              trigger = 'pull_request';
+            } else if (event === 'workflow_dispatch') {
+              const num = parseInt(process.env.DISPATCH_PR || '', 10);
+              if (!num) {
+                core.setFailed('workflow_dispatch requires pr_number');
+                return;
+              }
+              const { data } = await github.rest.pulls.get({
+                owner: context.repo.owner, repo: context.repo.repo, pull_number: num
+              });
+              pr = data;
+              should = true;
+              trigger = 'workflow_dispatch';
+            } else if (event === 'issue_comment') {
+              const issue = context.payload.issue;
+              const comment = context.payload.comment;
+              if (!issue.pull_request) {
+                core.info('Not a PR comment — skip');
+                should = false;
+              } else if (!ALLOWED_CMD.test((comment.body || '').trim())) {
+                core.info('Not a recheck command — skip');
+                should = false;
+              } else {
+                const actor = comment.user.login;
+                const { data: p } = await github.rest.pulls.get({
+                  owner: context.repo.owner, repo: context.repo.repo, pull_number: issue.number
+                });
+                pr = p;
+                const ok =
+                  SCORERS.map(s => s.toLowerCase()).includes(actor.toLowerCase()) ||
+                  actor.toLowerCase() === (pr.user.login || '').toLowerCase();
+                if (!ok) {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number,
+                    body: '⛔ `/recheck` 仅限：PR 作者或必审人（hongwei-2026 / hl019 / Jerrybao99 / likexin105）。'
+                  });
+                  should = false;
+                } else {
+                  should = true;
+                  trigger = 'recheck_command';
+                  try {
+                    await github.rest.reactions.createForIssueComment({
+                      owner: context.repo.owner, repo: context.repo.repo,
+                      comment_id: comment.id, content: 'rocket'
+                    });
+                  } catch (_) {}
+                }
+              }
+            }
+
+            core.setOutput('should_run', should ? 'true' : 'false');
+            core.setOutput('trigger', trigger);
+            if (!should || !pr) {
+              core.setOutput('pr_number', '');
+              core.setOutput('head_sha', '');
+              core.setOutput('title', '');
+              core.setOutput('author', '');
+              core.setOutput('kind', 'skip');
+              return;
+            }
+
+            const title = pr.title || '';
+            const body = pr.body || '';
+            let kind = 'unknown';
+            if (/\[Design\]/i.test(title)) {
+              kind = 'design';
+            } else if (/\[Impl\]/i.test(title) || /(?:Fixes|Closes)\s+#\d+/i.test(body)) {
+              kind = 'implementation';
+            } else if (/docs\/designs\/#\d+/i.test(body)) {
+              kind = 'design';
+            }
+
+            core.setOutput('pr_number', String(pr.number));
+            core.setOutput('head_sha', pr.head.sha);
+            core.setOutput('title', title);
+            core.setOutput('author', pr.user.login);
+            core.setOutput('kind', kind);
+
+            if (trigger === 'recheck_command') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: pr.number,
+                body: [
+                  '## 🔁 Enterprise `/recheck`',
+                  '',
+                  `触发者：@${context.payload.comment.user.login}`,
+                  `Head：\`${pr.head.sha.slice(0, 7)}\``,
+                  `类型猜测：\`${kind}\``,
+                  '',
+                  '正在重跑企业级检查套件…'
+                ].join('\n')
+              });
+            }
+
+  classify:
+    name: classify
+    needs: gatekeeper
+    if: needs.gatekeeper.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Auto-label Design / Implementation
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr_number = parseInt('${{ needs.gatekeeper.outputs.pr_number }}', 10);
+            const kind = '${{ needs.gatekeeper.outputs.kind }}';
+            const owner = context.repo.owner, repo = context.repo.repo;
+            async function ensure(name, color, desc) {
+              try { await github.rest.issues.getLabel({ owner, repo, name }); }
+              catch {
+                await github.rest.issues.createLabel({ owner, repo, name, color, description: desc });
+              }
+            }
+            await ensure('type:design', '1d76db', 'Design PR');
+            await ensure('type:implementation', '0e8a16', 'Implementation PR');
+            await ensure('type:unknown', 'fbca04', 'Unclassified PR');
+            const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: pr_number });
+            const current = (pr.labels || []).map(l => l.name);
+            const want = kind === 'design' ? 'type:design' : kind === 'implementation' ? 'type:implementation' : 'type:unknown';
+            for (const l of ['type:design', 'type:implementation', 'type:unknown']) {
+              if (current.includes(l) && l !== want) {
+                try { await github.rest.issues.removeLabel({ owner, repo, issue_number: pr_number, name: l }); } catch {}
+              }
+            }
+            if (!current.includes(want)) {
+              await github.rest.issues.addLabels({ owner, repo, issue_number: pr_number, labels: [want] });
+            }
+            await core.summary.addHeading('Classify').addRaw(`kind=${kind} label=${want}`).write();
+
+  delivery-artifacts:
+    name: delivery-artifacts
+    needs: gatekeeper
+    if: needs.gatekeeper.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gatekeeper.outputs.head_sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch full PR body
+        id: meta
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const n = parseInt('${{ needs.gatekeeper.outputs.pr_number }}', 10);
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: n
+            });
+            core.setOutput('title', pr.title || '');
+            // Write body to file to avoid env size limits
+            const fs = require('fs');
+            fs.writeFileSync('pr_body.md', pr.body || '');
+            core.setOutput('author', pr.user.login);
+
+      - name: Run delivery / design artifact checks
+        env:
+          PR_TITLE: ${{ steps.meta.outputs.title }}
+        run: |
+          set -euo pipefail
+          export PR_BODY="$(cat pr_body.md)"
+          KIND='${{ needs.gatekeeper.outputs.kind }}'
+          if [[ "$KIND" == "design" ]]; then
+            python scripts/pr_delivery_check.py design
+          elif [[ "$KIND" == "implementation" ]]; then
+            python scripts/pr_delivery_check.py implementation
+          else
+            python scripts/pr_delivery_check.py auto
+          fi
+
+  design-gate:
+    name: design-gate
+    needs: gatekeeper
+    if: needs.gatekeeper.outputs.should_run == 'true' && needs.gatekeeper.outputs.kind == 'design'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gatekeeper.outputs.head_sha }}
+
+      - name: Design file must be part of this PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const n = parseInt('${{ needs.gatekeeper.outputs.pr_number }}', 10);
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: n
+            });
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: n, per_page: 100
+            });
+            const names = files.map(f => f.filename);
+            const m = (pr.title || '').match(/#(\d+)/) || (pr.body || '').match(/#(\d+)/);
+            if (!m) {
+              core.setFailed('Design PR 标题/正文需含 Issue #N');
+              return;
+            }
+            const issue = m[1];
+            const hit = names.find(f => new RegExp(`^docs/designs/#${issue}[-_].*\\.md$`).test(f) || f === `docs/designs/#${issue}.md`);
+            if (!hit) {
+              core.setFailed(`本 PR 未改动 docs/designs/#${issue}-*.md — Design 必须落在该提交位`);
+              return;
+            }
+            core.info('design file in PR: ' + hit);
+            // block large non-design code dumps
+            const codey = names.filter(f => /\.(py|js|ts|tsx|css)$/i.test(f) && !f.startsWith('docs/'));
+            if (codey.length > 8) {
+              core.setFailed(`Design PR 含过多业务代码文件（${codey.length}）。请把实现放到 [Impl] PR。`);
+            }
+
+  design-gate-skip:
+    name: design-gate
+    needs: gatekeeper
+    if: needs.gatekeeper.outputs.should_run == 'true' && needs.gatekeeper.outputs.kind != 'design'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Not a Design PR — design-gate N/A (pass)"
+
+  scope-guard:
+    name: scope-guard
+    needs: gatekeeper
+    if: needs.gatekeeper.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gatekeeper.outputs.head_sha }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Collect PR stats
+        id: stats
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const n = parseInt('${{ needs.gatekeeper.outputs.pr_number }}', 10);
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: n
+            });
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: n, per_page: 100
+            });
+            core.setOutput('changed_files', String(pr.changed_files || files.length));
+            core.setOutput('additions', String(pr.additions || 0));
+            core.setOutput('deletions', String(pr.deletions || 0));
+            core.setOutput('filenames', files.map(f => f.filename).join('\n'));
+            core.setOutput('labels', (pr.labels || []).map(l => l.name).join(','));
+
+      - name: Scope policy
+        env:
+          PR_CHANGED_FILES: ${{ steps.stats.outputs.changed_files }}
+          PR_ADDITIONS: ${{ steps.stats.outputs.additions }}
+          PR_DELETIONS: ${{ steps.stats.outputs.deletions }}
+          PR_FILENAMES: ${{ steps.stats.outputs.filenames }}
+          PR_LABELS: ${{ steps.stats.outputs.labels }}
+        run: python scripts/pr_scope_guard.py
+
+  task-lock:
+    name: task-lock
+    needs: gatekeeper
+    if: needs.gatekeeper.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enforce assignee lock for Implementation
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const kind = '${{ needs.gatekeeper.outputs.kind }}';
+            const pr_number = parseInt('${{ needs.gatekeeper.outputs.pr_number }}', 10);
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: pr_number
+            });
+            const title = pr.title || '';
+            const body = pr.body || '';
+            const author = pr.user.login;
+            if (kind === 'design') {
+              core.info('Design PR — skip assignee lock');
+              await core.summary.addRaw('Design: lock N/A').write();
+              return;
+            }
+            const m = body.match(/(?:Fixes|Closes|Resolves)\s+#(\d+)/i) || title.match(/#(\d+)/);
+            if (!m) {
+              if (kind === 'implementation') {
+                core.setFailed('Implementation PR 必须在正文写 Fixes #<issue>');
+              } else {
+                core.warning('No issue ref — skip lock');
+              }
+              return;
+            }
+            const issueNo = parseInt(m[1], 10);
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNo
+            });
+            const assignees = (issue.assignees || []).map(a => a.login);
+            const locked = (issue.labels || []).some(l => l.name === 'status:locked');
+            if (locked || assignees.length) {
+              if (!assignees.map(a => a.toLowerCase()).includes(author.toLowerCase())) {
+                core.setFailed(`任务 #${issueNo} 已锁定给 ${assignees.join(', ')}，PR 作者 @${author} 不是受指派人。`);
+                return;
+              }
+            } else if (kind === 'implementation') {
+              core.setFailed(`Issue #${issueNo} 尚未 /accept 锁定，不能合入实现。请先完成 Design + 邮件，等维护者 /accept。`);
+              return;
+            }
+            core.info('task-lock OK');
+
+  suite-summary:
+    name: suite-summary
+    needs: [gatekeeper, classify, delivery-artifacts, design-gate, design-gate-skip, scope-guard, task-lock]
+    if: always() && needs.gatekeeper.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Sticky enterprise dashboard comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr_number = parseInt('${{ needs.gatekeeper.outputs.pr_number }}', 10);
+            const kind = '${{ needs.gatekeeper.outputs.kind }}';
+            const trigger = '${{ needs.gatekeeper.outputs.trigger }}';
+            const head = '${{ needs.gatekeeper.outputs.head_sha }}'.slice(0, 7);
+            const results = {
+              classify: '${{ needs.classify.result }}',
+              delivery: '${{ needs.delivery-artifacts.result }}',
+              design_run: '${{ needs.design-gate.result }}',
+              design_skip: '${{ needs.design-gate-skip.result }}',
+              scope: '${{ needs.scope-guard.result }}',
+              lock: '${{ needs.task-lock.result }}',
+            };
+            const designStatus = results.design_run !== 'skipped' ? results.design_run : results.design_skip;
+            const icon = (r) => r === 'success' ? '✅' : r === 'skipped' ? '⏭️' : r === 'failure' ? '❌' : `⚠️(${r})`;
+            const body = [
+              '## 🏢 Enterprise PR 套件',
+              '',
+              `| 项 | 值 |`,
+              `|----|----|`,
+              `| 类型 | \`${kind}\` |`,
+              `| Head | \`${head}\` |`,
+              `| 触发 | \`${trigger}\` |`,
+              `| classify | ${icon(results.classify)} |`,
+              `| delivery-artifacts | ${icon(results.delivery)} |`,
+              `| design-gate | ${icon(designStatus)} |`,
+              `| scope-guard | ${icon(results.scope)} |`,
+              `| task-lock | ${icon(results.lock)} |`,
+              '',
+              '补材料或改完后可评论（单独一行）：`/recheck`',
+              '',
+              '审核员文档：`docs/交付/审核员指南.md` · Design 提交位：`docs/designs/`',
+            ].join('\n');
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: pr_number, per_page: 100
+            });
+            const prev = comments.find(c => (c.body || '').includes('Enterprise PR 套件'));
+            if (prev) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo, comment_id: prev.id, body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: pr_number, body
+              });
+            }
+            const failed = [results.classify, results.delivery, designStatus, results.scope, results.lock]
+              .some(r => r === 'failure');
+            if (failed) core.setFailed('One or more enterprise checks failed — see jobs above');
