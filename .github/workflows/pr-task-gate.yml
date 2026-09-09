@@ -1,0 +1,124 @@
+name: Task PR gate + auto review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          python -m pip install -U pip
+          pip install -r project/requirements.txt
+          pip install bandit
+
+      - name: Docs / lessons / security gates
+        run: |
+          set -euo pipefail
+          python scripts/verify_docs_layout.py
+          python scripts/verify_lessons.py
+          python scripts/verify_security.py
+
+      - name: Enforce assignee for Implementation PRs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const title = pr.title || '';
+            const body = pr.body || '';
+            const author = pr.user.login;
+            const isDesign = /\[Design\]/i.test(title) || /## 类型[\s\S]*Design/i.test(body);
+            const isImpl = /\[Impl\]/i.test(title) || /Fixes\s+#\d+/i.test(body) || /Closes\s+#\d+/i.test(body);
+
+            // extract issue number
+            let issueNo = null;
+            const m = body.match(/(?:Fixes|Closes|Resolves)\s+#(\d+)/i) || title.match(/#(\d+)/);
+            if (m) issueNo = parseInt(m[1], 10);
+
+            if (isDesign && !/Fixes\s+#/i.test(body)) {
+              core.info('Design PR — skip assignee lock');
+            } else if (isImpl || issueNo) {
+              if (!issueNo) {
+                core.setFailed('Implementation PR 必须在正文写 Fixes #<issue>');
+                return;
+              }
+              const { data: issue } = await github.rest.issues.get({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNo
+              });
+              const assignees = (issue.assignees || []).map(a => a.login);
+              const locked = (issue.labels || []).some(l => l.name === 'status:locked');
+              if (locked || assignees.length) {
+                if (!assignees.includes(author)) {
+                  core.setFailed(
+                    `任务 #${issueNo} 已锁定给 ${assignees.join(', ') || '(无人)'}，PR 作者 @${author} 不是受指派人。`
+                  );
+                  return;
+                }
+              } else {
+                core.warning(`Issue #${issueNo} 尚未 /accept 锁定；实现 PR 建议等维护者 accept 后再合入。`);
+              }
+            }
+
+      - name: Post AI review assistant checklist
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: pr.number, per_page: 100
+            });
+            const names = files.map(f => f.filename);
+            const checks = [];
+            const add = (cond, text) => checks.push(`${cond ? '- [ ]' : '- [ ]'} ${text}`);
+
+            add(true, '未在 diff 中引入 API Key / `.env` 实密');
+            add(names.some(n => n.includes('loop_session') || n.includes('app.html')), '若改工作台：Step3 check 门禁仍在（未通过不可定稿）');
+            add(names.some(n => n.includes('review_queue')), '若改待审库：取消任务能力未回退');
+            add(names.some(n => n.includes('app.html') && n.includes('manual') || n.includes('app.html')), '若改手册：侧栏目录仍固定、数据流与截图仍结合');
+            add(names.some(n => n.includes('llm_config')), '若改 LLM：默认 trust_env 关闭、超时可配置、思考链可关');
+            add(names.some(n => n.startsWith('docs/')), '若改文档：交付门面 docs/交付 入口仍清晰');
+            add(true, '本地/CI：verify_docs_layout + verify_lessons + verify_security 通过');
+            add(/\[Design\]/i.test(pr.title), 'Design PR：无完整实现代码堆砌，方案可审');
+            add(/\[Impl\]/i.test(pr.title) || /Fixes\s+#/i.test(pr.body || ''), 'Impl PR：正文含 Fixes #Issue，作者为受指派人');
+
+            const body = [
+              '## 🤖 任务自动审核助手（清单）',
+              '',
+              '以下为基于改动路径生成的审核清单，**不替代**维护者人工 Review。',
+              '',
+              ...checks,
+              '',
+              '### 改动文件（摘要）',
+              ...names.slice(0, 30).map(n => `- \`${n}\``),
+              names.length > 30 ? `- … 另有 ${names.length - 30} 个文件` : '',
+              '',
+              '_工作流：`task PR gate + auto review`_'
+            ].filter(Boolean).join('\n');
+
+            // avoid spam: update previous bot comment if exists
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: pr.number, per_page: 100
+            });
+            const prev = comments.find(c => (c.body || '').includes('任务自动审核助手'));
+            if (prev) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo, comment_id: prev.id, body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: pr.number, body
+              });
+            }
