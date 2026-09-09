@@ -167,8 +167,9 @@ jobs:
             // ---------- /score N ----------
             const scoreLine = lines.find(l => /^\/score\s+\d+$/i.test(l));
             if (scoreLine) {
-              if (actor !== MAINTAINER) {
-                await reply('⛔ 当前仅维护者 `@' + MAINTAINER + '` 可 `/score`（可按需扩展 reviewer）。');
+              const SCORERS = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
+              if (!SCORERS.map(s => s.toLowerCase()).includes(actor.toLowerCase())) {
+                await reply('⛔ 仅维护者/必审人可 `/score`：' + SCORERS.map(s => '@' + s).join(' '));
                 return;
               }
               const n = parseInt(scoreLine.replace(/^\/score\s+/i, ''), 10);
@@ -178,47 +179,43 @@ jobs:
               let text = fs.readFileSync(path, 'utf8');
               const date = new Date().toISOString().slice(0, 10);
               const row = `| ${date} | ${who} | #${issue_number} | ${n} | by ${actor} via /score |`;
-              if (!text.includes('| — | — | — | — | 尚无计分记录 |')) {
-                // append before 累计 section if possible
-              }
               text = text.replace(
                 '| — | — | — | — | 尚无计分记录 |',
                 row
               );
               if (!text.includes(row)) {
-                // insert after header separator of first table
                 text = text.replace(
                   /(\| -+ \| -+ \| -+ \| -+ \| -+ \|\n)/,
                   `$1${row}\n`
                 );
               }
-              // naive total rebuild
               const totals = {};
+              for (const seed of ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105']) totals[seed] = 0;
               for (const m of text.matchAll(/\|\s*\d{4}-\d{2}-\d{2}\s*\|\s*([^|]+)\s*\|\s*#\d+\s*\|\s*(\d+)\s*\|/g)) {
                 const id = m[1].trim();
                 const pts = parseInt(m[2], 10);
                 totals[id] = (totals[id] || 0) + pts;
               }
               let totalTable = '| GitHub ID | 总分 |\n|-----------|------|\n';
-              const keys = Object.keys(totals);
-              if (!keys.length) totalTable += '| — | 0 |\n';
-              else for (const id of keys.sort()) totalTable += `| ${id} | ${totals[id]} |\n`;
+              const keys = Object.keys(totals).sort((a, b) => (totals[b] - totals[a]) || a.localeCompare(b));
+              for (const id of keys) totalTable += `| ${id} | ${totals[id]} |\n`;
               text = text.replace(/## 累计[\s\S]*$/m, `## 累计（自动汇总）\n\n${totalTable}`);
               fs.writeFileSync(path, text);
-              await reply(`🏆 已给 **@${who}** 记 **${n}** 分（Issue #${issue_number}）。计分板已更新，将自动提交到仓库。`);
+              await reply(`🏆 已给 **@${who}** 记 **${n}** 分（Issue #${issue_number}）。仪表盘将刷新。`);
               core.setOutput('scored', '1');
               return;
             }
 
-      - name: Commit scoreboard if updated
+      - name: Rebuild dashboard and commit
         if: success()
         run: |
           if git diff --quiet -- "docs/交付/任务计分板.md"; then
             echo "No scoreboard change"
             exit 0
           fi
+          python scripts/rebuild_task_dashboard.py
           git config user.name "task-board-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "docs/交付/任务计分板.md"
-          git commit -m "chore: update task scoreboard"
+          git add "docs/交付/任务计分板.md" "docs/交付/任务仪表盘.md" "docs/dashboard/index.html"
+          git commit -m "chore: update task scoreboard and dashboard"
           git push
