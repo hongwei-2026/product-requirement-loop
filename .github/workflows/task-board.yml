@@ -285,10 +285,27 @@ jobs:
             "docs/交付/任务计分板.md" \
             "docs/交付/任务认领状态.json" \
             "docs/交付/任务仪表盘.md" \
+            "docs/交付/任务列表.md" \
+            "docs/交付/任务总览-issue7.body.md" \
             "docs/dashboard/index.html"
           if git diff --cached --quiet; then
             echo "nothing to commit"
-            exit 0
+          else
+            git commit -m "chore: sync task claims/assignees on dashboard and hub"
+            git push
           fi
-          git commit -m "chore: sync task claims/scoreboard dashboard"
-          git push
+
+      - name: Sync Issue #7 hub table (接取人)
+        if: steps.cmd.outputs.refresh == '1'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('docs/交付/任务总览-issue7.body.md', 'utf8');
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 7,
+              body
+            });
+            core.info('Updated Issue #7 with claimant column');

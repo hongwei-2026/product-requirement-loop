@@ -1,15 +1,26 @@
-# 实训任务列表（Issue 索引）
+# 实训任务总览（跳转入口）
 
-维护者：[@hongwei-2026](https://github.com/hongwei-2026)  
-流程：[任务贡献指南.md](./任务贡献指南.md) · **仪表盘**：[任务仪表盘.md](./任务仪表盘.md) · [HTML](../dashboard/index.html) · 计分板：[任务计分板.md](./任务计分板.md)
+维护者：@hongwei-2026  
+必审人（PR 须 **四人全部 Approve**）：@hongwei-2026 @hl019 @Jerrybao99 @likexin105  
 
-> 自动同步接取人：2026-09-09 10:18 UTC（数据源 [任务认领状态.json](./任务认领状态.json)）  
-> 接取：读 Issue 正文 → `/claim` → Design + 邮件 → `/accept` → Impl（代码+视频+截图）→ `/score`。  
-> **一账号同时只能 1 个进行中任务**；放弃：`/cancel` 或 `/release`（接取人列自动清空）。
+- 同学：[任务贡献指南](https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/%E4%BA%A4%E4%BB%98/%E4%BB%BB%E5%8A%A1%E8%B4%A1%E7%8C%AE%E6%8C%87%E5%8D%97.md)
+- **审核员**：[审核员指南](https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/%E4%BA%A4%E4%BB%98/%E5%AE%A1%E6%A0%B8%E5%91%98%E6%8C%87%E5%8D%97.md)
+- 汇报稿：[实训贡献机制-同学汇报稿](https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/%E4%BA%A4%E4%BB%98/%E5%AE%9E%E8%AE%AD%E8%B4%A1%E7%8C%AE%E6%9C%BA%E5%88%B6-%E5%90%8C%E5%AD%A6%E6%B1%87%E6%8A%A5%E7%A8%BF.md)
+- 任务列表：[任务列表](https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/%E4%BA%A4%E4%BB%98/%E4%BB%BB%E5%8A%A1%E5%88%97%E8%A1%A8.md)
+- Design 提交位：[docs/designs](https://github.com/hongwei-2026/product-requirement-loop/tree/main/docs/designs)
 
-**总入口：** [#7 实训任务总览](https://github.com/hongwei-2026/product-requirement-loop/issues/7)
+## 硬性规则
 
-## 基础 / 进阶（#1–#8）
+1. **同一 GitHub 账号同时只能接 1 个进行中任务**（`/claim` 或已 `/accept` 锁定期间）。换题先 `/cancel`。
+2. 实现 PR 必须：**代码 + 演示视频链接 + 截图≥2**。
+3. Design 方案落库：`docs/designs/#N-….md`。
+4. **接取人**列由机器人根据 `/claim` `/accept` `/cancel` **自动更新**（勿手改本 Issue 表）。
+
+_接取人表上次同步：2026-09-09 10:18 UTC_
+
+## 子任务列表
+
+### 基础 / 进阶
 
 | 难度 | 积分 | Issue | 标题 | 接取人 |
 |------|------|-------|------|--------|
@@ -21,7 +32,7 @@
 | 难 | 50 | [#6](https://github.com/hongwei-2026/product-requirement-loop/issues/6) | [长日志压测 CI](https://github.com/hongwei-2026/product-requirement-loop/issues/6) | — |
 | 难 | 55 | [#8](https://github.com/hongwei-2026/product-requirement-loop/issues/8) | [待审库工作台级分组](https://github.com/hongwei-2026/product-requirement-loop/issues/8) | — |
 
-## 特难扩展（#9–#22，对齐量潮）
+### 特难扩展（量潮对齐）
 
 | 难度 | 积分 | Issue | 标题 | 接取人 |
 |------|------|-------|------|--------|
@@ -40,8 +51,4 @@
 | 特难 | 75 | [#21](https://github.com/hongwei-2026/product-requirement-loop/issues/21) | [错误分类回流 lessons](https://github.com/hongwei-2026/product-requirement-loop/issues/21) | — |
 | 特难 | 85 | [#22](https://github.com/hongwei-2026/product-requirement-loop/issues/22) | [JSON↔SQLite 单一数据源](https://github.com/hongwei-2026/product-requirement-loop/issues/22) | — |
 
-## 必审人 / 可记分人
-
-`hongwei-2026` · `hl019` · `Jerrybao99` · `likexin105`
-
-PR 须四人全部 Approve；记分评论：`/score N`
+接取：在目标 Issue 评论 `/claim`（单独一行）。接取成功后，上表 **接取人** 会自动出现你的 GitHub ID。
