@@ -13,7 +13,9 @@
 | 3 | **结项说明** | [`docs/交付/结项说明-给审阅同事.md`](./docs/交付/结项说明-给审阅同事.md)（证据位置、CLI→Web、执行器） |
 | 4 | **操作手册** | [`docs/交付/产品操作手册.md`](./docs/交付/产品操作手册.md)（与产品内 UI 手册一致） |
 | 5 | **问题与处理** | [`docs/交付/问题反馈整理-2026-09-08.md`](./docs/交付/问题反馈整理-2026-09-08.md) |
-| 6 | **接任务 / 计分** | [`docs/交付/任务贡献指南.md`](./docs/交付/任务贡献指南.md) · [仪表盘](./docs/交付/任务仪表盘.md) · [计分板](./docs/交付/任务计分板.md) · [总 Issue #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7) |
+| 6 | **接任务 / 计分（实训）** | [`docs/交付/任务贡献指南.md`](./docs/交付/任务贡献指南.md) · [汇报稿](./docs/交付/实训贡献机制-同学汇报稿.md) · [审核员指南](./docs/交付/审核员指南.md) · [总 Issue #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7) |
+
+**实训硬性规则（摘要）：** 一账号同时只接 1 题；`/claim` → Design 落 [`docs/designs/`](./docs/designs/) → 维护者 **Merge** Design → `/accept @你` 后接取人栏才写入；Impl 须代码+视频+截图；关联 PR 超 **30 天**无更新自动释放。
 
 交付目录总表：[`docs/交付/README.md`](./docs/交付/README.md)  
 安全：[`docs/交付/安全说明.md`](./docs/交付/安全说明.md)
