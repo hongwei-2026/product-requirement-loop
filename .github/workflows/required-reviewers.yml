@@ -1,0 +1,106 @@
+name: Required reviewers (all must approve)
+
+# 强制：hongwei-2026 + HL019 + Jerrybao99 + Likexin105 全部 Approve 后，本检查才绿。
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: write
+  statuses: write
+
+jobs:
+  all-reviewers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify every required reviewer approved
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const REQUIRED = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pull_number =
+              context.payload.pull_request?.number ||
+              context.payload.pull_request_review?.pull_request?.number;
+            if (!pull_number) {
+              core.setFailed('No pull request in event payload');
+              return;
+            }
+
+            const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number });
+            const headSha = pr.head.sha;
+
+            // Collect latest review per user (IGNORE comments/pending; keep APPROVED/CHANGES_REQUESTED/DISMISSED)
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
+              owner, repo, pull_number, per_page: 100
+            });
+            const latest = new Map();
+            for (const r of reviews) {
+              const login = r.user?.login;
+              if (!login) continue;
+              // listReviews is chronological; last write wins
+              latest.set(login.toLowerCase(), { state: r.state, user: login });
+            }
+
+            const missing = [];
+            const bad = [];
+            for (const need of REQUIRED) {
+              const hit = latest.get(need.toLowerCase());
+              if (!hit) {
+                missing.push(need);
+                continue;
+              }
+              if (hit.state !== 'APPROVED') {
+                bad.push(`${need}(${hit.state})`);
+              }
+            }
+
+            const lines = [
+              '## 必审人门禁',
+              '',
+              '下列账号必须全部对 **当前 head commit** 给出 **APPROVED** 才算审查通过：',
+              REQUIRED.map(u => `- @${u}`).join('\n'),
+              '',
+            ];
+            if (missing.length || bad.length) {
+              lines.push('### 尚未满足');
+              if (missing.length) lines.push('- 未审查/无批准：' + missing.map(u => '@' + u).join(', '));
+              if (bad.length) lines.push('- 状态非 APPROVED：' + bad.join(', '));
+              lines.push('');
+              lines.push('_推送新 commit 后，旧批准可能作废，需重新 Approve。_');
+              const body = lines.join('\n');
+              // sticky comment
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner, repo, issue_number: pull_number, per_page: 100
+              });
+              const prev = comments.find(c => (c.body || '').includes('必审人门禁'));
+              if (prev) {
+                await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body });
+              } else {
+                await github.rest.issues.createComment({ owner, repo, issue_number: pull_number, body });
+              }
+              core.setFailed('Required reviewers have not all APPROVED yet.');
+              return;
+            }
+
+            const okBody = [
+              '## 必审人门禁',
+              '',
+              `✅ 四位必审人均已 APPROVED（head \`${headSha.slice(0, 7)}\`）。`,
+              REQUIRED.map(u => `- @${u}`).join('\n'),
+            ].join('\n');
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number: pull_number, per_page: 100
+            });
+            const prev = comments.find(c => (c.body || '').includes('必审人门禁'));
+            if (prev) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body: okBody });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number: pull_number, body: okBody });
+            }
+            core.info('All required reviewers approved.');

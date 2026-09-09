@@ -1,0 +1,4 @@
+# 本仓库 CODEOWNERS：改动会请求下列审查人。
+# 「四人全部 Approve 才算通过」由 required-reviewers.yml 强制（状态检查）。
+
+* @hongwei-2026 @hl019 @Jerrybao99 @likexin105
