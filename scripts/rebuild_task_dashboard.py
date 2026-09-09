@@ -34,6 +34,20 @@ TASKS = [
         "title": "待审库「工作台级」全部分组 + 搜索",
         "why": "此前结项「本期不做」；现为可选难题",
     },
+    {"num": 9, "diff": "特难", "pts": 75, "title": "定稿导出产品云可对齐的 requirement.json 包", "why": "量潮下游文件级闭环"},
+    {"num": 10, "diff": "特难", "pts": 80, "title": "第二大脑 Context 导出包", "why": "对齐 second-brain 资产观"},
+    {"num": 11, "diff": "特难", "pts": 70, "title": "SemVer 发布门禁（标签+CHANGELOG）", "why": "对齐 release 章程"},
+    {"num": 12, "diff": "特难", "pts": 75, "title": "工作台覆盖率/uncovered 面板 + 人确认", "why": "人审质量门扩展"},
+    {"num": 13, "diff": "特难", "pts": 70, "title": "故事/定稿修订时间线 UI", "why": "审核可审计"},
+    {"num": 14, "diff": "特难", "pts": 75, "title": "打叉理由分析看板", "why": "理由码回流运营"},
+    {"num": 15, "diff": "特难", "pts": 80, "title": "待审库指派/交接/超时回收（SLA）", "why": "多人协作扩展"},
+    {"num": 16, "diff": "特难", "pts": 80, "title": "官方日志 Inbox 强去重+冲突处理台", "why": "量潮日志入口质量"},
+    {"num": 17, "diff": "特难", "pts": 85, "title": "批量 Step1 通过后入队 Step2 草稿", "why": "吞吐且守人审"},
+    {"num": 18, "diff": "特难", "pts": 85, "title": "Prompt 版本钉死 + prompt_sha 审计", "why": "Agent Loop 可复现"},
+    {"num": 19, "diff": "特难", "pts": 90, "title": "多 trial 矩阵 case-02+ 与 CI 金标", "why": "证据链厚度"},
+    {"num": 20, "diff": "特难", "pts": 90, "title": "运行时安全切换 LLM + 健康探测", "why": "运维扩展，禁 Key 进仓"},
+    {"num": 21, "diff": "特难", "pts": 75, "title": "错误分类回流 verify_lessons", "why": "踩坑回流 CI"},
+    {"num": 22, "diff": "特难", "pts": 85, "title": "待审库/定稿 JSON↔SQLite 单一数据源", "why": "扩展前收敛双写"},
 ]
 
 STATUS_CN = {

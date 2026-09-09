@@ -16,14 +16,15 @@ body:
         - easy
         - medium
         - hard
+        - extreme
     validations:
       required: true
   - type: input
     id: points
     attributes:
       label: 积分
-      description: 简单 10-15 / 中等 25-35 / 难 50-60
-      placeholder: "30"
+      description: 简单 10-15 / 中等 25-35 / 难 50-60 / 特难 70-90
+      placeholder: "75"
     validations:
       required: true
   - type: textarea
@@ -47,7 +48,7 @@ body:
 
         | 你要做的事 | 评论命令 | 仪表盘会怎样 |
         |------------|----------|--------------|
-        | 接任务 | `/claim` | 「进行中的认领」出现你与本 Issue |
+        | 接任务 | `/claim` | 「进行中的认领」出现你与本 Issue（**一账号同时只能 1 个进行中任务**） |
         | 维护者正式锁定 | （仅 @hongwei-2026）`/accept @你的ID` | 状态 → 已锁定实现中 |
         | **自己放弃** | `/cancel` 或 `/release` | 认领记录**自动删除**，任务重新开放 |
         | 维护者清掉别人的认领 | `/reject-claim` | 同上 |
