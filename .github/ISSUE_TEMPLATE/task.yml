@@ -1,0 +1,71 @@
+name: 实训任务
+description: 基于本仓库缺口的优化任务（简单/中等/难）
+title: "[Task] "
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先阅读 [任务贡献指南](../docs/交付/任务贡献指南.md)。
+        接取流程：评论 `/claim` → 设计 PR + 发邮件 → 维护者 `/accept @你` → 实现 PR → `/score`。
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: 难度
+      options:
+        - easy
+        - medium
+        - hard
+    validations:
+      required: true
+  - type: input
+    id: points
+    attributes:
+      label: 积分
+      description: 简单 10-15 / 中等 25-35 / 难 50-60
+      placeholder: "30"
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景（现有缺失/痛点）
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: 目标
+    validations:
+      required: true
+  - type: textarea
+    id: pipeline
+    attributes:
+      label: 本任务流水（步骤）
+      description: 接取→设计→实现→自测→PR→审核→计分
+      value: |
+        1. `/claim` 并等待机器人指引
+        2. 提交 Design PR，邮件通知 feizi_050920@qq.com
+        3. 等待 `/accept @你`
+        4. 实现 + 本地跑 verify_* 
+        5. Implementation PR（Fixes #本Issue）
+        6. CI + 自动审核清单 + 人工 Review
+        7. 合并后维护者 `/score`
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+    validations:
+      required: true
+  - type: textarea
+    id: ai_review
+    attributes:
+      label: AI / 自动审核关注点
+      value: |
+        - 不提交密钥
+        - 不破坏 Step3 check 门禁 / 待审库取消 / 手册侧栏
+        - 相关 verify_lessons / verify_security / verify_docs_layout 仍绿
+    validations:
+      required: true
