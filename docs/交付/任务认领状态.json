@@ -1,0 +1,4 @@
+{
+  "_comment": "由 Actions 在 /claim /accept /release /reject-claim /score 时自动维护；勿手改 unless 修复。",
+  "claims": {}
+}

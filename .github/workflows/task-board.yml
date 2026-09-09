@@ -14,21 +14,31 @@ jobs:
     if: github.event.issue.pull_request == null
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout (for scoreboard)
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Handle /claim /accept /reject-claim /release /score
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Handle task commands
+        id: cmd
         uses: actions/github-script@v7
         with:
           script: |
             const MAINTAINER = 'hongwei-2026';
+            const SCORERS = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
+            const CLAIMS_PATH = 'docs/交付/任务认领状态.json';
+            const fs = require('fs');
+
             const body = (context.payload.comment.body || '').trim();
             const lines = body.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
             const issue = context.payload.issue;
             const actor = context.payload.comment.user.login;
             const issue_number = issue.number;
+            const key = String(issue_number);
 
             const hasLabel = (name) => (issue.labels || []).some(l => l.name === name);
             const ensureLabel = async (name, color, desc) => {
@@ -40,14 +50,23 @@ jobs:
                 });
               }
             };
-
             const reply = async (text) => {
               await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number,
-                body: text
+                owner: context.repo.owner, repo: context.repo.repo, issue_number, body: text
               });
+            };
+            const loadClaims = () => {
+              const raw = JSON.parse(fs.readFileSync(CLAIMS_PATH, 'utf8'));
+              if (!raw.claims) raw.claims = {};
+              return raw;
+            };
+            const saveClaims = (data) => {
+              fs.writeFileSync(CLAIMS_PATH, JSON.stringify(data, null, 2) + '\n');
+              core.setOutput('refresh', '1');
+            };
+            const stamp = () => new Date().toISOString().slice(0, 19) + 'Z';
+            const clearClaim = (data) => {
+              if (data.claims[key]) delete data.claims[key];
             };
 
             // ---------- /claim ----------
@@ -56,13 +75,15 @@ jobs:
                 await reply('⚠️ 这不是任务 Issue（缺少 `task` 标签），`/claim` 无效。');
                 return;
               }
-              if (issue.assignee || (issue.assignees || []).length) {
-                const who = (issue.assignees || []).map(a => '@' + a.login).join(', ') || '@' + issue.assignee.login;
-                await reply(`⚠️ 本任务已指派给 ${who}。若要换人，需维护者 \`/reject-claim\` 或受指派人 \`/release\`。`);
+              if ((issue.assignees || []).length || hasLabel('status:locked')) {
+                const who = (issue.assignees || []).map(a => '@' + a.login).join(', ') || '已锁定';
+                await reply(`⚠️ 本任务已有人：${who}。放弃请对方 \`/release\`，或维护者 \`/reject-claim\`。`);
                 return;
               }
-              if (hasLabel('status:locked')) {
-                await reply('⚠️ 本任务已锁定，无法 claim。');
+              const data = loadClaims();
+              const existing = data.claims[key];
+              if (existing && existing.status === 'claim-pending' && existing.user.toLowerCase() !== actor.toLowerCase()) {
+                await reply(`⚠️ @${existing.user} 已在 claim-pending。请对方 \`/cancel\`，或维护者 \`/reject-claim\`。`);
                 return;
               }
               await ensureLabel('status:claim-pending', 'fbca04', '等待设计PR与维护者accept');
@@ -70,17 +91,21 @@ jobs:
                 owner: context.repo.owner, repo: context.repo.repo, issue_number,
                 labels: ['status:claim-pending']
               });
+              data.claims[key] = { user: actor, status: 'claim-pending', updated: stamp() };
+              saveClaims(data);
               await reply([
-                `✅ **@${actor} 已登记接取意向**（\`/claim\`）。`,
+                `✅ **@${actor} 已接取意向**（\`/claim\`）——仪表盘「进行中的认领」将同步。`,
                 '',
-                '### 下一步（必须按顺序）',
-                '1. 开 **Design PR**：标题建议 `[Design] #' + issue_number + ' …`，正文写清方案与验收标准（不要塞完整实现）。',
-                '2. 发邮件到 **feizi_050920@qq.com**，主题建议：`[Design] #' + issue_number + ' ' + actor + '`',
-                '   - 正文附上：本 Issue 链接、Design PR 链接、你的 GitHub ID（`' + actor + '`）。',
-                '3. 等待维护者 **@' + MAINTAINER + '** 在本 Issue 评论：`/accept @' + actor + '`',
-                '4. 被 accept 之后，**只有你**可以提交 Implementation PR（`Fixes #' + issue_number + '`）。',
+                '### 下一步',
+                '1. 开 **Design PR**：`[Design] #' + issue_number + ' …`',
+                '2. 邮件 **feizi_050920@qq.com**（Issue + Design PR + 你的 GitHub ID）',
+                '3. 等 @' + MAINTAINER + ' 评论：`/accept @' + actor + '`',
                 '',
-                '指南：`docs/交付/任务贡献指南.md`'
+                '### 若要放弃',
+                '在本 Issue 评论（单独一行）：`/cancel` 或 `/release`',
+                '认领记录会从仪表盘**自动删除**，任务重新开放。',
+                '',
+                '指南：`docs/交付/任务贡献指南.md` · 仪表盘：`docs/交付/任务仪表盘.md`'
               ].join('\n'));
               return;
             }
@@ -89,13 +114,11 @@ jobs:
             const acceptLine = lines.find(l => /^\/accept\s+@?[A-Za-z0-9-]+$/i.test(l));
             if (acceptLine) {
               if (actor !== MAINTAINER) {
-                await reply('⛔ 仅维护者 `@' + MAINTAINER + '` 可执行 `/accept`。');
+                await reply('⛔ 仅维护者 `@' + MAINTAINER + '` 可 `/accept`。');
                 return;
               }
-              let user = acceptLine.replace(/^\/accept\s+/i, '').trim();
-              if (user.startsWith('@')) user = user.slice(1);
-              await ensureLabel('status:locked', '0e8a16', '已锁定指派，仅受指派人可实现');
-              // remove pending
+              let user = acceptLine.replace(/^\/accept\s+/i, '').trim().replace(/^@/, '');
+              await ensureLabel('status:locked', '0e8a16', '已锁定指派');
               try {
                 await github.rest.issues.removeLabel({
                   owner: context.repo.owner, repo: context.repo.repo, issue_number, name: 'status:claim-pending'
@@ -105,49 +128,41 @@ jobs:
                 owner: context.repo.owner, repo: context.repo.repo, issue_number, assignees: [user]
               });
               await github.rest.issues.addLabels({
-                owner: context.repo.owner, repo: context.repo.repo, issue_number,
-                labels: ['status:locked']
+                owner: context.repo.owner, repo: context.repo.repo, issue_number, labels: ['status:locked']
               });
+              const data = loadClaims();
+              data.claims[key] = { user, status: 'locked', updated: stamp() };
+              saveClaims(data);
               await reply([
-                `🔒 **任务已锁定给 @${user}**（维护者 \`/accept\`）。`,
-                '',
-                '请 @' + user + ' 开 Implementation PR，正文必须包含：`Fixes #' + issue_number + '`。',
-                '其他人提交的实现 PR 将被任务门禁拒绝。'
+                `🔒 **已锁定给 @${user}**。仪表盘状态 → 已锁定实现中。`,
+                '请提交 Implementation PR：`Fixes #' + issue_number + '`。',
+                '放弃请评论：`/release` 或 `/cancel`（自动清除仪表盘认领）。'
               ].join('\n'));
               return;
             }
 
-            // ---------- /reject-claim ----------
-            if (lines.some(l => /^\/reject-claim$/i.test(l))) {
-              if (actor !== MAINTAINER) {
-                await reply('⛔ 仅维护者可 `/reject-claim`。');
-                return;
-              }
+            // ---------- /reject-claim /release /cancel ----------
+            const isReject = lines.some(l => /^\/reject-claim$/i.test(l));
+            const isRelease = lines.some(l => /^\/release$/i.test(l) || /^\/cancel$/i.test(l));
+            if (isReject || isRelease) {
+              const data = loadClaims();
+              const cur = data.claims[key];
               const assignees = (issue.assignees || []).map(a => a.login);
-              if (assignees.length) {
-                await github.rest.issues.removeAssignees({
-                  owner: context.repo.owner, repo: context.repo.repo, issue_number, assignees
-                });
+              let allowed = false;
+              if (isReject) {
+                allowed = actor === MAINTAINER;
+                if (!allowed) await reply('⛔ 仅维护者可 `/reject-claim`。');
+              } else {
+                allowed =
+                  actor === MAINTAINER ||
+                  assignees.map(a => a.toLowerCase()).includes(actor.toLowerCase()) ||
+                  (cur && cur.user && cur.user.toLowerCase() === actor.toLowerCase());
+                if (!allowed) {
+                  await reply('⛔ 仅「当前认领人 / 受指派人 / 维护者」可 `/release` 或 `/cancel`。');
+                }
               }
-              for (const name of ['status:locked', 'status:claim-pending']) {
-                try {
-                  await github.rest.issues.removeLabel({
-                    owner: context.repo.owner, repo: context.repo.repo, issue_number, name
-                  });
-                } catch (_) {}
-              }
-              await reply('♻️ 已清空认领/锁定，任务重新开放。其他人可重新 `/claim`。');
-              return;
-            }
+              if (!allowed) return;
 
-            // ---------- /release ----------
-            if (lines.some(l => /^\/release$/i.test(l))) {
-              const assignees = (issue.assignees || []).map(a => a.login);
-              const allowed = actor === MAINTAINER || assignees.includes(actor);
-              if (!allowed) {
-                await reply('⛔ 仅受指派人或维护者可 `/release`。');
-                return;
-              }
               if (assignees.length) {
                 await github.rest.issues.removeAssignees({
                   owner: context.repo.owner, repo: context.repo.repo, issue_number, assignees
@@ -160,62 +175,67 @@ jobs:
                   });
                 } catch (_) {}
               }
-              await reply('♻️ @' + actor + ' 已释放任务，重新开放 `/claim`。');
+              clearClaim(data);
+              saveClaims(data);
+              await reply(
+                '♻️ 已取消认领/锁定。仪表盘「进行中的认领」已**自动删除**该条，任务重新开放，其他人可 `/claim`。'
+              );
               return;
             }
 
             // ---------- /score N ----------
             const scoreLine = lines.find(l => /^\/score\s+\d+$/i.test(l));
             if (scoreLine) {
-              const SCORERS = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
               if (!SCORERS.map(s => s.toLowerCase()).includes(actor.toLowerCase())) {
                 await reply('⛔ 仅维护者/必审人可 `/score`：' + SCORERS.map(s => '@' + s).join(' '));
                 return;
               }
               const n = parseInt(scoreLine.replace(/^\/score\s+/i, ''), 10);
-              const who = (issue.assignees || [])[0]?.login || actor;
-              const fs = require('fs');
+              const who = (issue.assignees || [])[0]?.login || (loadClaims().claims[key] || {}).user || actor;
               const path = 'docs/交付/任务计分板.md';
               let text = fs.readFileSync(path, 'utf8');
               const date = new Date().toISOString().slice(0, 10);
               const row = `| ${date} | ${who} | #${issue_number} | ${n} | by ${actor} via /score |`;
-              text = text.replace(
-                '| — | — | — | — | 尚无计分记录 |',
-                row
-              );
+              text = text.replace('| — | — | — | — | 尚无计分记录 |', row);
               if (!text.includes(row)) {
-                text = text.replace(
-                  /(\| -+ \| -+ \| -+ \| -+ \| -+ \|\n)/,
-                  `$1${row}\n`
-                );
+                text = text.replace(/(\| -+ \| -+ \| -+ \| -+ \| -+ \|\n)/, `$1${row}\n`);
               }
               const totals = {};
-              for (const seed of ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105']) totals[seed] = 0;
+              for (const seed of SCORERS) totals[seed] = 0;
               for (const m of text.matchAll(/\|\s*\d{4}-\d{2}-\d{2}\s*\|\s*([^|]+)\s*\|\s*#\d+\s*\|\s*(\d+)\s*\|/g)) {
                 const id = m[1].trim();
-                const pts = parseInt(m[2], 10);
-                totals[id] = (totals[id] || 0) + pts;
+                totals[id] = (totals[id] || 0) + parseInt(m[2], 10);
               }
               let totalTable = '| GitHub ID | 总分 |\n|-----------|------|\n';
-              const keys = Object.keys(totals).sort((a, b) => (totals[b] - totals[a]) || a.localeCompare(b));
-              for (const id of keys) totalTable += `| ${id} | ${totals[id]} |\n`;
+              for (const id of Object.keys(totals).sort((a, b) => (totals[b] - totals[a]) || a.localeCompare(b))) {
+                totalTable += `| ${id} | ${totals[id]} |\n`;
+              }
               text = text.replace(/## 累计[\s\S]*$/m, `## 累计（自动汇总）\n\n${totalTable}`);
               fs.writeFileSync(path, text);
-              await reply(`🏆 已给 **@${who}** 记 **${n}** 分（Issue #${issue_number}）。仪表盘将刷新。`);
-              core.setOutput('scored', '1');
+
+              const data = loadClaims();
+              data.claims[key] = { user: who, status: 'done', updated: stamp(), points: n };
+              saveClaims(data);
+
+              await reply(`🏆 已给 **@${who}** 记 **${n}** 分（#${issue_number}）。排行榜与认领状态将刷新。`);
               return;
             }
 
-      - name: Rebuild dashboard and commit
-        if: success()
+      - name: Rebuild dashboard and push
+        if: steps.cmd.outputs.refresh == '1'
         run: |
-          if git diff --quiet -- "docs/交付/任务计分板.md"; then
-            echo "No scoreboard change"
-            exit 0
-          fi
+          set -euo pipefail
           python scripts/rebuild_task_dashboard.py
           git config user.name "task-board-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "docs/交付/任务计分板.md" "docs/交付/任务仪表盘.md" "docs/dashboard/index.html"
-          git commit -m "chore: update task scoreboard and dashboard"
+          git add \
+            "docs/交付/任务计分板.md" \
+            "docs/交付/任务认领状态.json" \
+            "docs/交付/任务仪表盘.md" \
+            "docs/dashboard/index.html"
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          git commit -m "chore: sync task claims/scoreboard dashboard"
           git push

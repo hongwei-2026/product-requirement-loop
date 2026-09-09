@@ -3,39 +3,33 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>实训任务仪表盘 · product-requirement-loop</title>
+  <title>实训任务仪表盘</title>
   <style>
     :root { --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --muted:#9aa7b8; --accent:#3d8bfd; --line:#2a3545; }
-    body { margin:0; font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif; background:linear-gradient(160deg,#0f1419,#152033 50%,#101820); color:var(--text); }
-    main { max-width:980px; margin:0 auto; padding:32px 20px 64px; }
-    h1 { font-size:1.6rem; margin:0 0 8px; }
-    .sub { color:var(--muted); margin:0 0 24px; }
-    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin:0 0 18px; }
-    table { width:100%; border-collapse:collapse; font-size:0.95rem; }
-    th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
-    th { color:var(--muted); font-weight:600; font-size:0.8rem; letter-spacing:.04em; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, sans-serif; background:linear-gradient(160deg,#0f1419,#152033); color:var(--text); }
+    main { max-width:1000px; margin:0 auto; padding:32px 20px 64px; }
+    h1 { margin:0 0 8px; font-size:1.6rem; }
+    .sub { color:var(--muted); margin:0 0 22px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin:0 0 16px; }
+    table { width:100%; border-collapse:collapse; font-size:0.94rem; }
+    th,td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+    th { color:var(--muted); font-size:0.78rem; }
     a { color:var(--accent); text-decoration:none; }
-    a:hover { text-decoration:underline; }
-    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#243247; color:#c9d7ea; font-size:12px; }
   </style>
 </head>
 <body>
 <main>
   <h1>实训任务仪表盘</h1>
-  <p class="sub">更新于 2026-09-09 09:16 UTC · <a href="https://github.com/hongwei-2026/product-requirement-loop/issues/7">总入口 #7</a> · <a href="https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/%E4%BA%A4%E4%BB%98/%E4%BB%BB%E5%8A%A1%E8%AE%A1%E5%88%86%E6%9D%BF.md">计分板</a></p>
-  <section class="card">
-    <h2>积分排行榜 <span class="pill">/score 后自动刷新</span></h2>
-    <table>
-      <thead><tr><th>#</th><th>GitHub</th><th>总分</th></tr></thead>
-      <tbody><tr><td>1</td><td><a href='https://github.com/hl019'>@hl019</a></td><td><b>0</b></td></tr><tr><td>2</td><td><a href='https://github.com/hongwei-2026'>@hongwei-2026</a></td><td><b>0</b></td></tr><tr><td>3</td><td><a href='https://github.com/Jerrybao99'>@Jerrybao99</a></td><td><b>0</b></td></tr><tr><td>4</td><td><a href='https://github.com/likexin105'>@likexin105</a></td><td><b>0</b></td></tr></tbody>
-    </table>
+  <p class="sub">2026-09-09 09:21 UTC · <a href="https://github.com/hongwei-2026/product-requirement-loop/issues/7">#7 总入口</a></p>
+  <section class="card"><h2>积分排行榜</h2>
+    <table><thead><tr><th>#</th><th>GitHub</th><th>总分</th></tr></thead><tbody><tr><td>1</td><td><a href='https://github.com/hl019'>@hl019</a></td><td><b>0</b></td></tr><tr><td>2</td><td><a href='https://github.com/hongwei-2026'>@hongwei-2026</a></td><td><b>0</b></td></tr><tr><td>3</td><td><a href='https://github.com/Jerrybao99'>@Jerrybao99</a></td><td><b>0</b></td></tr><tr><td>4</td><td><a href='https://github.com/likexin105'>@likexin105</a></td><td><b>0</b></td></tr></tbody></table>
   </section>
-  <section class="card">
-    <h2>任务看板</h2>
-    <table>
-      <thead><tr><th>Issue</th><th>难度</th><th>分</th><th>标题</th><th>为何做</th></tr></thead>
-      <tbody><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/1'>#1</a></td><td>简单</td><td>10</td><td>工作台顶栏展示 LLM provider/model/超时摘要</td><td>排障可观测</td></tr><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/2'>#2</a></td><td>简单</td><td>15</td><td>统一「服务宕机」与「AI 超时」提示文案</td><td>减少误报连不上服务</td></tr><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/3'>#3</a></td><td>中等</td><td>30</td><td>Step1/Step2 请求心跳与超时重试</td><td>同步长请求体验</td></tr><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/4'>#4</a></td><td>中等</td><td>35</td><td>待审库轻量搜索与状态过滤</td><td>短队列增强，非重型分组</td></tr><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/5'>#5</a></td><td>难</td><td>60</td><td>Step1/Step2 异步任务 + 轮询/SSE</td><td>根治同步超时断连</td></tr><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/6'>#6</a></td><td>难</td><td>50</td><td>长日志压力测试流水（脚本+CI，无真实 Key）</td><td>压测与回归门禁</td></tr><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/8'>#8</a></td><td>难</td><td>55</td><td>待审库「工作台级」全部分组 + 搜索</td><td>此前结项明确「本期不做」；现作为可选高难度增强</td></tr></tbody>
-    </table>
+  <section class="card"><h2>进行中的认领</h2>
+    <table><thead><tr><th>Issue</th><th>状态</th><th>人</th><th>更新</th></tr></thead><tbody><tr><td colspan='4'>当前无人认领进行中</td></tr></tbody></table>
+    <p class="sub">放弃请在 Issue 评论 <code>/release</code> 或 <code>/cancel</code>，记录会自动删除。</p>
+  </section>
+  <section class="card"><h2>任务看板</h2>
+    <table><thead><tr><th>Issue</th><th>难度</th><th>分</th><th>标题</th><th>状态</th><th>人</th></tr></thead><tbody><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/1'>#1</a></td><td>简单</td><td>10</td><td>工作台顶栏展示 LLM provider/model/超时摘要</td><td>开放可接</td><td>—</td></tr><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/2'>#2</a></td><td>简单</td><td>15</td><td>统一「服务宕机」与「AI 超时」提示文案</td><td>开放可接</td><td>—</td></tr><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/3'>#3</a></td><td>中等</td><td>30</td><td>Step1/Step2 请求心跳与超时重试</td><td>开放可接</td><td>—</td></tr><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/4'>#4</a></td><td>中等</td><td>35</td><td>待审库轻量搜索与状态过滤</td><td>开放可接</td><td>—</td></tr><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/5'>#5</a></td><td>难</td><td>60</td><td>Step1/Step2 异步任务 + 轮询/SSE</td><td>开放可接</td><td>—</td></tr><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/6'>#6</a></td><td>难</td><td>50</td><td>长日志压力测试流水（脚本+CI，无真实 Key）</td><td>开放可接</td><td>—</td></tr><tr><td><a href='https://github.com/hongwei-2026/product-requirement-loop/issues/8'>#8</a></td><td>难</td><td>55</td><td>待审库「工作台级」全部分组 + 搜索</td><td>开放可接</td><td>—</td></tr></tbody></table>
   </section>
 </main>
 </body>
