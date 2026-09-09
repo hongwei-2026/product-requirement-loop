@@ -100,11 +100,13 @@ jobs:
                 '1. 开 **Design PR**：`[Design] #' + issue_number + ' …`',
                 '2. 邮件 **feizi_050920@qq.com**（Issue + Design PR + 你的 GitHub ID）',
                 '3. 等 @' + MAINTAINER + ' 评论：`/accept @' + actor + '`',
+                '4. 实现 PR 须含：**代码 + 演示视频链接 + 截图≥2**（写在 PR 正文）',
                 '',
                 '### 若要放弃',
                 '在本 Issue 评论（单独一行）：`/cancel` 或 `/release`',
                 '认领记录会从仪表盘**自动删除**，任务重新开放。',
                 '',
+                '规则已写在本 Issue **描述正文**（勿只看评论）。',
                 '指南：`docs/交付/任务贡献指南.md` · 仪表盘：`docs/交付/任务仪表盘.md`'
               ].join('\n'));
               return;
@@ -136,6 +138,7 @@ jobs:
               await reply([
                 `🔒 **已锁定给 @${user}**。仪表盘状态 → 已锁定实现中。`,
                 '请提交 Implementation PR：`Fixes #' + issue_number + '`。',
+                '**交付物三件套**：代码 + **演示视频链接** + **截图≥2**（均写在 PR 正文）。',
                 '放弃请评论：`/release` 或 `/cancel`（自动清除仪表盘认领）。'
               ].join('\n'));
               return;

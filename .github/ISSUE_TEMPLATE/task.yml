@@ -6,8 +6,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        请先阅读 [任务贡献指南](../docs/交付/任务贡献指南.md)。
-        接取流程：评论 `/claim` → 设计 PR + 发邮件 → 维护者 `/accept @你` → 实现 PR → `/score`。
+        请先阅读 [任务贡献指南](https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/%E4%BA%A4%E4%BB%98/%E4%BB%BB%E5%8A%A1%E8%B4%A1%E7%8C%AE%E6%8C%87%E5%8D%97.md)。
+        **接取/放弃说明与交付物规范必须写在 Issue 正文（见下方预填字段），不要只靠评论口述。**
   - type: dropdown
     id: difficulty
     attributes:
@@ -39,18 +39,34 @@ body:
     validations:
       required: true
   - type: textarea
-    id: pipeline
+    id: ops
     attributes:
-      label: 本任务流水（步骤）
-      description: 接取→设计→实现→自测→PR→审核→计分
+      label: 如何接取 / 放弃 / 同步仪表盘（保留本段，勿删）
       value: |
-        1. `/claim` 并等待机器人指引
-        2. 提交 Design PR，邮件通知 feizi_050920@qq.com
-        3. 等待 `/accept @你`
-        4. 实现 + 本地跑 verify_* 
-        5. Implementation PR（Fixes #本Issue）
-        6. CI + 自动审核清单 + 人工 Review
-        7. 合并后维护者 `/score`
+        命令写在**本 Issue 评论区**，单独一行。
+
+        | 你要做的事 | 评论命令 | 仪表盘会怎样 |
+        |------------|----------|--------------|
+        | 接任务 | `/claim` | 「进行中的认领」出现你与本 Issue |
+        | 维护者正式锁定 | （仅 @hongwei-2026）`/accept @你的ID` | 状态 → 已锁定实现中 |
+        | **自己放弃** | `/cancel` 或 `/release` | 认领记录**自动删除**，任务重新开放 |
+        | 维护者清掉别人的认领 | `/reject-claim` | 同上 |
+        | 合并后计分 | （维护者/必审人）`/score N` | 排行榜刷新 |
+
+        - 仪表盘：`docs/交付/任务仪表盘.md` · `docs/dashboard/index.html`
+        - 接取后：Design PR → 邮件 feizi_050920@qq.com（Issue + Design PR + GitHub ID）→ 等 `/accept`
+    validations:
+      required: true
+  - type: textarea
+    id: delivery
+    attributes:
+      label: 交付物规范（Implementation PR 缺一不可；保留本段）
+      value: |
+        1. **代码**：PR 标题 `[Impl] #<本Issue> …`，正文含 `Fixes #<本Issue>`；作者须为已 `/accept` 的 Assignee
+        2. **演示视频链接（必填）**：可公网打开的链接（B 站 / 飞书云文档·妙记 / 录屏分享等），展示完整操作路径；写在 PR「演示视频」一节
+        3. **截图（必填）**：至少 2 张（改前/改后或关键成功界面），**直接贴在 PR 正文**
+        4. 禁止视频/截图中出现 API Key / `.env`
+        5. 缺视频或截图时，必审人可要求补齐后再 Approve
     validations:
       required: true
   - type: textarea
@@ -67,5 +83,6 @@ body:
         - 不提交密钥
         - 不破坏 Step3 check 门禁 / 待审库取消 / 手册侧栏
         - 相关 verify_lessons / verify_security / verify_docs_layout 仍绿
+        - Impl PR 已含演示视频链接 + ≥2 张截图
     validations:
       required: true
