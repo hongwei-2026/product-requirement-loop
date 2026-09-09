@@ -59,6 +59,8 @@ jobs:
             "docs/交付/README.md"
             "docs/交付/问题反馈整理-2026-09-08.md"
             "docs/交付/评审意见与处理情况.md"
+            "docs/交付/任务贡献指南.md"
+            "docs/交付/任务计分板.md"
             "setup.sh"
             "start-with-ai.sh"
             "RUN-SERVER.bat"
