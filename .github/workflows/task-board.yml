@@ -1,0 +1,224 @@
+name: Task board commands
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: read
+
+jobs:
+  command:
+    if: github.event.issue.pull_request == null
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (for scoreboard)
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Handle /claim /accept /reject-claim /release /score
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const MAINTAINER = 'hongwei-2026';
+            const body = (context.payload.comment.body || '').trim();
+            const lines = body.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            const issue = context.payload.issue;
+            const actor = context.payload.comment.user.login;
+            const issue_number = issue.number;
+
+            const hasLabel = (name) => (issue.labels || []).some(l => l.name === name);
+            const ensureLabel = async (name, color, desc) => {
+              try {
+                await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name });
+              } catch (_) {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner, repo: context.repo.repo, name, color, description: desc || ''
+                });
+              }
+            };
+
+            const reply = async (text) => {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                body: text
+              });
+            };
+
+            // ---------- /claim ----------
+            if (lines.some(l => /^\/claim$/i.test(l))) {
+              if (!hasLabel('task')) {
+                await reply('⚠️ 这不是任务 Issue（缺少 `task` 标签），`/claim` 无效。');
+                return;
+              }
+              if (issue.assignee || (issue.assignees || []).length) {
+                const who = (issue.assignees || []).map(a => '@' + a.login).join(', ') || '@' + issue.assignee.login;
+                await reply(`⚠️ 本任务已指派给 ${who}。若要换人，需维护者 \`/reject-claim\` 或受指派人 \`/release\`。`);
+                return;
+              }
+              if (hasLabel('status:locked')) {
+                await reply('⚠️ 本任务已锁定，无法 claim。');
+                return;
+              }
+              await ensureLabel('status:claim-pending', 'fbca04', '等待设计PR与维护者accept');
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number,
+                labels: ['status:claim-pending']
+              });
+              await reply([
+                `✅ **@${actor} 已登记接取意向**（\`/claim\`）。`,
+                '',
+                '### 下一步（必须按顺序）',
+                '1. 开 **Design PR**：标题建议 `[Design] #' + issue_number + ' …`，正文写清方案与验收标准（不要塞完整实现）。',
+                '2. 发邮件到 **feizi_050920@qq.com**，主题建议：`[Design] #' + issue_number + ' ' + actor + '`',
+                '   - 正文附上：本 Issue 链接、Design PR 链接、你的 GitHub ID（`' + actor + '`）。',
+                '3. 等待维护者 **@' + MAINTAINER + '** 在本 Issue 评论：`/accept @' + actor + '`',
+                '4. 被 accept 之后，**只有你**可以提交 Implementation PR（`Fixes #' + issue_number + '`）。',
+                '',
+                '指南：`docs/交付/任务贡献指南.md`'
+              ].join('\n'));
+              return;
+            }
+
+            // ---------- /accept @user ----------
+            const acceptLine = lines.find(l => /^\/accept\s+@?[A-Za-z0-9-]+$/i.test(l));
+            if (acceptLine) {
+              if (actor !== MAINTAINER) {
+                await reply('⛔ 仅维护者 `@' + MAINTAINER + '` 可执行 `/accept`。');
+                return;
+              }
+              let user = acceptLine.replace(/^\/accept\s+/i, '').trim();
+              if (user.startsWith('@')) user = user.slice(1);
+              await ensureLabel('status:locked', '0e8a16', '已锁定指派，仅受指派人可实现');
+              // remove pending
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number, name: 'status:claim-pending'
+                });
+              } catch (_) {}
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number, assignees: [user]
+              });
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number,
+                labels: ['status:locked']
+              });
+              await reply([
+                `🔒 **任务已锁定给 @${user}**（维护者 \`/accept\`）。`,
+                '',
+                '请 @' + user + ' 开 Implementation PR，正文必须包含：`Fixes #' + issue_number + '`。',
+                '其他人提交的实现 PR 将被任务门禁拒绝。'
+              ].join('\n'));
+              return;
+            }
+
+            // ---------- /reject-claim ----------
+            if (lines.some(l => /^\/reject-claim$/i.test(l))) {
+              if (actor !== MAINTAINER) {
+                await reply('⛔ 仅维护者可 `/reject-claim`。');
+                return;
+              }
+              const assignees = (issue.assignees || []).map(a => a.login);
+              if (assignees.length) {
+                await github.rest.issues.removeAssignees({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number, assignees
+                });
+              }
+              for (const name of ['status:locked', 'status:claim-pending']) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner, repo: context.repo.repo, issue_number, name
+                  });
+                } catch (_) {}
+              }
+              await reply('♻️ 已清空认领/锁定，任务重新开放。其他人可重新 `/claim`。');
+              return;
+            }
+
+            // ---------- /release ----------
+            if (lines.some(l => /^\/release$/i.test(l))) {
+              const assignees = (issue.assignees || []).map(a => a.login);
+              const allowed = actor === MAINTAINER || assignees.includes(actor);
+              if (!allowed) {
+                await reply('⛔ 仅受指派人或维护者可 `/release`。');
+                return;
+              }
+              if (assignees.length) {
+                await github.rest.issues.removeAssignees({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number, assignees
+                });
+              }
+              for (const name of ['status:locked', 'status:claim-pending']) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner, repo: context.repo.repo, issue_number, name
+                  });
+                } catch (_) {}
+              }
+              await reply('♻️ @' + actor + ' 已释放任务，重新开放 `/claim`。');
+              return;
+            }
+
+            // ---------- /score N ----------
+            const scoreLine = lines.find(l => /^\/score\s+\d+$/i.test(l));
+            if (scoreLine) {
+              if (actor !== MAINTAINER) {
+                await reply('⛔ 当前仅维护者 `@' + MAINTAINER + '` 可 `/score`（可按需扩展 reviewer）。');
+                return;
+              }
+              const n = parseInt(scoreLine.replace(/^\/score\s+/i, ''), 10);
+              const who = (issue.assignees || [])[0]?.login || actor;
+              const fs = require('fs');
+              const path = 'docs/交付/任务计分板.md';
+              let text = fs.readFileSync(path, 'utf8');
+              const date = new Date().toISOString().slice(0, 10);
+              const row = `| ${date} | ${who} | #${issue_number} | ${n} | by ${actor} via /score |`;
+              if (!text.includes('| — | — | — | — | 尚无计分记录 |')) {
+                // append before 累计 section if possible
+              }
+              text = text.replace(
+                '| — | — | — | — | 尚无计分记录 |',
+                row
+              );
+              if (!text.includes(row)) {
+                // insert after header separator of first table
+                text = text.replace(
+                  /(\| -+ \| -+ \| -+ \| -+ \| -+ \|\n)/,
+                  `$1${row}\n`
+                );
+              }
+              // naive total rebuild
+              const totals = {};
+              for (const m of text.matchAll(/\|\s*\d{4}-\d{2}-\d{2}\s*\|\s*([^|]+)\s*\|\s*#\d+\s*\|\s*(\d+)\s*\|/g)) {
+                const id = m[1].trim();
+                const pts = parseInt(m[2], 10);
+                totals[id] = (totals[id] || 0) + pts;
+              }
+              let totalTable = '| GitHub ID | 总分 |\n|-----------|------|\n';
+              const keys = Object.keys(totals);
+              if (!keys.length) totalTable += '| — | 0 |\n';
+              else for (const id of keys.sort()) totalTable += `| ${id} | ${totals[id]} |\n`;
+              text = text.replace(/## 累计[\s\S]*$/m, `## 累计（自动汇总）\n\n${totalTable}`);
+              fs.writeFileSync(path, text);
+              await reply(`🏆 已给 **@${who}** 记 **${n}** 分（Issue #${issue_number}）。计分板已更新，将自动提交到仓库。`);
+              core.setOutput('scored', '1');
+              return;
+            }
+
+      - name: Commit scoreboard if updated
+        if: success()
+        run: |
+          if git diff --quiet -- "docs/交付/任务计分板.md"; then
+            echo "No scoreboard change"
+            exit 0
+          fi
+          git config user.name "task-board-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "docs/交付/任务计分板.md"
+          git commit -m "chore: update task scoreboard"
+          git push
