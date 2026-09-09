@@ -18,7 +18,8 @@
                     │
                     ├─ CI（仓库级 verify_* / 密钥 / bandit）
                     ├─ Task PR gate（verify + 自动审核清单评论）
-                    └─ Required reviewers（四人全 Approve）
+                    ├─ Required reviewers（四人全 Approve）
+                    └─ Task stale auto-release（每天：关联 PR >30 天无更新 → 自动释放）
 ```
 
 ## 设计 PR 提交位
@@ -36,6 +37,16 @@
 |------|------|------|
 | `/recheck` `/rerun` `/rerun-checks` | **PR 评论**单独一行 | 重跑 Enterprise PR 套件 |
 | `/claim` `/accept` `/cancel` `/score` | **Issue 评论** | 任务板（见 task-board.yml） |
+
+## 停滞自动释放（30 天）
+
+| 项 | 说明 |
+|----|------|
+| Workflow | `Task stale auto-release`（`task-stale-release.yml`） |
+| 触发 | 每天定时；也可 Actions 页手动 `workflow_dispatch` |
+| 判定 | 进行中（claim-pending / locked）任务：关联 Design/Impl PR 的 `updated_at`（若无 PR 则用认领时间）距今 **> 30 天** |
+| 动作 | 清 Assignee / 状态标签 / 认领 JSON；Issue 评论通知；刷新 #7 接取人栏 |
+| dry_run | 手动运行时输入 `dry_run=true` 只报告不释放 |
 
 ## 建议纳入分支保护的 Checks
 

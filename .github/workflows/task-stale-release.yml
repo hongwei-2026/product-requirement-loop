@@ -1,0 +1,192 @@
+name: Task stale auto-release
+
+# 进行中任务：关联 PR 超过 30 天无更新 → 自动释放
+on:
+  schedule:
+    # 每天 01:00 UTC（北京时间约 09:00）
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只报告不释放（true/false）"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: task-stale-release
+  cancel-in-progress: false
+
+jobs:
+  release-stale:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Auto-release stale claims
+        id: stale
+        env:
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const CLAIMS_PATH = 'docs/交付/任务认领状态.json';
+            const STALE_MS = 30 * 24 * 60 * 60 * 1000; // 1 个月
+            const dry = String(process.env.DRY_RUN || 'false').toLowerCase() === 'true';
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const now = Date.now();
+
+            const raw = JSON.parse(fs.readFileSync(CLAIMS_PATH, 'utf8'));
+            if (!raw.claims) raw.claims = {};
+            const active = Object.entries(raw.claims).filter(
+              ([, c]) => c && (c.status === 'claim-pending' || c.status === 'locked')
+            );
+            if (!active.length) {
+              core.info('No active claims');
+              core.setOutput('changed', '0');
+              return;
+            }
+
+            // Prefetch recent closed+open PRs once
+            const openPrs = await github.paginate(github.rest.pulls.list, {
+              owner, repo, state: 'open', per_page: 100, sort: 'updated', direction: 'desc'
+            });
+            const closedPrs = await github.paginate(github.rest.pulls.list, {
+              owner, repo, state: 'closed', per_page: 100, sort: 'updated', direction: 'desc'
+            });
+            const allPrs = [...openPrs, ...closedPrs];
+
+            function relatedPrs(issueNo) {
+              const reNum = new RegExp('#' + issueNo + '\\b');
+              const reDesignFile = new RegExp('docs/designs/#' + issueNo + '[-_]');
+              return allPrs.filter(p => {
+                const t = p.title || '';
+                const b = p.body || '';
+                return reNum.test(t) || reNum.test(b) || reDesignFile.test(b) ||
+                  new RegExp('(?:Fixes|Closes|Resolves|Related to)\\s*#' + issueNo + '\\b', 'i').test(b);
+              });
+            }
+
+            function lastActivityMs(issueNo, claim) {
+              let latest = Date.parse(claim.updated || claim.design_merged_at || 0) || 0;
+              for (const p of relatedPrs(issueNo)) {
+                const t = Date.parse(p.updated_at) || 0;
+                if (t > latest) latest = t;
+              }
+              return latest;
+            }
+
+            const released = [];
+            for (const [key, claim] of active) {
+              const issueNo = parseInt(key, 10);
+              if (!issueNo) continue;
+              const last = lastActivityMs(issueNo, claim);
+              const age = now - last;
+              const days = Math.floor(age / (24 * 60 * 60 * 1000));
+              if (age <= STALE_MS) {
+                core.info(`#${issueNo} ok (${days}d since activity, @${claim.user})`);
+                continue;
+              }
+
+              const prs = relatedPrs(issueNo);
+              const prHint = prs.length
+                ? prs.slice(0, 5).map(p => `#${p.number}(${p.merged_at ? 'merged' : p.state})`).join(', ')
+                : '无关联 PR';
+              core.warning(`STALE #${issueNo} @${claim.user} age=${days}d prs=${prHint}`);
+
+              if (dry) {
+                released.push({ issue: issueNo, user: claim.user, days, dry: true });
+                continue;
+              }
+
+              // Clear assignees + labels
+              try {
+                const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number: issueNo });
+                const assignees = (issue.assignees || []).map(a => a.login);
+                if (assignees.length) {
+                  await github.rest.issues.removeAssignees({ owner, repo, issue_number: issueNo, assignees });
+                }
+                for (const name of ['status:locked', 'status:claim-pending']) {
+                  try {
+                    await github.rest.issues.removeLabel({ owner, repo, issue_number: issueNo, name });
+                  } catch (_) {}
+                }
+              } catch (e) {
+                core.error(`Failed clearing #${issueNo}: ${e.message}`);
+              }
+
+              delete raw.claims[key];
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issueNo,
+                body: [
+                  '⏰ **自动释放任务（超过 1 个月无 PR 更新）**',
+                  '',
+                  `- 原进行中用户：@${claim.user}`,
+                  `- 状态：\`${claim.status}\``,
+                  `- 距上次关联活动：约 **${days}** 天（阈值 30 天）`,
+                  `- 关联 PR 摘要：${prHint}`,
+                  '',
+                  '规则：认领后须保持相关 Design/Impl PR **至少每 30 天有一次更新**（push / 新提交 / 更新描述等）。',
+                  '任务已重新开放，其他人可 `/claim`。原同学补进度后可重新走接取流程。',
+                  '',
+                  '_工作流：`Task stale auto-release`_'
+                ].join('\n')
+              });
+              released.push({ issue: issueNo, user: claim.user, days, dry: false });
+            }
+
+            if (!dry && released.some(r => !r.dry)) {
+              fs.writeFileSync(CLAIMS_PATH, JSON.stringify(raw, null, 2) + '\n');
+              core.setOutput('changed', '1');
+            } else {
+              core.setOutput('changed', '0');
+            }
+            core.setOutput('report', JSON.stringify(released));
+            await core.summary
+              .addHeading('Stale task release')
+              .addRaw(released.length ? JSON.stringify(released, null, 2) : 'none')
+              .write();
+
+      - name: Rebuild hub + push
+        if: steps.stale.outputs.changed == '1'
+        run: |
+          set -euo pipefail
+          python scripts/rebuild_task_dashboard.py
+          git config user.name "task-board-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            "docs/交付/任务认领状态.json" \
+            "docs/交付/任务仪表盘.md" \
+            "docs/交付/任务列表.md" \
+            "docs/交付/任务总览-issue7.body.md" \
+            "docs/dashboard/index.html"
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          git commit -m "chore: auto-release stale tasks (30d no PR update)"
+          git push
+
+      - name: Sync Issue #7
+        if: steps.stale.outputs.changed == '1'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('docs/交付/任务总览-issue7.body.md', 'utf8');
+            await github.rest.issues.update({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: 7, body
+            });
