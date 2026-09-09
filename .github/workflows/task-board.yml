@@ -122,22 +122,24 @@ jobs:
               data.claims[key] = { user: actor, status: 'claim-pending', updated: stamp() };
               saveClaims(data);
               await reply([
-                `✅ **@${actor} 已接取意向**（\`/claim\`）——仪表盘「进行中的认领」将同步。`,
+                `✅ **@${actor} 已登记接取意向**（\`/claim\`）。`,
                 '',
-                '> 规则：**同一 GitHub 账号同时只能有 1 个进行中任务**（claim-pending / locked）。想换题请先 `/cancel`。',
+                '> **接取人栏此刻不会写你的 ID。** 须等：Design PR 被维护者**合并** → 维护者在本 Issue 评论 \`/accept @' + actor + '\` 之后，接取人才会自动写入。',
                 '',
-                '### 下一步',
-                '1. 开 **Design PR**：`[Design] #' + issue_number + ' …`（方案落 `docs/designs/#…md`）',
-                '2. 邮件 **feizi_050920@qq.com**（Issue + Design PR + 你的 GitHub ID）',
-                '3. 等 @' + MAINTAINER + ' 评论：`/accept @' + actor + '`',
-                '4. 实现 PR 须含：**代码 + 演示视频链接 + 截图≥2**（写在 PR 正文）',
+                '> 规则：同一账号同时只能有 1 个进行中意向/锁定。想换题请先 `/cancel`。',
+                '',
+                '### 你接下来必须做',
+                '1. 写方案：`docs/designs/#' + issue_number + '-….md`',
+                '2. 开 **Design PR**（选模板 Design）：标题 `[Design] #' + issue_number + ' …`',
+                '3. 邮件 **feizi_050920@qq.com**（Issue + Design PR + GitHub ID）',
+                '4. 等 @' + MAINTAINER + ' **合并** Design PR',
+                '5. 再等维护者评论：`/accept @' + actor + '` ← 此时 **接取人** 栏才写入你的 ID',
+                '6. 之后才能开 Implementation PR（代码 + 视频 + 截图≥2）',
                 '',
                 '### 若要放弃',
-                '在本 Issue 评论（单独一行）：`/cancel` 或 `/release`',
-                '认领记录会从仪表盘**自动删除**，任务重新开放。',
+                '`/cancel` 或 `/release`（单独一行）',
                 '',
-                '规则已写在本 Issue **描述正文**（勿只看评论）。',
-                '指南：`docs/交付/任务贡献指南.md` · 仪表盘：`docs/交付/任务仪表盘.md`'
+                '指南：`docs/交付/任务贡献指南.md`'
               ].join('\n'));
               return;
             }
@@ -151,6 +153,59 @@ jobs:
               }
               let user = acceptLine.replace(/^\/accept\s+/i, '').trim().replace(/^@/, '');
               const dataPre = loadClaims();
+              const pending = dataPre.claims[key];
+              if (!pending || pending.status !== 'claim-pending') {
+                await reply(
+                  `⛔ 无法 \`/accept @${user}\`：本 Issue 尚无有效的 \`/claim\`（claim-pending）。\n` +
+                  `流程必须是：同学 \`/claim\` → Design PR **已合并** → 再 \`/accept\`。`
+                );
+                return;
+              }
+              if ((pending.user || '').toLowerCase() !== user.toLowerCase()) {
+                await reply(
+                  `⛔ 当前 claim-pending 是 @${pending.user}，与 \`/accept @${user}\` 不一致。`
+                );
+                return;
+              }
+
+              // 必须已有「已合并」的 Design PR（标题含 [Design] #N，作者应为接取人）
+              const closed = await github.paginate(github.rest.pulls.list, {
+                owner: context.repo.owner, repo: context.repo.repo,
+                state: 'closed', sort: 'updated', direction: 'desc', per_page: 50
+              });
+              const designMerged = closed.filter(p => {
+                if (!p.merged_at) return false;
+                const t = p.title || '';
+                const b = p.body || '';
+                const isDesign = /\[Design\]/i.test(t);
+                if (!isDesign) return false;
+                const mentions =
+                  new RegExp('#' + issue_number + '\\b').test(t) ||
+                  new RegExp('(?:Related to|关联)\\s*#' + issue_number + '\\b', 'i').test(b) ||
+                  new RegExp('docs/designs/#' + issue_number + '[-_]', 'i').test(b);
+                return mentions;
+              });
+              const designByUser = designMerged.find(
+                p => (p.user?.login || '').toLowerCase() === user.toLowerCase()
+              ) || designMerged[0];
+              if (!designByUser) {
+                await reply([
+                  `⛔ 无法 \`/accept @${user}\`：**尚未找到已合并的 Design PR**（须标题含 \`[Design] #${issue_number}\`）。`,
+                  '',
+                  '请先审查并 **Merge** 该同学的 Design PR，再在本 Issue（建议回在其 `/claim` 评论下）发送：',
+                  `\`/accept @${user}\``,
+                  '',
+                  '合并后接取人栏才会写入其 GitHub ID。'
+                ].join('\n'));
+                return;
+              }
+              if ((designByUser.user?.login || '').toLowerCase() !== user.toLowerCase()) {
+                await reply(
+                  `⚠️ 已合并 Design PR #${designByUser.number} 作者是 @${designByUser.user?.login}，与 \`/accept @${user}\` 不一致。请核对后再试。`
+                );
+                return;
+              }
+
               const busyOther = Object.entries(dataPre.claims).filter(([ik, c]) => {
                 if (ik === key) return false;
                 if (!c || !c.user) return false;
@@ -182,15 +237,35 @@ jobs:
                 owner: context.repo.owner, repo: context.repo.repo, issue_number, labels: ['status:locked']
               });
               const data = dataPre;
-              data.claims[key] = { user, status: 'locked', updated: stamp() };
+              data.claims[key] = {
+                user,
+                status: 'locked',
+                updated: stamp(),
+                design_pr: designByUser.number,
+                design_merged_at: designByUser.merged_at
+              };
               saveClaims(data);
-              await reply([
-                `🔒 **已锁定给 @${user}**。仪表盘状态 → 已锁定实现中。`,
-                '> 提醒：该账号在完成本任务前不可再 `/claim` 其它题。',
+
+              // 回在同学 /claim 语境下（Issue 评论引用其 /claim）
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner: context.repo.owner, repo: context.repo.repo, issue_number, per_page: 100
+              });
+              const claimComment = [...comments].reverse().find(c =>
+                (c.user?.login || '').toLowerCase() === user.toLowerCase() &&
+                /^\/claim\b/im.test((c.body || '').trim())
+              );
+              const acceptBody = [
+                claimComment ? `> 回复 @${user} 的 [/claim](${claimComment.html_url})` : `> 批准 @${user} 的接取`,
+                '',
+                `🔒 **已批准接取 @${user}**（Design PR #${designByUser.number} 已合并）。`,
+                '',
+                `**接取人栏已自动写入：@${user}**（总览 #7 / 任务列表 / 仪表盘将刷新）。`,
+                '',
                 '请提交 Implementation PR：`Fixes #' + issue_number + '`。',
-                '**交付物三件套**：代码 + **演示视频链接** + **截图≥2**（均写在 PR 正文）。',
-                '放弃请评论：`/release` 或 `/cancel`（自动清除仪表盘认领）。'
-              ].join('\n'));
+                '**交付物三件套**：代码 + **演示视频链接** + **截图≥2**。',
+                '放弃：`/release` 或 `/cancel`（接取人栏清空）。'
+              ].join('\n');
+              await reply(acceptBody);
               return;
             }
 

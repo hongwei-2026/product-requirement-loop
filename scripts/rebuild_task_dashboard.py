@@ -82,16 +82,18 @@ def claim_of(claims: dict, n: int) -> dict:
 
 
 def claimant_md(claims: dict, n: int, *, with_status: bool = True) -> str:
+    """接取人栏：仅在维护者 /accept（locked）或已计分（done）后显示 GitHub ID。"""
     c = claim_of(claims, n)
     user = (c.get("user") or "").strip()
-    if not user:
+    st = c.get("status") or ""
+    # claim-pending：意向阶段，接取人栏仍为空
+    if st == "claim-pending" or not user:
+        return "—"
+    if st not in {"locked", "done"}:
         return "—"
     link = f"[@{user}](https://github.com/{user})"
     if not with_status:
         return link
-    st = c.get("status") or ""
-    if st == "claim-pending":
-        return f"{link}（待 accept）"
     if st == "locked":
         return f"{link}（已锁定）"
     if st == "done":
@@ -102,10 +104,10 @@ def claimant_md(claims: dict, n: int, *, with_status: bool = True) -> str:
 def claimant_html(claims: dict, n: int) -> str:
     c = claim_of(claims, n)
     user = (c.get("user") or "").strip()
-    if not user:
-        return "—"
     st = c.get("status") or ""
-    tip = {"claim-pending": "待 accept", "locked": "已锁定", "done": "已完成"}.get(st, "")
+    if st == "claim-pending" or not user or st not in {"locked", "done"}:
+        return "—"
+    tip = {"locked": "已锁定", "done": "已完成"}.get(st, "")
     base = f"<a href='https://github.com/{user}'>@{user}</a>"
     return f"{base}（{tip}）" if tip else base
 
@@ -184,8 +186,8 @@ def build_md(rows: list[tuple[str, str, int, str]], claims: dict) -> str:
         "",
         "| 你想做什么 | 在任务 Issue 评论 | 仪表盘 / #7 表会怎样 |",
         "|------------|-------------------|----------------------|",
-        "| 接任务 | `/claim` | **接取人**列写入你的 GitHub ID |",
-        "| 维护者正式锁定 | `/accept @用户` | 接取人旁标注已锁定 |",
+        "| 接任务意向 | `/claim` | **接取人栏仍为空**；仅记意向 |",
+        "| 维护者合并 Design PR 后批准 | `/accept @用户` | **接取人栏写入该 ID** |",
         "| **自己放弃** | `/release` 或 `/cancel` | **接取人清空为 —** |",
         "| 维护者清掉别人的认领 | `/reject-claim` | 同上 |",
         "| 完成后记分 | `/score N` | 排行榜加分；接取人标已完成 |",
@@ -271,7 +273,7 @@ def build_issue7_body(claims: dict) -> str:
         "1. **同一 GitHub 账号同时只能接 1 个进行中任务**（`/claim` 或已 `/accept` 锁定期间）。换题先 `/cancel`。",
         "2. 实现 PR 必须：**代码 + 演示视频链接 + 截图≥2**。",
         "3. Design 方案落库：`docs/designs/#N-….md`。",
-        "4. **接取人**列由机器人根据 `/claim` `/accept` `/cancel` **自动更新**（勿手改本 Issue 表）。",
+        "4. **接取人**列：仅在维护者 **合并 Design PR 之后** 评论 `/accept @ID` 才写入（单独 `/claim` 不会写）。",
         "",
         f"_接取人表上次同步：{now}_",
         "",
@@ -307,7 +309,7 @@ def build_issue7_body(claims: dict) -> str:
 
     lines += [
         "",
-        "接取：在目标 Issue 评论 `/claim`（单独一行）。接取成功后，上表 **接取人** 会自动出现你的 GitHub ID。",
+        "接取：目标 Issue 评论 `/claim` → Design PR → 维护者 **Merge** → 维护者 `/accept @你` → **接取人栏才出现你的 ID**。",
         "",
     ]
     return "\n".join(lines)

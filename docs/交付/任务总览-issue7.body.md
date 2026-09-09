@@ -14,9 +14,9 @@
 1. **同一 GitHub 账号同时只能接 1 个进行中任务**（`/claim` 或已 `/accept` 锁定期间）。换题先 `/cancel`。
 2. 实现 PR 必须：**代码 + 演示视频链接 + 截图≥2**。
 3. Design 方案落库：`docs/designs/#N-….md`。
-4. **接取人**列由机器人根据 `/claim` `/accept` `/cancel` **自动更新**（勿手改本 Issue 表）。
+4. **接取人**列：仅在维护者 **合并 Design PR 之后** 评论 `/accept @ID` 才写入（单独 `/claim` 不会写）。
 
-_接取人表上次同步：2026-09-09 10:18 UTC_
+_接取人表上次同步：2026-09-09 10:31 UTC_
 
 ## 子任务列表
 
@@ -51,4 +51,4 @@ _接取人表上次同步：2026-09-09 10:18 UTC_
 | 特难 | 75 | [#21](https://github.com/hongwei-2026/product-requirement-loop/issues/21) | [错误分类回流 lessons](https://github.com/hongwei-2026/product-requirement-loop/issues/21) | — |
 | 特难 | 85 | [#22](https://github.com/hongwei-2026/product-requirement-loop/issues/22) | [JSON↔SQLite 单一数据源](https://github.com/hongwei-2026/product-requirement-loop/issues/22) | — |
 
-接取：在目标 Issue 评论 `/claim`（单独一行）。接取成功后，上表 **接取人** 会自动出现你的 GitHub ID。
+接取：目标 Issue 评论 `/claim` → Design PR → 维护者 **Merge** → 维护者 `/accept @你` → **接取人栏才出现你的 ID**。
