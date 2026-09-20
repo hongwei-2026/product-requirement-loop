@@ -223,6 +223,24 @@ jobs:
               core.warning('Progress sticky skipped (' + (e.status || e.message) + ')');
             }
 
+            // 投票后在时间线跟一条确认，避免只改置顶评论时看不清「有没有更新」
+            if (context.eventName === 'issue_comment') {
+              const c = context.payload.comment;
+              const cmd = parseCmd(c.body);
+              const actorLogin = c.user && c.user.login ? c.user.login : '';
+              const actor = actorLogin.toLowerCase();
+              if (cmd && REQUIRED.map(function (u) { return u.toLowerCase(); }).indexOf(actor) !== -1 && actor !== author) {
+                try {
+                  const tip = cmd === 'pass'
+                    ? ('✅ @' + actorLogin + ' 已计入通过（当前 **' + done + ' / ' + total + '**）。请看上方「必审进度」表格。')
+                    : ('❌ @' + actorLogin + ' 已计入驳回（当前 **' + done + ' / ' + total + '**）。请看上方「必审进度」表格。');
+                  await github.rest.issues.createComment({
+                    owner: owner, repo: repo, issue_number: pull_number, body: tip
+                  });
+                } catch (_) {}
+              }
+            }
+
             await core.summary.addRaw(progressBody).write();
 
             if (missing.length || rejected.length) {
