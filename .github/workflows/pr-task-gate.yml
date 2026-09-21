@@ -1,11 +1,9 @@
 name: Task PR gate + auto review
 
-# 文档/安全校验必须跑 PR head 代码，故用 pull_request（非 target）。
-# fork PR 上发评论可能 403 → 下面 try/catch，不因评论失败判红。
-# 若 fork 仍挂旧 workflow：maintainer 点 Update branch 合入 main 即可。
+# 文档/安全校验跑 PR head；docs-only 走轻量路径以加速 CI。
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
 
 permissions:
   contents: read
@@ -17,23 +15,119 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect change scope
+        id: scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          mapfile -t FILES < <(git diff --name-only "$BASE"..."$HEAD" || true)
+          echo "changed=${#FILES[@]}"
+          needs_python=false
+          docs_only=true
+          for f in "${FILES[@]}"; do
+            case "$f" in
+              docs/*|*.md|LICENSE*|LICENSE.txt|.gitignore)
+                ;;
+              .github/PULL_REQUEST_TEMPLATE/*|.github/CODEOWNERS)
+                ;;
+              *)
+                docs_only=false
+                needs_python=true
+                ;;
+            esac
+            case "$f" in
+              project/*|scripts/verify_*.py|scripts/*.py)
+                needs_python=true
+                ;;
+            esac
+          done
+          # 纯文档/模板也跑 layout；代码改动才装全量 deps + lessons/security
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+          echo "needs_python=$needs_python" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install deps
+      - name: Install deps (code PRs)
+        if: steps.scope.outputs.needs_python == 'true'
         run: |
           python -m pip install -U pip
           pip install -r project/requirements.txt
           pip install bandit
 
-      - name: Docs / lessons / security gates
+      - name: Docs layout gate
+        run: python scripts/verify_docs_layout.py
+
+      - name: Lessons + security gates
+        if: steps.scope.outputs.needs_python == 'true'
         run: |
           set -euo pipefail
-          python scripts/verify_docs_layout.py
           python scripts/verify_lessons.py
           python scripts/verify_security.py
+
+      - name: Enforce contributor self + AI disclosure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const author = (pr.user && pr.user.login) ? pr.user.login : '';
+            const body = pr.body || '';
+            const title = pr.title || '';
+
+            function hasSection(name) {
+              return new RegExp('##\\s*' + name, 'i').test(body);
+            }
+
+            const missing = [];
+            if (!hasSection('贡献者声明')) missing.push('「## 贡献者声明」');
+            if (!hasSection('AI 使用说明')) missing.push('「## AI 使用说明」');
+
+            // 本人勾选
+            if (!/\[\s*x\s*\]\s*\*?\*?本人/i.test(body) && !/本人\s*独立提交/i.test(body)) {
+              missing.push('勾选「本人独立提交本 PR」');
+            }
+
+            // 正文须出现贡献者本人：优先 PR 作者；维护者代整理文档时须写「内容作者 @原作者」
+            const MAINTAINERS = ['hongwei-2026'];
+            const mentioned = body.match(/@([A-Za-z0-9-]+)/g) || [];
+            const authorLower = author.toLowerCase();
+            let hasSelf = false;
+            for (let i = 0; i < mentioned.length; i++) {
+              if (mentioned[i].slice(1).toLowerCase() === authorLower) { hasSelf = true; break; }
+            }
+            const contentAuthor = body.match(/(?:内容作者|原始贡献者|贡献者)\s*[@：:]*\s*@?([A-Za-z0-9-]+)/i);
+            const isMaintainer = MAINTAINERS.indexOf(authorLower) !== -1;
+            if (!hasSelf && isMaintainer && contentAuthor) {
+              hasSelf = true;
+              core.info('Maintainer PR with content author @' + contentAuthor[1]);
+            }
+            if (!hasSelf) {
+              missing.push('贡献者声明中填写与 PR 作者一致的 @' + author + '（或维护者代提时写「内容作者 @原作者」）');
+            }
+
+            // AI 说明：须表态是否使用 + 工具/无
+            if (!/是否使用 AI/i.test(body) && !/使用了哪些工具/i.test(body)) {
+              missing.push('AI 使用说明（是否使用 / 工具名称或写「无」）');
+            }
+            if (/是否使用 AI 辅助：\s*$/m.test(body) || /使用了哪些工具[^：\n]*：\s*$/m.test(body)) {
+              missing.push('AI 使用说明不能留空');
+            }
+
+            if (missing.length) {
+              core.setFailed(
+                '⛔ PR 正文不符合贡献规范，请补全：\n- ' + missing.join('\n- ') +
+                '\n\n可选用 PR 模板 Design / Implementation / docs，须含「贡献者声明」「AI 使用说明」。' +
+                '\nPR 作者必须是贡献者本人（@' + author + '）。'
+              );
+              return;
+            }
+            core.info('Contributor self + AI disclosure OK for @' + author);
 
       - name: Enforce one open PR per author
         uses: actions/github-script@v7
@@ -44,7 +138,6 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            // 同一账号同时只能有 1 个未关闭 PR（含本 PR）
             const opens = await github.paginate(github.rest.pulls.list, {
               owner: owner,
               repo: repo,
@@ -78,31 +171,32 @@ jobs:
             const isDesign = /\[Design\]/i.test(title) || /## 类型[\s\S]*Design/i.test(body);
             const isImpl = /\[Impl\]/i.test(title) || /Fixes\s+#\d+/i.test(body) || /Closes\s+#\d+/i.test(body);
 
-            // extract issue number
             let issueNo = null;
             const m = body.match(/(?:Fixes|Closes|Resolves)\s+#(\d+)/i) || title.match(/#(\d+)/);
             if (m) issueNo = parseInt(m[1], 10);
 
             if (isDesign && !/Fixes\s+#/i.test(body)) {
               core.info('Design PR — skip assignee lock');
-            } else if (isImpl || issueNo) {
+            } else if (isImpl || (issueNo && /Fixes\s+#/i.test(body))) {
               if (!issueNo) {
                 core.setFailed('Implementation PR 必须在正文写 Fixes #<issue>');
                 return;
               }
-              const { data: issue } = await github.rest.issues.get({
+              const issueRes = await github.rest.issues.get({
                 owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNo
               });
-              const assignees = (issue.assignees || []).map(a => a.login);
-              const locked = (issue.labels || []).some(l => l.name === 'status:locked');
+              const issue = issueRes.data;
+              const assignees = (issue.assignees || []).map(function (a) { return a.login; });
+              const locked = (issue.labels || []).some(function (l) { return l.name === 'status:locked'; });
               if (locked || assignees.length) {
-                if (!assignees.includes(author)) {
+                if (assignees.indexOf(author) === -1) {
                   core.setFailed(
-                    `任务 #${issueNo} 已锁定给 ${assignees.join(', ') || '(无人)'}，PR 作者 @${author} 不是受指派人。`
+                    '任务 #' + issueNo + ' 已锁定给 ' + (assignees.join(', ') || '(无人)') +
+                    '，PR 作者 @' + author + ' 不是受指派人。'
                   );
                   return;
                 }
               } else {
-                core.warning(`Issue #${issueNo} 尚未 /accept 锁定；实现 PR 建议等维护者 accept 后再合入。`);
+                core.warning('Issue #' + issueNo + ' 尚未 /accept 锁定；实现 PR 建议等维护者 accept 后再合入。');
               }
             }
