@@ -24,7 +24,6 @@ permissions:
   issues: write
   checks: write
   actions: read
-  reactions: write
 
 jobs:
   gatekeeper:
