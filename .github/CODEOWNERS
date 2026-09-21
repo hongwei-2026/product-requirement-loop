@@ -1,4 +1,5 @@
-# 本仓库 CODEOWNERS：改动会请求下列审查人。
-# 「四人全部 Approve 才算通过」由 required-reviewers.yml 强制（状态检查）。
+# CODEOWNERS 仅作「默认请求审查」名单参考。
+# 合并门禁以 required-reviewers.yml 的评论命令 `/通过` + 状态检查为准，
+# 不要求 GitHub 原生 Approve（避免与「评论通过」双轨、作者无法自审）。
 
 * @hongwei-2026 @hl019 @Jerrybao99 @likexin105

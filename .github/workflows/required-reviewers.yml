@@ -243,11 +243,47 @@ jobs:
 
             await core.summary.addRaw(progressBody).write();
 
-            if (missing.length || rejected.length) {
+            // issue_comment / pull_request_target 的 Check 会记在 default branch SHA 上，
+            // 分支保护看的是 PR head → 必须显式写 status 到 pr.head.sha
+            const ok = !(missing.length || rejected.length);
+            const statusContext = 'Required reviewers (all must approve) / all-reviewers';
+            try {
+              await github.rest.repos.createCommitStatus({
+                owner: owner,
+                repo: repo,
+                sha: headSha,
+                state: ok ? 'success' : 'failure',
+                context: statusContext,
+                description: ok
+                  ? ('必审 ' + done + '/' + total + ' 已 /通过')
+                  : ('必审 ' + done + '/' + total + ' — 未齐'),
+                target_url: 'https://github.com/' + owner + '/' + repo + '/pull/' + pull_number
+              });
+            } catch (e) {
+              core.warning('createCommitStatus failed: ' + (e.status || e.message));
+            }
+            try {
+              await github.rest.checks.create({
+                owner: owner,
+                repo: repo,
+                name: statusContext,
+                head_sha: headSha,
+                status: 'completed',
+                conclusion: ok ? 'success' : 'failure',
+                output: {
+                  title: '必审 ' + done + ' / ' + total,
+                  summary: progressBody
+                }
+              });
+            } catch (e) {
+              core.warning('checks.create failed: ' + (e.status || e.message));
+            }
+
+            if (!ok) {
               const parts = [];
               if (missing.length) parts.push('未 /通过：' + missing.map(function (u) { return '@' + u; }).join(', '));
               if (rejected.length) parts.push('已驳回：' + rejected.map(function (u) { return '@' + u; }).join(', '));
               core.setFailed(parts.join('；'));
               return;
             }
-            core.info('All required reviewers posted /通过 for current head.');
+            core.info('All required reviewers posted /通过 for current head; status written to ' + headSha.slice(0, 7));
