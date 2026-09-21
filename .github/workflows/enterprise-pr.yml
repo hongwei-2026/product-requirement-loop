@@ -127,6 +127,11 @@ jobs:
               kind = 'implementation';
             } else if (/docs\/designs\/#\d+/i.test(body)) {
               kind = 'design';
+            } else if (
+              /^docs\s*:/i.test(title) ||
+              /##\s*类型[\s\S]{0,80}?(文档|docs|其它|其他)/i.test(body)
+            ) {
+              kind = 'docs';
             }
 
             core.setOutput('pr_number', String(pr.number));
@@ -345,6 +350,10 @@ jobs:
             if (kind === 'design') {
               core.info('Design PR — skip assignee lock');
               await core.summary.addRaw('Design: lock N/A').write();
+              return;
+            }
+            if (kind === 'docs' || kind === 'unknown' || kind === 'skip') {
+              core.info(kind + ' PR — skip assignee lock');
               return;
             }
             const m = body.match(/(?:Fixes|Closes|Resolves)\s+#(\d+)/i) || title.match(/#(\d+)/);
