@@ -36,6 +36,16 @@ VIDEO_HINT = re.compile(
 
 def classify(title: str, body: str) -> str:
     t, b = title or "", body or ""
+    # 纯文档 / 其它非任务 PR
+    if re.search(r"^docs\s*:", t, re.I) or re.search(
+        r"##\s*类型[\s\S]{0,80}?(文档|docs|其它|其他)", b, re.I
+    ):
+        if not (
+            re.search(r"\[Design\]", t, re.I)
+            or re.search(r"\[Impl\]", t, re.I)
+            or re.search(r"(?:Fixes|Closes)\s+#\d+", b, re.I)
+        ):
+            return "docs"
     if re.search(r"\[Design\]", t, re.I) or re.search(r"docs/designs/#\d+", b, re.I):
         if re.search(r"\[Impl\]", t, re.I) or re.search(r"(?:Fixes|Closes)\s+#\d+", b, re.I):
             # Impl wins if Fixes present with Impl title
@@ -137,9 +147,12 @@ def main() -> int:
         errors = check_impl(body)
     elif kind == "design":
         errors = check_design(title, body)
+    elif kind == "docs":
+        errors = []
+        lines.append("- docs PR：跳过视频/截图/设计文档门禁")
     else:
         errors = [
-            "无法识别 PR 类型：标题请用 [Design] #N … 或 [Impl] #N …，并选用对应 PR 模板"
+            "无法识别 PR 类型：标题请用 [Design] #N … 或 [Impl] #N … 或 docs: …，并选用对应 PR 模板"
         ]
 
     if errors:
