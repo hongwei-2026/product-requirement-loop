@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -20,7 +21,7 @@ if not m or not m2:
     raise SystemExit("standard block sections not found")
 OPS = m.group(1).strip() + "\n\n" + m2.group(1).strip() + "\n"
 
-ISSUE_NOS = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+ISSUE_NOS = [int(a) for a in sys.argv[1:]] or [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
 
 
 def fetch_body(n: int) -> str:

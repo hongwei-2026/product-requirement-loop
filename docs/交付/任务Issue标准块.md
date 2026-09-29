@@ -9,7 +9,7 @@
 **标准顺序（必须）：**
 
 1. 同学评论 `/claim`（仅登记意向，**接取人栏仍为空**）  
-2. 同学开 Design PR（`docs/designs/#N-….md`）并邮件 `feizi_050920@qq.com`  
+2. 同学开 Design PR（`docs/designs/#N-….md`）并邮件 `feizi_050920@qq.com`。`/claim` 同一条评论另起一行：`邮箱：you@example.com`  
 3. 维护者审查并 **Merge** Design PR  
 4. 维护者在同学 `/claim` 语境下评论 `/accept @同学ID` → **接取人栏才写入该 ID**  
 5. 同学再开 Implementation PR（代码 + 视频链接 + 截图≥2）
@@ -18,7 +18,7 @@
 
 | 你要做的事 | 评论命令 | 接取人栏 |
 |------------|----------|----------|
-| 登记意向 | `/claim` | 仍为 — |
+| 登记意向（须带邮箱） | `/claim` 加一行 `邮箱：` | 仍为 — |
 | 维护者批准（Design 已合并后） | （仅 @hongwei-2026）`/accept @你的ID` | **写入 @你的ID** |
 | **自己放弃** | `/cancel` 或 `/release` | 清空为 — |
 | 维护者清掉别人的认领 | `/reject-claim` | 清空为 — |
@@ -40,4 +40,4 @@
 3. **截图（必填）**：至少 2 张，**直接贴在 PR 正文**  
 4. 禁止截图或视频中出现 API Key / `.env`  
 
-缺视频或截图时，必审人可要求补齐后再 Approve；补齐后 PR 评论 `/recheck`。
+缺视频或截图时，必审人不要 `/通过`；补齐后 PR 评论 `/recheck`。

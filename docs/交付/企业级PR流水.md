@@ -18,7 +18,7 @@
                     │
                     ├─ CI（仓库级 verify_* / 密钥 / bandit）
                     ├─ Task PR gate（verify + 自动审核清单评论）
-                    ├─ Required reviewers（必审人全员 PR 评论 `/通过`）
+                    ├─ Required reviewers 状态 `Required reviewers (all must approve) / all-reviewers`（必审人全员 PR 评论 `/通过`；workflow 任务名是 `Reviewer gate / tally`，票未齐时不再额外失败）
                     └─ Task stale auto-release（每天：关联 PR >30 天无更新 → 自动释放）
 ```
 

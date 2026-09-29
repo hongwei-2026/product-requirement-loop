@@ -119,11 +119,18 @@ jobs:
                 owner: context.repo.owner, repo: context.repo.repo, issue_number,
                 labels: ['status:claim-pending']
               });
-              data.claims[key] = { user: actor, status: 'claim-pending', updated: stamp() };
+              const emailLine = lines.find(l => /^邮箱\s*[:：]/.test(l));
+              const emailMatch = emailLine && emailLine.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+              const email = emailMatch ? emailMatch[0] : '';
+              data.claims[key] = { user: actor, status: 'claim-pending', updated: stamp(), email: email };
               saveClaims(data);
+              const emailNote = email
+                ? ('已记下邮箱：`' + email + '`')
+                : '尚未看到邮箱。请再评论一行：`邮箱：you@example.com`';
               await reply([
                 `✅ **@${actor} 已登记接取意向**（\`/claim\`）。`,
                 '',
+                '> ' + emailNote,
                 '> **接取人栏此刻不会写你的 ID。** 须等：Design PR 被维护者**合并** → 维护者在本 Issue 评论 \`/accept @' + actor + '\` 之后，接取人才会自动写入。',
                 '',
                 '> 规则：同一账号同时只能有 1 个进行中意向/锁定。想换题请先 `/cancel`。',
@@ -140,7 +147,7 @@ jobs:
                 '### 若要放弃',
                 '`/cancel` 或 `/release`（单独一行）',
                 '',
-                '指南：`docs/交付/任务贡献指南.md`'
+                '指南：`docs/交付/实训基地协作指南.md`'
               ].join('\n'));
               return;
             }

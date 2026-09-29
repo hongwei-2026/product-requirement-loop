@@ -1,4 +1,4 @@
-name: Required reviewers (all must approve)
+name: Reviewer gate
 
 # 必审人 PR 评论 `/通过`；进度 sticky 评论展示谁过了/谁没过。
 on:
@@ -15,7 +15,8 @@ permissions:
   statuses: write
 
 jobs:
-  all-reviewers:
+  tally:
+    name: tally
     runs-on: ubuntu-latest
     steps:
       - name: Verify /通过 and post progress
@@ -260,30 +261,15 @@ jobs:
                 target_url: 'https://github.com/' + owner + '/' + repo + '/pull/' + pull_number
               });
             } catch (e) {
-              core.warning('createCommitStatus failed: ' + (e.status || e.message));
+              core.setFailed('createCommitStatus failed: ' + (e.status || e.message));
+              return;
             }
-            try {
-              await github.rest.checks.create({
-                owner: owner,
-                repo: repo,
-                name: statusContext,
-                head_sha: headSha,
-                status: 'completed',
-                conclusion: ok ? 'success' : 'failure',
-                output: {
-                  title: '必审 ' + done + ' / ' + total,
-                  summary: progressBody
-                }
-              });
-            } catch (e) {
-              core.warning('checks.create failed: ' + (e.status || e.message));
-            }
-
             if (!ok) {
               const parts = [];
               if (missing.length) parts.push('未 /通过：' + missing.map(function (u) { return '@' + u; }).join(', '));
               if (rejected.length) parts.push('已驳回：' + rejected.map(function (u) { return '@' + u; }).join(', '));
-              core.setFailed(parts.join('；'));
+              core.warning(parts.join('；'));
+              core.info('Votes incomplete. Merge box follows the commit status only.');
               return;
             }
             core.info('All required reviewers posted /通过 for current head; status written to ' + headSha.slice(0, 7));
