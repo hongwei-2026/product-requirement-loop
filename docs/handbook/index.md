@@ -7,20 +7,23 @@ date: 2026-10-01
 
 同事只从这一页进入本仓库。过程材料还在，但不是入口。
 
-准备移交组织的仓库名是 `qt-product-requirement`（Platform）。规范见 [工作边界](../bylaw/index.md) 和 [目录对照](../specification/layout.md)。个人账号没有 `quanttide` 组织建库权限，仓库先放在 `hongwei-2026/qt-product-requirement`，等组织管理员接收。
-
 ## 目标
 
-把官方产品日志整理成需求故事和定稿 JSON，并且让不同技术背景的人按写下来的步骤接手。
+把官方产品日志整理成需求故事和定稿 JSON。接任务和审 PR 不用等人同时在线。
 
-## 现在怎么协作
+## 怎么接一项任务
 
-草创期先用直接分配，不用以前的初审和 `/claim`。
+任务在 [Issue #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7) 和各条带 `task` 标签的 Issue 里。
 
-1. 任务写在 [实训基地任务清单](https://github.com/quanttide-academy/quanttide-academy/blob/main/roadmap.md)，写清目标、任务要求、评审标准和评审顺序。写法对齐该清单里的「日常任务：实训基地章程完善」。
-2. 向该仓库提 PR。
-3. 王敏华审阅并合并后，直接指定执行人。
-4. 执行人在本仓库按任务要求改代码，再提实现 PR，由评审人按 PR 里的步骤验收。
+1. 打开感兴趣的 Issue，先评论：你要改仓库里的哪一处。
+2. 另起一行发送 `/claim`。系统把任务接到你名下。
+3. 做完后提 PR，正文写 `Fixes #编号`。
+4. 审核员看到后，在 PR 评论单独一行 `/通过`。不用约同一时间。
+5. 管理员看到审核通过后合并。
+
+同一账号同时只接 1 个任务。放弃时在 Issue 评论 `/cancel`。
+
+审核员：@hongwei-2026、@hl019、@Jerrybao99、@likexin105。作者不能给自己 `/通过`。管理员合并：@hongwei-2026。
 
 ## 三件要做的事
 
@@ -32,17 +35,10 @@ date: 2026-10-01
 
 ## 文档放哪里
 
-新文档只用这些目录，文件名用小写英文和连字符：
-
 | 目录 | 放什么 |
 | :-- | :-- |
-| `docs/handbook/` | 给人看的操作入口（本页） |
+| `docs/handbook/` | 本页 |
 | `docs/specification/` | 可检查的标准 |
-| `docs/tutorial/` | 分步教程 |
+| `docs/bylaw/` | 本仓库工作边界 |
 
-`docs/交付/`、`docs/阶段*`、`docs/答辩总报告/` 是过程材料。不要从首页再链出整目录。命名依据是实训基地 [命名规范](https://github.com/quanttide-academy/quanttide-academy/blob/main/docs/specification/second-brain.md)。
-
-## 当前在做的任务
-
-- 文档入口归一：本页。执行人于鸿伟，评审人王敏华。
-- [#1 顶栏展示模型摘要](https://github.com/hongwei-2026/product-requirement-loop/issues/1)：登录后顶栏显示 `provider`、`model`、`timeout`、`thinking_off`。验收看该 Issue 的「验收标准」。待本页合并进任务清单后，由王敏华直接分配执行人。
+`docs/交付/`、`docs/阶段*` 是过程材料，不是入口。成熟、大家用顺了的做法，再收成可复用工具。现在先把上面这五步跑通。
