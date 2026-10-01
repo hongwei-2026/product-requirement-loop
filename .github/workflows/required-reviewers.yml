@@ -1,6 +1,6 @@
 name: Reviewer gate
 
-# 必审人 PR 评论 `/通过`；进度 sticky 评论展示谁过了/谁没过。
+# 必审人 PR 评论 `/approve`；进度 sticky 评论展示谁过了/谁没过。
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -19,13 +19,13 @@ jobs:
     name: tally
     runs-on: ubuntu-latest
     steps:
-      - name: Verify /通过 and post progress
+      - name: Verify /approve and post progress
         uses: actions/github-script@v7
         with:
           script: |
             const REQUIRED_ALL = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
-            const PASS = new Set(['通过', 'approve', 'lgtm', 'ack']);
-            const FAIL = new Set(['驳回', 'reject', 'changes', 'deny']);
+            const PASS = new Set(['approve', 'lgtm', 'ack']);
+            const FAIL = new Set(['reject', 'changes', 'deny']);
             const MARKER = '<!-- required-reviewers-progress -->';
 
             const owner = context.repo.owner;
@@ -86,8 +86,8 @@ jobs:
               const lines = String(body || '').split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
               for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-                let m = line.match(/^\/(通过|驳回|approve|lgtm|ack|reject|changes|deny)(?![A-Za-z0-9_])/i);
-                if (!m && /^(通过|驳回|approve|lgtm|ack|reject|changes|deny)$/i.test(line)) {
+                let m = line.match(/^\/(approve|lgtm|ack|reject|changes|deny)(?![A-Za-z0-9_])/i);
+                if (!m && /^(approve|lgtm|ack|reject|changes|deny)$/i.test(line)) {
                   m = [line, line];
                 }
                 if (!m) continue;
@@ -107,7 +107,7 @@ jobs:
                   try {
                     await github.rest.issues.createComment({
                       owner: owner, repo: repo, issue_number: pull_number,
-                      body: '⛔ @' + c.user.login + ' 是本 PR 作者，不能给自己 `/通过`。请其余必审人评论。'
+                      body: '⛔ @' + c.user.login + ' 是本 PR 作者，不能给自己 `/approve`。请其余必审人评论。'
                     });
                   } catch (_) {}
                 } else if (REQUIRED_ALL.map(function (u) { return u.toLowerCase(); }).indexOf(actor) === -1) {
@@ -182,7 +182,7 @@ jobs:
 
             const rows = REQUIRED.map(function (u) {
               const hit = latest.get(u.toLowerCase());
-              let st = '⏳ 待 `/通过`';
+              let st = '⏳ 待 `/approve`';
               if (hit && hit.state === 'pass') st = '✅ 已通过';
               if (hit && hit.state === 'fail') st = '❌ 已驳回';
               return '| @' + u + ' | ' + st + ' |';
@@ -202,9 +202,9 @@ jobs:
               rows.join('\n'),
               '',
               '---',
-              '在本 PR **评论单独一行**发送：`/通过` 或 `/驳回`',
-              '同义：`/approve` `/lgtm` ≈ 通过；`/reject` `/changes` ≈ 驳回。',
-              '**新 push 后旧票作废**，须重新 `/通过`。',
+              '在本 PR **评论单独一行**发送：`/approve` 或 `/reject`',
+              'Aliases: `/lgtm` `/ack` = approve; `/changes` `/deny` = reject.',
+              '**新 push 后旧票作废**，须重新 `/approve`。',
               '',
               '_本条由机器人维护，请勿手动编辑。_',
             ].filter(Boolean).join('\n');
@@ -256,8 +256,8 @@ jobs:
                 state: ok ? 'success' : 'failure',
                 context: statusContext,
                 description: ok
-                  ? ('必审 ' + done + '/' + total + ' 已 /通过')
-                  : ('必审 ' + done + '/' + total + ' — 未齐'),
+                  ? ('review ' + done + '/' + total + ' approved')
+                  : ('review ' + done + '/' + total + ' pending'),
                 target_url: 'https://github.com/' + owner + '/' + repo + '/pull/' + pull_number
               });
             } catch (e) {
@@ -266,10 +266,10 @@ jobs:
             }
             if (!ok) {
               const parts = [];
-              if (missing.length) parts.push('未 /通过：' + missing.map(function (u) { return '@' + u; }).join(', '));
+              if (missing.length) parts.push('waiting /approve: ' + missing.map(function (u) { return '@' + u; }).join(', '));
               if (rejected.length) parts.push('已驳回：' + rejected.map(function (u) { return '@' + u; }).join(', '));
               core.warning(parts.join('；'));
               core.info('Votes incomplete. Merge box follows the commit status only.');
               return;
             }
-            core.info('All required reviewers posted /通过 for current head; status written to ' + headSha.slice(0, 7));
+            core.info('All required reviewers posted /approve for current head; status written to ' + headSha.slice(0, 7));

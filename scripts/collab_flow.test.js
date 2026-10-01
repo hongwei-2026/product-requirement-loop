@@ -10,11 +10,13 @@ assert.strictEqual(
   flow.claimAllowed(['改这里 project/web/app.html', '/claim']).ok,
   true
 );
-assert.strictEqual(flow.isSubmittedCommand('/已提交'), true);
-assert.strictEqual(flow.isSubmittedCommand('流水好了\n/submitted'), true);
+assert.strictEqual(flow.isSubmittedCommand('/submitted'), true);
+assert.strictEqual(flow.isSubmittedCommand('pipeline started\n/done'), true);
+assert.strictEqual(flow.isSubmittedCommand('/已提交'), false);
 assert.strictEqual(flow.isSubmittedCommand('/claim'), false);
-assert.strictEqual(flow.parseReviewCommand('先说一下\n/通过'), 'pass');
-assert.strictEqual(flow.parseReviewCommand('/驳回 还缺截图'), 'fail');
+assert.strictEqual(flow.parseReviewCommand('notes\n/approve'), 'pass');
+assert.strictEqual(flow.parseReviewCommand('/reject missing screenshot'), 'fail');
+assert.strictEqual(flow.parseReviewCommand('/通过'), null);
 assert.strictEqual(flow.parseReviewCommand('看起来可以'), null);
 
 const reviewers = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];

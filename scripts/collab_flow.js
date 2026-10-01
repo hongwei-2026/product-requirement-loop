@@ -1,4 +1,4 @@
-/** Shared rules for /claim and /通过. Used by Actions and local self-test. */
+/** Shared rules for /claim and /approve. Used by Actions and local self-test. */
 
 function hasSubmitTarget(text) {
   const s = String(text || '');
@@ -22,18 +22,18 @@ function claimAllowed(bodies) {
   };
 }
 
-const PASS = new Set(['通过', 'approve', 'lgtm', 'ack']);
-const FAIL = new Set(['驳回', 'reject', 'changes', 'deny']);
+const PASS = new Set(['approve', 'lgtm', 'ack']);
+const FAIL = new Set(['reject', 'changes', 'deny']);
 
 function isSubmittedCommand(body) {
-  return String(body || '').split(/\r?\n/).some((line) => /^\/(已提交|submitted|done)$/i.test(line.trim()));
+  return String(body || '').split(/\r?\n/).some((line) => /^\/(submitted|done)$/i.test(line.trim()));
 }
 
 function parseReviewCommand(body) {
   const lines = String(body || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   for (const line of lines) {
-    let m = line.match(/^\/(通过|驳回|approve|lgtm|ack|reject|changes|deny)(?![A-Za-z0-9_])/i);
-    if (!m && /^(通过|驳回|approve|lgtm|ack|reject|changes|deny)$/i.test(line)) {
+    let m = line.match(/^\/(approve|lgtm|ack|reject|changes|deny)(?![A-Za-z0-9_])/i);
+    if (!m && /^(approve|lgtm|ack|reject|changes|deny)$/i.test(line)) {
       m = [line, line];
     }
     if (!m) continue;

@@ -1,7 +1,7 @@
 name: CI
 
 # 仓库级门禁：密钥、语法、文档布局、代码改动时的安全与验收。
-# 接取人和贡献声明在 Task PR gate；/通过 在 Reviewer gate。本文件不重复这两段。
+# 接取人和贡献声明在 Task PR gate；/approve 在 Reviewer gate。本文件不重复这两段。
 
 on:
   push:

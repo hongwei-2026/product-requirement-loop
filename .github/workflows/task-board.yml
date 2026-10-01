@@ -133,17 +133,17 @@ jobs:
                 '   正文：Issue 链接、Design PR 链接、你的 GitHub ID',
                 '4. 等管理员合并 Design PR 后，在本 Issue 评论：`/accept @' + actor + '`',
                 '5. 接取人写成你之后，再开实现 PR：正文 `Fixes #' + issue_number + '`，加演示视频链接和至少 2 张截图',
-                '6. 流水跑起来之后，在本 Issue 评论：`/已提交`',
-                '7. 按机器人给的链接看 PR 上的审核进度。审核员各自 `/通过` 后，管理员合并，再 `/score 分数`',
+                '6. 流水跑起来之后，在本 Issue 评论：`/submitted`',
+                '7. 按机器人给的链接看 PR 上的审核进度。审核员各自 `/approve` 后，管理员合并，再 `/score N`',
                 '',
                 '指南：`docs/handbook/index.md`'
               ].join('\n'));
               return;
             }
 
-            // ---------- /已提交 ----------
+            // ---------- /submitted ----------
             const REVIEWERS = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
-            if (lines.some(l => /^\/(已提交|submitted|done)$/i.test(l))) {
+            if (lines.some(l => /^\/(submitted|done)$/i.test(l))) {
               const dataNow = loadClaims();
               const cur = dataNow.claims[key];
               const who = (cur && cur.user) || ((issue.assignees || [])[0] && issue.assignees[0].login) || '';
@@ -152,7 +152,7 @@ jobs:
                 return;
               }
               if (actor.toLowerCase() !== who.toLowerCase() && actor !== MAINTAINER) {
-                await reply('⛔ 只有接取人 @' + who + ' 可以发 `/已提交`。');
+                await reply('⛔ 只有接取人 @' + who + ' 可以发 `/submitted`。');
                 return;
               }
               const openPrs = await github.paginate(github.rest.pulls.list, {
@@ -168,7 +168,7 @@ jobs:
               });
               if (!impl) {
                 await reply(
-                  '⛔ 还没找到实现 PR。请先开 PR，正文写 `Fixes #' + issue_number + '`，等流水开始跑，再回到本 Issue 发 `/已提交`。'
+                  '⛔ 还没找到实现 PR。请先开 PR，正文写 `Fixes #' + issue_number + '`，等流水开始跑，再回到本 Issue 发 `/submitted`。'
                 );
                 return;
               }
@@ -178,13 +178,13 @@ jobs:
                 '',
                 '请盯着这条 PR 的审核信息，不用等所有人同时在线。',
                 '- 流水结果在 PR 底部的 Checks。',
-                '- 「必审进度」表会写谁已经 `/通过`、谁还没有。',
-                '- 有人 `/驳回` 时，按评论补材料，再在 PR 里发 `/recheck`。',
+                '- 「必审进度」表会写谁已经 `/approve`、谁还没有。',
+                '- 有人 `/reject` 时，按评论补材料，再在 PR 里发 `/recheck`。',
                 '',
                 '### 每位审核员',
-                REVIEWERS.map(u => '- @' + u + '：打开 PR，看 CI、自动审核清单、视频和截图。同意就单独一行 `/通过`，不同意就 `/驳回` 并写清缺什么。作者本人的 `/通过` 不算。').join('\n'),
+                REVIEWERS.map(u => '- @' + u + '：打开 PR，看 CI、自动审核清单、视频和截图。同意就单独一行 `/approve`，不同意就 `/reject` 并写清缺什么。作者本人的 `/approve` 不算。').join('\n'),
                 '',
-                '全部通过且流水为绿之后，管理员 @' + MAINTAINER + ' 合并。合并后在本 Issue 发 `/score 分数`。'
+                '全部通过且流水为绿之后，管理员 @' + MAINTAINER + ' 合并。合并后在本 Issue 发 `/score N`。'
               ].join('\n'));
               return;
             }

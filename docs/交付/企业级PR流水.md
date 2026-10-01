@@ -18,7 +18,7 @@
                     │
                     ├─ CI（密钥 / 文档布局 / 代码改动时的 verify_* 与 bandit；纯文档 PR 跳过重活）
                     ├─ Task PR gate（贡献声明、一账号一个 PR、/claim 接取人）
-                    ├─ Required reviewers 状态 `Required reviewers (all must approve) / all-reviewers`（必审人全员 PR 评论 `/通过`；workflow 任务名是 `Reviewer gate / tally`，票未齐时不再额外失败）
+                    ├─ Required reviewers 状态 `Required reviewers (all must approve) / all-reviewers`（必审人全员 PR 评论 `/approve`；workflow 任务名是 `Reviewer gate / tally`，票未齐时不再额外失败）
                     └─ Task stale auto-release（每天：关联 PR >30 天无更新 → 自动释放）
 ```
 
@@ -35,8 +35,8 @@
 
 | 命令 | 位置 | 作用 |
 |------|------|------|
-| `/通过` `/approve` `/lgtm` | **PR 评论**单独一行 | 必审人同意当前 head（全员通过后门禁绿） |
-| `/驳回` `/reject` `/changes` | **PR 评论**单独一行 | 必审人反对或撤回通过 |
+| `/approve` `/lgtm` | **PR 评论**单独一行 | 必审人同意当前 head（全员通过后门禁绿） |
+| `/reject` `/changes` | **PR 评论**单独一行 | 必审人反对或撤回通过 |
 | `/recheck` `/rerun` `/rerun-checks` | **PR 评论**单独一行 | 重跑 Enterprise PR 套件 |
 | `/claim` `/accept` `/cancel` `/score` | **Issue 评论** | 任务板（见 task-board.yml） |
 
@@ -44,7 +44,7 @@
 
 | 情况 | 行为 |
 |------|------|
-| 必审人是 PR 作者 | 作者不能 `/通过` 自己；其余必审人发 `/通过` |
+| 必审人是 PR 作者 | 作者不能 `/approve` 自己；其余必审人发 `/approve` |
 | Fork 来的 PR | AI 清单走 `pull_request_target`；`gate` 只做校验不刷屏 |
 | 合并区样式 | 看 GitHub 底部卡片；必审状态在 Check Summary |
 

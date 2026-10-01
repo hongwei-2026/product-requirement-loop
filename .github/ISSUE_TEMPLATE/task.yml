@@ -58,7 +58,7 @@ body:
         | 维护者清掉别人的认领 | `/reject-claim` | 接取人清空 |
         | 合并后计分 | `/score N` | 记入计分板 |
 
-        做完后提 PR，正文写 `Fixes #<本Issue>`。审核员评论 `/通过`。管理员合并。
+        做完后提 PR，正文写 `Fixes #<本Issue>`。审核员评论 `/approve`。管理员合并。
         总览：[Issue #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7)
     validations:
       required: true
@@ -71,8 +71,8 @@ body:
         2. **演示视频链接（必填）**：可公网打开的链接（B 站 / 飞书云文档·妙记 / 录屏分享等），展示完整操作路径；写在 PR「演示视频」一节
         3. **截图（必填）**：至少 2 张（改前/改后或关键成功界面），**直接贴在 PR 正文**
         4. 禁止视频/截图中出现 API Key / `.env`
-        5. 必审人在 PR 评论单独一行 `/通过`（Approve 按钮不算）
-        6. 缺视频或截图时不要 `/通过`；补齐后评论 `/recheck`
+        5. 必审人在 PR 评论单独一行 `/approve`（Approve 按钮不算）
+        6. 缺视频或截图时不要 `/approve`；补齐后评论 `/recheck`
     validations:
       required: true
   - type: textarea

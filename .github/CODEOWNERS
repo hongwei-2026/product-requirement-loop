@@ -1,5 +1,5 @@
 # CODEOWNERS 仅作「默认请求审查」名单参考。
-# 合并门禁以 required-reviewers.yml 的评论命令 `/通过` + 状态检查为准，
+# 合并门禁以 required-reviewers.yml 的评论命令 `/approve` + 状态检查为准，
 # 不要求 GitHub 原生 Approve（避免与「评论通过」双轨、作者无法自审）。
 
 * @hongwei-2026 @hl019 @Jerrybao99 @likexin105

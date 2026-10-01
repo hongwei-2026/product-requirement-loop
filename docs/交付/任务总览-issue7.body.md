@@ -1,7 +1,7 @@
 # 实训任务总览（跳转入口）
 
 维护者：@hongwei-2026  
-必审人（PR 评论 **`/通过`**，作者不能自审）：@hongwei-2026 @hl019 @Jerrybao99 @likexin105  
+必审人（PR 评论 **`/approve`**，作者不能自审）：@hongwei-2026 @hl019 @Jerrybao99 @likexin105  
 
 - **基地总看板**：[实训基地任务汇总表](https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/%E4%BA%A4%E4%BB%98/%E5%AE%9E%E8%AE%AD%E5%9F%BA%E5%9C%B0%E4%BB%BB%E5%8A%A1%E6%B1%87%E6%80%BB%E8%A1%A8.md)
 - **协作指南（User Guide）**：[实训基地协作指南](https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/%E4%BA%A4%E4%BB%98/%E5%AE%9E%E8%AE%AD%E5%9F%BA%E5%9C%B0%E5%8D%8F%E4%BD%9C%E6%8C%87%E5%8D%97.md)
