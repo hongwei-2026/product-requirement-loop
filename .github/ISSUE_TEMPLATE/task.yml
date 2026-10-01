@@ -6,8 +6,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        请先阅读 [实训基地协作指南](https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/%E4%BA%A4%E4%BB%98/%E5%AE%9E%E8%AE%AD%E5%9F%BA%E5%9C%B0%E5%8D%8F%E4%BD%9C%E6%8C%87%E5%8D%97.md)。
-        **接取说明与交付物规范写在下方预填字段。接取时评论须带邮箱。**
+        请先阅读 [唯一入口](https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/handbook/index.md)。
+        先在 Issue 写清 `提交到：路径`，再单独一行 `/claim`。
   - type: dropdown
     id: difficulty
     attributes:
@@ -44,28 +44,22 @@ body:
     attributes:
       label: 如何接取 / 放弃 / 同步仪表盘（保留本段，勿删）
       value: |
-        命令写在**本 Issue 评论区**，单独一行。
-
-        接取时同一条评论写：
+        命令写在本 Issue 评论区，单独一行。
 
         ```text
+        提交到：project/web/app.html
         /claim
-        邮箱：you@example.com
         ```
 
-        | 你要做的事 | 评论命令 | 接取人栏 |
-        |------------|----------|----------|
-        | 登记意向（须带邮箱） | `/claim` | 仍为 — |
-        | 维护者批准（Design 已合并后） | （仅 @hongwei-2026）`/accept @你的ID` | **写入 @你的ID** |
-        | 自己放弃 | `/cancel` 或 `/release` | 清空为 — |
-        | 维护者清掉别人的认领 | `/reject-claim` | 清空为 — |
-        | 合并后计分 | `/score N` | 标已完成 |
-        | 关联 PR 超 30 天无更新 | （自动） | **自动释放** |
+        | 你要做的事 | 评论命令 | 结果 |
+        |------------|----------|------|
+        | 接取（须已写提交位置） | `/claim` | 系统把任务接到你 |
+        | 自己放弃 | `/cancel` 或 `/release` | 接取人清空 |
+        | 维护者清掉别人的认领 | `/reject-claim` | 接取人清空 |
+        | 合并后计分 | `/score N` | 记入计分板 |
 
-        - 总览：[Issue #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7)
-        - Design 邮件：feizi_050920@qq.com（Issue + Design PR + GitHub ID）
-        - 必审：PR 评论 `/通过`（Approve 按钮不算）
-        - 一账号一题、一账号一个未关闭 PR
+        做完后提 PR，正文写 `Fixes #<本Issue>`。审核员评论 `/通过`。管理员合并。
+        总览：[Issue #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7)
     validations:
       required: true
   - type: textarea
@@ -73,7 +67,7 @@ body:
     attributes:
       label: 交付物规范（Implementation PR 缺一不可；保留本段）
       value: |
-        1. **代码**：PR 标题 `[Impl] #<本Issue> …`，正文含 `Fixes #<本Issue>`；作者须为已 `/accept` 的 Assignee
+        1. **代码**：正文含 `Fixes #<本Issue>`；作者须为已 `/claim` 的接取人
         2. **演示视频链接（必填）**：可公网打开的链接（B 站 / 飞书云文档·妙记 / 录屏分享等），展示完整操作路径；写在 PR「演示视频」一节
         3. **截图（必填）**：至少 2 张（改前/改后或关键成功界面），**直接贴在 PR 正文**
         4. 禁止视频/截图中出现 API Key / `.env`

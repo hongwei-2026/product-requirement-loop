@@ -86,7 +86,7 @@ jobs:
               const lines = String(body || '').split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
               for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-                let m = line.match(/^\/(通过|驳回|approve|lgtm|ack|reject|changes|deny)\b/i);
+                let m = line.match(/^\/(通过|驳回|approve|lgtm|ack|reject|changes|deny)(?![A-Za-z0-9_])/i);
                 if (!m && /^(通过|驳回|approve|lgtm|ack|reject|changes|deny)$/i.test(line)) {
                   m = [line, line];
                 }

@@ -43,7 +43,7 @@ jobs:
               add('若改 LLM：默认 trust_env 关闭、超时可配置、思考链可关');
             }
             if (names.some(n => n.startsWith('docs/'))) {
-              add('若改文档：交付门面 docs/交付 入口仍清晰');
+              add('若改文档：同事入口仍是 docs/handbook/index.md');
             }
             add('本地/CI：verify_docs_layout + verify_lessons + verify_security 通过');
             if (/\[Design\]/i.test(pr.title || '')) add('Design PR：无完整实现代码堆砌，方案可审');
@@ -54,7 +54,7 @@ jobs:
             const body = [
               '## 🤖 任务自动审核助手（清单）',
               '',
-              '以下为基于改动路径生成的审核清单，**不替代**维护者人工 Review。',
+              '以下为基于改动路径生成的审核清单。审核员看到后可随时评论 `/通过`，不必同时在线。管理员在必审都通过后合并。',
               '',
               ...checks,
               '',

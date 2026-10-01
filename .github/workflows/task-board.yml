@@ -28,6 +28,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const flow = require(process.env.GITHUB_WORKSPACE + '/scripts/collab_flow.js');
             const MAINTAINER = 'hongwei-2026';
             const SCORERS = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
             const CLAIMS_PATH = 'docs/交付/任务认领状态.json';
@@ -114,6 +115,18 @@ jobs:
                 );
                 return;
               }
+              const prior = await github.paginate(github.rest.issues.listComments, {
+                owner: context.repo.owner, repo: context.repo.repo, issue_number, per_page: 100
+              });
+              const said = prior
+                .filter(c => (c.user?.login || '').toLowerCase() === actor.toLowerCase())
+                .map(c => c.body || '');
+              said.push(body);
+              const decision = flow.claimAllowed(said);
+              if (!decision.ok) {
+                await reply(decision.message);
+                return;
+              }
               await ensureLabel('status:locked', '0e8a16', '已接取');
               try {
                 await github.rest.issues.removeLabel({
@@ -142,7 +155,7 @@ jobs:
                 '同一账号同时只接 1 个任务。不想做了就评论 `/cancel`。',
                 '',
                 '### 接下来',
-                '1. 先在本 Issue 写清：你要改仓库里的哪一处。',
+                '1. 按你写的提交位置去做。',
                 '2. 做完后开 PR，正文带 `Fixes #' + issue_number + '`。',
                 '3. 审核员各自看到后，在 PR 评论单独一行 `/通过`。人不必同时在线。',
                 '4. 管理员看到审核通过后合并 PR。',

@@ -13,7 +13,7 @@ STD = (ROOT / "docs" / "交付" / "任务Issue标准块.md").read_text(encoding=
 
 # Extract the two sections from the standard block (skip title/intro)
 m = re.search(
-    r"(## 如何接取 / 放弃 / 同步仪表盘[\s\S]*?)(?=## 交付物规范)",
+    r"(## 如何接取[\s\S]*?)(?=## 交付物规范)",
     STD,
 )
 m2 = re.search(r"(## 交付物规范[\s\S]*)$", STD)
