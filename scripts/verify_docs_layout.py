@@ -2,7 +2,8 @@
 """交付门面 / 文档布局门禁（轻量社区态）。
 
 检查：
-  - docs/交付 作为对外唯一门面：必读文件齐全
+  - 同事唯一入口是 docs/handbook/index.md
+  - docs/交付 过程材料仍齐全
   - 根 README 含固定入口关键词（跑 / 验 / 结项 / 手册 / 问题）
   - docs/README 标明阶段材料为非结项必读
   - 不把组织章程文件名（public-second-brain.md 等）误当成业务必改名
@@ -62,6 +63,17 @@ def main() -> int:
             pass
     print("== verify_docs_layout (delivery facade) ==")
 
+    handbook = ROOT / "docs" / "handbook" / "index.md"
+    if handbook.is_file() and "唯一入口" in handbook.read_text(encoding="utf-8"):
+        ok("同事唯一入口 docs/handbook/index.md")
+    else:
+        bad("同事唯一入口", "docs/handbook/index.md 缺失或未标明唯一入口")
+    root_text = ROOT_README.read_text(encoding="utf-8") if ROOT_README.exists() else ""
+    if "docs/handbook/index.md" in root_text and "唯一入口" in root_text:
+        ok("根 README 指向唯一入口")
+    else:
+        bad("根 README 指向唯一入口", "需链接 docs/handbook/index.md 并写明唯一入口")
+
     if not DELIVERY.is_dir():
         bad("docs/交付 存在", str(DELIVERY))
         print(f"\n== summary: PASS={PASS} FAIL={FAIL} ==")
@@ -89,10 +101,10 @@ def main() -> int:
         else:
             bad(f"根 README 入口·{label}", f"需含其一: {alts}")
 
-    if "5 个入口" in root or "五个入口" in root or "| 1 |" in root:
-        ok("根 README 突出入口表")
+    if "唯一入口" in root and "docs/handbook/index.md" in root:
+        ok("根 README 只有一个同事入口")
     else:
-        bad("根 README 突出入口表", "建议保留「5 个入口」表")
+        bad("根 README 只有一个同事入口", "只指向 docs/handbook/index.md")
 
     docs_nav = DOCS_README.read_text(encoding="utf-8") if DOCS_README.exists() else ""
     if "过程材料" in docs_nav and "非结项必读" in docs_nav:
@@ -100,10 +112,10 @@ def main() -> int:
     else:
         bad("docs/README 标明过程材料非必读", "需写清阶段/自测/答辩非结项必读")
 
-    if "对外交付" in docs_nav and "交付/" in docs_nav:
-        ok("docs/README 指向交付门面")
+    if "handbook/index.md" in docs_nav and "不是入口" in docs_nav:
+        ok("docs/README 指向唯一入口")
     else:
-        bad("docs/README 指向交付门面", "需强调对外只看 交付/")
+        bad("docs/README 指向唯一入口", "需指向 handbook/index.md，并写明其余目录不是入口")
 
     facade = (DELIVERY / "README.md").read_text(encoding="utf-8")
     for charter in ("public-second-brain.md", "release.md", "second-brain.md"):

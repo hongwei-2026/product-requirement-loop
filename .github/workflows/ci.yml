@@ -56,6 +56,7 @@ jobs:
             "scripts/verify_lessons.py"
             "scripts/verify_docs_layout.py"
             "scripts/smoke_llm_providers.py"
+            "docs/handbook/index.md"
             "docs/交付/README.md"
             "docs/交付/问题反馈整理-2026-09-08.md"
             "docs/交付/评审意见与处理情况.md"

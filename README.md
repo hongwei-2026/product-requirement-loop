@@ -4,23 +4,11 @@
 
 [![CI](https://github.com/hongwei-2026/product-requirement-loop/actions/workflows/ci.yml/badge.svg)](https://github.com/hongwei-2026/product-requirement-loop/actions/workflows/ci.yml)
 
-## 5 个入口（结项 / 公司端先看这些）
+## 唯一入口
 
-| # | 你要做什么 | 打开 |
-|---|------------|------|
-| 1 | **怎么跑起来** | 下方「快速开始」；或 `start-with-ai.bat` / `start-with-ai.sh` |
-| 2 | **怎么验收** | [`docs/交付/结项说明-给审阅同事.md`](./docs/交付/结项说明-给审阅同事.md) · [`trial-report.md`](./project/trials/case-01/trial-report.md) · 双击 `验收门槛.bat` |
-| 3 | **结项说明** | [`docs/交付/结项说明-给审阅同事.md`](./docs/交付/结项说明-给审阅同事.md)（证据位置、CLI→Web、执行器） |
-| 4 | **操作手册** | [`docs/交付/产品操作手册.md`](./docs/交付/产品操作手册.md)（与产品内 UI 手册一致） |
-| 5 | **问题与处理** | [`docs/交付/问题反馈整理-2026-09-08.md`](./docs/交付/问题反馈整理-2026-09-08.md) |
-| 6 | **实训基地接任务** | [`实训基地任务汇总表`](./docs/交付/实训基地任务汇总表.md) · [`实训基地协作指南`](./docs/交付/实训基地协作指南.md) · [Issue #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7) |
+同事只看 [docs/handbook/index.md](./docs/handbook/index.md)。
 
-**实训基地硬性规则：** 一账号一题；`/claim` → Design 落 [`docs/designs/`](./docs/designs/) → 维护者 **Merge** → `/accept @你` 后**汇总表接取人**才写入；Impl 须代码+视频+截图；关联 PR 超 **30 天**无更新自动释放。
-
-交付目录总表：[`docs/交付/README.md`](./docs/交付/README.md)  
-安全：[`docs/交付/安全说明.md`](./docs/交付/安全说明.md)
-
-> `docs/阶段*`、`docs/自测/`、`docs/答辩总报告/` 是**过程材料**，不是结项必读。
+怎么跑起来见下方「快速开始」。验收、结项说明、产品操作手册、问题反馈和安全说明都从入口页进去，不要从文件夹里逐份点开。
 
 ---
 
