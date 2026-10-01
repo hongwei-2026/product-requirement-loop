@@ -25,6 +25,10 @@ function claimAllowed(bodies) {
 const PASS = new Set(['通过', 'approve', 'lgtm', 'ack']);
 const FAIL = new Set(['驳回', 'reject', 'changes', 'deny']);
 
+function isSubmittedCommand(body) {
+  return String(body || '').split(/\r?\n/).some((line) => /^\/(已提交|submitted|done)$/i.test(line.trim()));
+}
+
 function parseReviewCommand(body) {
   const lines = String(body || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   for (const line of lines) {
@@ -55,4 +59,4 @@ function tallyReviews(required, author, votes) {
   return { need, missing, rejected, passed, ok: missing.length === 0 && rejected.length === 0 && need.length > 0 };
 }
 
-module.exports = { hasSubmitTarget, claimAllowed, parseReviewCommand, tallyReviews };
+module.exports = { hasSubmitTarget, claimAllowed, isSubmittedCommand, parseReviewCommand, tallyReviews };

@@ -10,6 +10,9 @@ assert.strictEqual(
   flow.claimAllowed(['改这里 project/web/app.html', '/claim']).ok,
   true
 );
+assert.strictEqual(flow.isSubmittedCommand('/已提交'), true);
+assert.strictEqual(flow.isSubmittedCommand('流水好了\n/submitted'), true);
+assert.strictEqual(flow.isSubmittedCommand('/claim'), false);
 assert.strictEqual(flow.parseReviewCommand('先说一下\n/通过'), 'pass');
 assert.strictEqual(flow.parseReviewCommand('/驳回 还缺截图'), 'fail');
 assert.strictEqual(flow.parseReviewCommand('看起来可以'), null);
