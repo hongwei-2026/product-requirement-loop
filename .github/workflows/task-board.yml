@@ -28,7 +28,6 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const flow = require(process.env.GITHUB_WORKSPACE + '/scripts/collab_flow.js');
             const MAINTAINER = 'hongwei-2026';
             const SCORERS = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
             const CLAIMS_PATH = 'docs/交付/任务认领状态.json';
@@ -115,50 +114,26 @@ jobs:
                 );
                 return;
               }
-              const prior = await github.paginate(github.rest.issues.listComments, {
-                owner: context.repo.owner, repo: context.repo.repo, issue_number, per_page: 100
-              });
-              const said = prior
-                .filter(c => (c.user?.login || '').toLowerCase() === actor.toLowerCase())
-                .map(c => c.body || '');
-              said.push(body);
-              const decision = flow.claimAllowed(said);
-              if (!decision.ok) {
-                await reply(decision.message);
-                return;
-              }
-              await ensureLabel('status:locked', '0e8a16', '已接取');
-              try {
-                await github.rest.issues.removeLabel({
-                  owner: context.repo.owner, repo: context.repo.repo, issue_number, name: 'status:claim-pending'
-                });
-              } catch (_) {}
-              await github.rest.issues.addAssignees({
-                owner: context.repo.owner, repo: context.repo.repo, issue_number, assignees: [actor]
-              });
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner, repo: context.repo.repo, issue_number,
-                labels: ['status:locked']
-              });
+              await ensureLabel('status:claim-pending', 'fbca04', '已登记，待设计合并后 /accept');
               const emailLine = lines.find(l => /^邮箱\s*[:：]/.test(l));
               const emailMatch = emailLine && emailLine.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
               const email = emailMatch ? emailMatch[0] : '';
-              data.claims[key] = { user: actor, status: 'locked', updated: stamp(), email: email };
+              data.claims[key] = { user: actor, status: 'claim-pending', updated: stamp(), email: email };
               saveClaims(data);
-              const emailNote = email
-                ? ('已记下邮箱：`' + email + '`。')
-                : '如需邮件联系，可再评论一行：`邮箱：you@example.com`。';
               await reply([
-                `✅ **@${actor} 已接取本任务。**`,
+                `✅ **@${actor} 已登记。** 接取人还没写上你。`,
                 '',
-                emailNote,
-                '同一账号同时只接 1 个任务。不想做了就评论 `/cancel`。',
+                '同一账号同时只接 1 个任务。放弃：`/cancel`',
                 '',
-                '### 接下来',
-                '1. 按你写的提交位置去做。',
-                '2. 做完后开 PR，正文带 `Fixes #' + issue_number + '`。',
-                '3. 审核员各自看到后，在 PR 评论单独一行 `/通过`。人不必同时在线。',
-                '4. 管理员看到审核通过后合并 PR。',
+                '### 接下来必须做',
+                '1. 设计文档：复制 `docs/designs/_TEMPLATE.md` 为 `docs/designs/#' + issue_number + '-简短英文.md`',
+                '2. 开 **Design PR**：标题 `[Design] #' + issue_number + ' …`，正文写 `Related to #' + issue_number + '`，不要写 `Fixes`',
+                '3. 发邮件到 **feizi_050920@qq.com**',
+                '   主题：`[Design] #' + issue_number + ' ' + actor + '`',
+                '   正文：Issue 链接、Design PR 链接、你的 GitHub ID',
+                '4. 等管理员合并 Design PR 后，在本 Issue 评论：`/accept @' + actor + '`',
+                '5. 接取人写成你之后，再开实现 PR：正文 `Fixes #' + issue_number + '`，加演示视频链接和至少 2 张截图',
+                '6. 审核员在 PR 评论 `/通过`。管理员合并。然后在本 Issue 评论 `/score 分数`',
                 '',
                 '指南：`docs/handbook/index.md`'
               ].join('\n'));
