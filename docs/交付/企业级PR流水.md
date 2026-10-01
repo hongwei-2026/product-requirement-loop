@@ -16,8 +16,8 @@
                     │         ├─ task-lock（Impl 必须已 /accept 且作者=Assignee）
                     │         └─ suite-summary（粘性评论仪表盘）
                     │
-                    ├─ CI（仓库级 verify_* / 密钥 / bandit）
-                    ├─ Task PR gate（verify + 自动审核清单评论）
+                    ├─ CI（密钥 / 文档布局 / 代码改动时的 verify_* 与 bandit；纯文档 PR 跳过重活）
+                    ├─ Task PR gate（贡献声明、一账号一个 PR、/claim 接取人）
                     ├─ Required reviewers 状态 `Required reviewers (all must approve) / all-reviewers`（必审人全员 PR 评论 `/通过`；workflow 任务名是 `Reviewer gate / tally`，票未齐时不再额外失败）
                     └─ Task stale auto-release（每天：关联 PR >30 天无更新 → 自动释放）
 ```

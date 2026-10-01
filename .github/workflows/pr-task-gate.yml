@@ -1,6 +1,7 @@
 name: Task PR gate + auto review
 
-# 文档/安全校验跑 PR head；docs-only 走轻量路径以加速 CI。
+# 只做协作规则：贡献者声明、一账号一个未关闭 PR、实现 PR 必须是已 /claim 的接取人。
+# 文档布局、密钥、验收在 CI。审核票在 Reviewer gate。
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, edited]
@@ -14,63 +15,6 @@ jobs:
   gate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Detect change scope
-        id: scope
-        shell: bash
-        run: |
-          set -euo pipefail
-          BASE="${{ github.event.pull_request.base.sha }}"
-          HEAD="${{ github.event.pull_request.head.sha }}"
-          mapfile -t FILES < <(git diff --name-only "$BASE"..."$HEAD" || true)
-          echo "changed=${#FILES[@]}"
-          needs_python=false
-          docs_only=true
-          for f in "${FILES[@]}"; do
-            case "$f" in
-              docs/*|*.md|LICENSE*|LICENSE.txt|.gitignore)
-                ;;
-              .github/PULL_REQUEST_TEMPLATE/*|.github/CODEOWNERS)
-                ;;
-              *)
-                docs_only=false
-                needs_python=true
-                ;;
-            esac
-            case "$f" in
-              project/*|scripts/verify_*.py|scripts/*.py)
-                needs_python=true
-                ;;
-            esac
-          done
-          # 纯文档/模板也跑 layout；代码改动才装全量 deps + lessons/security
-          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
-          echo "needs_python=$needs_python" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install deps (code PRs)
-        if: steps.scope.outputs.needs_python == 'true'
-        run: |
-          python -m pip install -U pip
-          pip install -r project/requirements.txt
-          pip install bandit
-
-      - name: Docs layout gate
-        run: python scripts/verify_docs_layout.py
-
-      - name: Lessons + security gates
-        if: steps.scope.outputs.needs_python == 'true'
-        run: |
-          set -euo pipefail
-          python scripts/verify_lessons.py
-          python scripts/verify_security.py
-
       - name: Enforce contributor self + AI disclosure
         uses: actions/github-script@v7
         with:
@@ -202,6 +146,6 @@ jobs:
                   return;
                 }
               } else {
-                core.warning('Issue #' + issueNo + ' 尚未 /accept 锁定；实现 PR 建议等维护者 accept 后再合入。');
+                core.setFailed('Issue #' + issueNo + ' 还没有人 /claim 接取。请先在 Issue 写清「提交到：路径」再 /claim。');
               }
             }
