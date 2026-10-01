@@ -1,6 +1,6 @@
 name: Task PR gate + auto review
 
-# 只做协作规则：贡献者声明、一账号一个未关闭 PR、实现 PR 必须是已 /claim 的接取人。
+# 只做协作规则：贡献者声明、一账号一个未关闭 PR、实现 PR 必须是 /accept 后的接取人。
 # 文档布局、密钥、验收在 CI。审核票在 Reviewer gate。
 on:
   pull_request:
@@ -146,6 +146,6 @@ jobs:
                   return;
                 }
               } else {
-                core.setFailed('Issue #' + issueNo + ' 还没有人 /claim 接取。请先在 Issue 写清「提交到：路径」再 /claim。');
+                core.setFailed('Issue #' + issueNo + ' 还没被 /accept 锁定。请先 /claim、交 Design PR、发邮件，等管理员 /accept 后再开实现 PR。');
               }
             }

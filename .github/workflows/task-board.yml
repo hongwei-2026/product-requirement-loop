@@ -131,7 +131,7 @@ jobs:
                 '3. 发邮件到 **feizi_050920@qq.com**',
                 '   主题：`[Design] #' + issue_number + ' ' + actor + '`',
                 '   正文：Issue 链接、Design PR 链接、你的 GitHub ID',
-                '4. 等管理员合并 Design PR 后，在本 Issue 评论：`/accept @' + actor + '`',
+                '4. 等管理员合并 Design PR，再由管理员在本 Issue 评论：`/accept @' + actor + '`',
                 '5. 接取人写成你之后，再开实现 PR：正文 `Fixes #' + issue_number + '`，加演示视频链接和至少 2 张截图',
                 '6. 流水跑起来之后，在本 Issue 评论：`/submitted`',
                 '7. 按机器人给的链接看 PR 上的审核进度。审核员各自 `/approve` 后，管理员合并，再 `/score N`',
@@ -149,6 +149,10 @@ jobs:
               const who = (cur && cur.user) || ((issue.assignees || [])[0] && issue.assignees[0].login) || '';
               if (!who) {
                 await reply('⛔ 这个任务还没有人 `/claim`。');
+                return;
+              }
+              if (!cur || cur.status !== 'locked') {
+                await reply('⛔ 还不能 `/submitted`。请先交 Design PR、发邮件，等管理员合并设计并评论 `/accept @' + who + '`。');
                 return;
               }
               if (actor.toLowerCase() !== who.toLowerCase() && actor !== MAINTAINER) {

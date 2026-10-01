@@ -377,7 +377,7 @@ jobs:
                 return;
               }
             } else if (kind === 'implementation') {
-                core.setFailed(`Issue #${issueNo} 还没有人 /claim 接取，不能合入实现。请先在 Issue 写清提交位置并 /claim。`);
+                core.setFailed(`Issue #${issueNo} 还没被 /accept 锁定，不能合入实现。请先 /claim、Design PR、邮件，再由管理员 /accept。`);
               return;
             }
             core.info('task-lock OK');
