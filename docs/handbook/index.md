@@ -7,6 +7,8 @@ date: 2026-10-01
 
 同事只从这一页进入本仓库。过程材料还在，但不是入口。
 
+准备移交组织的仓库名是 `qt-product-requirement`（Platform）。规范见 [工作边界](../bylaw/index.md) 和 [目录对照](../specification/layout.md)。个人账号没有 `quanttide` 组织建库权限，仓库先放在 `hongwei-2026/qt-product-requirement`，等组织管理员接收。
+
 ## 目标
 
 把官方产品日志整理成需求故事和定稿 JSON，并且让不同技术背景的人按写下来的步骤接手。

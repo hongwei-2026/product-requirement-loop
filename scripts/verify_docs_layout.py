@@ -42,6 +42,13 @@ REQUIRED_DELIVERY = [
     "实训基地协作指南.md",
 ]
 
+REQUIRED_SPEC = [
+    ROOT / "docs" / "handbook" / "index.md",
+    ROOT / "docs" / "bylaw" / "index.md",
+    ROOT / "docs" / "specification" / "layout.md",
+    ROOT / "AGENTS.md",
+]
+
 
 def ok(name: str, detail: str = "") -> None:
     global PASS
@@ -62,6 +69,12 @@ def main() -> int:
         except Exception:
             pass
     print("== verify_docs_layout (delivery facade) ==")
+
+    for spec in REQUIRED_SPEC:
+        if spec.is_file() and spec.stat().st_size > 40:
+            ok(f"规范文件 {spec.relative_to(ROOT)}")
+        else:
+            bad(f"规范文件 {spec.relative_to(ROOT)}", "缺失或过短")
 
     handbook = ROOT / "docs" / "handbook" / "index.md"
     if handbook.is_file() and "唯一入口" in handbook.read_text(encoding="utf-8"):
