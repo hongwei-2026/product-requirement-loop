@@ -13,14 +13,14 @@ date: 2026-10-01
 
 ## 从选题到结项
 
-任务在 [Issue #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7)。审核通知邮箱：`feizi_050920@qq.com`。管理员：@hongwei-2026。审核员：@hongwei-2026、@hl019、@Jerrybao99、@likexin105。
+协作在实训基地第二大脑仓库 [quanttide-academy/quanttide-academy](https://github.com/quanttide-academy/quanttide-academy)：任务 Issue、Design PR、实现 PR 都向它的 `main` 提。不要只开在自己的 fork 里，也不要把交稿开到本产品代码仓。任务从该仓库 [roadmap.md](https://github.com/quanttide-academy/quanttide-academy/blob/main/roadmap.md) 选，点进对应 Issue。本仓 [hongwei-2026/product-requirement-loop](https://github.com/hongwei-2026/product-requirement-loop) 只放产品代码与跑法。审核通知邮箱：`feizi_050920@qq.com`。负责人兼管理员：@hongwei-2026。审核员：@hongwei-2026、@hl019、@Jerrybao99、@likexin105。协作流程见学院仓 [协作指南](https://github.com/quanttide-academy/quanttide-academy/blob/main/docs/handbook/co-guide.md)。
 
-1. **选题。** 打开任务 Issue，读完目标、要求和验收。
+1. **选题。** 打开学院仓 roadmap / 任务 Issue，读完目标、要求和验收。
 2. **登记。** 在该 Issue 评论，单独一行：`/claim`
-3. **设计文档 PR。** 复制 `docs/designs/_TEMPLATE.md` 为 `docs/designs/#编号-简短英文.md`。开 PR，标题 `[Design] #编号 标题`，正文 `Related to #编号`。不要写 `Fixes`。
+3. **设计文档 PR。** 在自己的分支改完后，向学院仓 `quanttide-academy/quanttide-academy` 的 `main` 开 PR（按协作指南的 Design 模板与目录）。标题 `[Design] #编号 标题`，正文 `Related to #编号`。不要写 `Fixes`。
 4. **发邮件。** 发到 `feizi_050920@qq.com`。主题 `[Design] #编号 你的GitHubID`。正文放 Issue 链接、Design PR 链接、GitHub ID。
 5. **批准。** 管理员合并 Design PR 后，在 Issue 评论：`/accept @你的GitHubID`。这时接取人才写成你。
-6. **实现 PR。** 标题 `[Impl] #编号 标题`，正文 `Fixes #编号`，再加可打开的演示视频链接和至少 2 张截图。推上去以后流水会自己跑。
+6. **实现 PR。** 同样向学院仓的 `main` 开 PR。标题 `[Impl] #编号 标题`，正文 `Fixes #编号`，再加可打开的演示视频链接和至少 2 张截图。若任务要改产品代码，在实现说明里写清改了本仓哪些路径；交稿与审核仍以学院仓 PR 为准。
 7. **宣告已提交。** 流水开始跑之后，回到任务 Issue，单独一行发：`/submitted`。机器人会 @接取人，附上 PR 链接，并要求去看 PR 上的审核进度。
 8. **审核。** 每位审核员各自打开该 PR，看 Checks、自动审核清单、视频和截图。同意就在 PR 评论 `/approve`，不同意就 `/reject` 并写清缺什么。人不必同时在线。作者的 `/approve` 不算。接取人被驳回后补材料，再在 PR 发 `/recheck`。
 9. **合并。** 审核都通过且 CI 为绿，管理员合并实现 PR。

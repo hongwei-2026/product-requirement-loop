@@ -31,6 +31,9 @@ jobs:
             const MAINTAINER = 'hongwei-2026';
             const SCORERS = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
             const CLAIMS_PATH = 'docs/交付/任务认领状态.json';
+            const COLLAB_OWNER = 'quanttide-academy';
+            const COLLAB_REPO = 'quanttide-academy';
+            const COLLAB = COLLAB_OWNER + '/' + COLLAB_REPO;
             const fs = require('fs');
 
             const body = (context.payload.comment.body || '').trim();
@@ -126,17 +129,17 @@ jobs:
                 '同一账号同时只接 1 个任务。放弃：`/cancel`',
                 '',
                 '### 接下来必须做',
-                '1. 设计文档：复制 `docs/designs/_TEMPLATE.md` 为 `docs/designs/#' + issue_number + '-简短英文.md`',
-                '2. 开 **Design PR**：标题 `[Design] #' + issue_number + ' …`，正文写 `Related to #' + issue_number + '`，不要写 `Fixes`',
+                '1. 打开实训基地第二大脑：https://github.com/' + COLLAB + ' ，按协作指南写设计文档',
+                '2. 向 **' + COLLAB + '** 的 `main` 开 **Design PR**（不是本产品代码仓）：标题 `[Design] #' + issue_number + ' …`，正文写 `Related to #' + issue_number + '`，不要写 `Fixes`。只开在自己的 fork 里不算交稿',
                 '3. 发邮件到 **feizi_050920@qq.com**',
                 '   主题：`[Design] #' + issue_number + ' ' + actor + '`',
                 '   正文：Issue 链接、Design PR 链接、你的 GitHub ID',
                 '4. 等管理员合并 Design PR，再由管理员在本 Issue 评论：`/accept @' + actor + '`',
-                '5. 接取人写成你之后，再开实现 PR：正文 `Fixes #' + issue_number + '`，加演示视频链接和至少 2 张截图',
+                '5. 接取人写成你之后，再向 **' + COLLAB + '** 的 `main` 开实现 PR：正文 `Fixes #' + issue_number + '`，加演示视频链接和至少 2 张截图',
                 '6. 流水跑起来之后，在本 Issue 评论：`/submitted`',
                 '7. 按机器人给的链接看 PR 上的审核进度。审核员各自 `/approve` 后，管理员合并，再 `/score N`',
                 '',
-                '指南：`docs/handbook/index.md`'
+                '指南：学院仓 `docs/handbook/co-guide.md` · 本仓入口 `docs/handbook/index.md`'
               ].join('\n'));
               return;
             }
@@ -160,7 +163,7 @@ jobs:
                 return;
               }
               const openPrs = await github.paginate(github.rest.pulls.list, {
-                owner: context.repo.owner, repo: context.repo.repo,
+                owner: COLLAB_OWNER, repo: COLLAB_REPO,
                 state: 'open', per_page: 100
               });
               const impl = openPrs.find(p => {
@@ -172,7 +175,7 @@ jobs:
               });
               if (!impl) {
                 await reply(
-                  '⛔ 还没找到实现 PR。请先开 PR，正文写 `Fixes #' + issue_number + '`，等流水开始跑，再回到本 Issue 发 `/submitted`。'
+                  '⛔ 还没在学院仓 ' + COLLAB + ' 找到实现 PR。请向该仓库 `main` 开 PR，正文写 `Fixes #' + issue_number + '`。开在产品代码仓或只开在自己 fork 里不算。流水开始跑后，再回到本 Issue 发 `/submitted`。'
                 );
                 return;
               }

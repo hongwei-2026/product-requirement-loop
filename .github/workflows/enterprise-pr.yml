@@ -1,6 +1,6 @@
 name: Enterprise PR
 
-# 企业级 PR 套件：分类打标 · 交付物 · 设计门禁 · 体量守卫 · 任务锁定
+# 企业级 PR 套件：单提交 · 分类打标 · 交付物 · 设计门禁 · 体量守卫 · 任务锁定
 # 触发：PR 变更；PR 评论 /recheck|/rerun|/rerun-checks；手动 workflow_dispatch
 on:
   pull_request:
@@ -154,6 +154,35 @@ jobs:
                 ].join('\n')
               });
             }
+
+  single-commit:
+    name: single-commit
+    needs: gatekeeper
+    if: needs.gatekeeper.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: PR must contain exactly one commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr_number = parseInt('${{ needs.gatekeeper.outputs.pr_number }}', 10);
+            const commits = await github.paginate(github.rest.pulls.listCommits, {
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: pr_number, per_page: 100
+            });
+            const n = commits.length;
+            await core.summary
+              .addHeading('Single commit gate')
+              .addRaw(`本 PR 共 **${n}** 个 commit（要求恰好 1 个）。`)
+              .write();
+            if (n !== 1) {
+              core.setFailed(
+                `❌ PR 必须只有 1 个 commit（当前 ${n} 个）。请在本地 squash 后 force-push：\n` +
+                `git fetch origin main && git reset --soft origin/main && git commit -m "..." && git push --force-with-lease`
+              );
+              return;
+            }
+            core.info('single-commit OK: exactly 1 commit');
 
   classify:
     name: classify
@@ -384,7 +413,7 @@ jobs:
 
   suite-summary:
     name: suite-summary
-    needs: [gatekeeper, classify, delivery-artifacts, design-gate, design-gate-skip, scope-guard, task-lock]
+    needs: [gatekeeper, single-commit, classify, delivery-artifacts, design-gate, design-gate-skip, scope-guard, task-lock]
     if: always() && needs.gatekeeper.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -398,6 +427,7 @@ jobs:
             const trigger = '${{ needs.gatekeeper.outputs.trigger }}';
             const head = '${{ needs.gatekeeper.outputs.head_sha }}'.slice(0, 7);
             const results = {
+              single_commit: '${{ needs.single-commit.result }}',
               classify: '${{ needs.classify.result }}',
               delivery: '${{ needs.delivery-artifacts.result }}',
               design_run: '${{ needs.design-gate.result }}',
@@ -415,6 +445,7 @@ jobs:
               `| 类型 | \`${kind}\` |`,
               `| Head | \`${head}\` |`,
               `| 触发 | \`${trigger}\` |`,
+              `| single-commit | ${icon(results.single_commit)} |`,
               `| classify | ${icon(results.classify)} |`,
               `| delivery-artifacts | ${icon(results.delivery)} |`,
               `| design-gate | ${icon(designStatus)} |`,
@@ -443,6 +474,6 @@ jobs:
               core.warning(`Enterprise sticky comment skipped (${e.status || e.message}). Common on fork PRs.`);
               await core.summary.addHeading('Enterprise PR 套件').addRaw(body).write();
             }
-            const failed = [results.classify, results.delivery, designStatus, results.scope, results.lock]
+            const failed = [results.single_commit, results.classify, results.delivery, designStatus, results.scope, results.lock]
               .some(r => r === 'failure');
             if (failed) core.setFailed('One or more enterprise checks failed — see jobs above');
