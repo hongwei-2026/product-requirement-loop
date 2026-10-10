@@ -370,32 +370,11 @@ jobs:
               }
               const n = parseInt(scoreLine.replace(/^\/score\s+/i, ''), 10);
               const who = (issue.assignees || [])[0]?.login || (loadClaims().claims[key] || {}).user || actor;
-              const path = 'docs/交付/任务计分板.md';
-              let text = fs.readFileSync(path, 'utf8');
-              const date = new Date().toISOString().slice(0, 10);
-              const row = `| ${date} | ${who} | #${issue_number} | ${n} | by ${actor} via /score |`;
-              text = text.replace('| — | — | — | — | 尚无计分记录 |', row);
-              if (!text.includes(row)) {
-                text = text.replace(/(\| -+ \| -+ \| -+ \| -+ \| -+ \|\n)/, `$1${row}\n`);
-              }
-              const totals = {};
-              for (const seed of SCORERS) totals[seed] = 0;
-              for (const m of text.matchAll(/\|\s*\d{4}-\d{2}-\d{2}\s*\|\s*([^|]+)\s*\|\s*#\d+\s*\|\s*(\d+)\s*\|/g)) {
-                const id = m[1].trim();
-                totals[id] = (totals[id] || 0) + parseInt(m[2], 10);
-              }
-              let totalTable = '| GitHub ID | 总分 |\n|-----------|------|\n';
-              for (const id of Object.keys(totals).sort((a, b) => (totals[b] - totals[a]) || a.localeCompare(b))) {
-                totalTable += `| ${id} | ${totals[id]} |\n`;
-              }
-              text = text.replace(/## 累计[\s\S]*$/m, `## 累计（自动汇总）\n\n${totalTable}`);
-              fs.writeFileSync(path, text);
-
+              // 计分板文档已按实训要求删除；分数只写入认领状态 JSON
               const data = loadClaims();
               data.claims[key] = { user: who, status: 'done', updated: stamp(), points: n };
               saveClaims(data);
-
-              await reply(`🏆 已给 **@${who}** 记 **${n}** 分（#${issue_number}）。排行榜与认领状态将刷新。`);
+              await reply(`🏆 已给 **@${who}** 记 **${n}** 分（#${issue_number}）。分数写入认领状态，不再维护计分板文档。`);
               return;
             }
 
@@ -407,7 +386,6 @@ jobs:
           git config user.name "task-board-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
-            "docs/交付/任务计分板.md" \
             "docs/交付/任务认领状态.json" \
             "docs/交付/任务仪表盘.md" \
             "docs/交付/任务列表.md" \
