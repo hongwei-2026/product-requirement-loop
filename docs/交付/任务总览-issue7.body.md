@@ -1,7 +1,7 @@
 # 实训任务总览（跳转入口）
 
 维护者：@hongwei-2026  
-必审人（PR 评论 **`/approve`**，作者不能自审）：@hongwei-2026 @hl019 @Jerrybao99 @likexin105  
+必审人（PR 须 **`/approve`**）：@hongwei-2026 @hl019 @Jerrybao99 @likexin105  
 
 - **基地总看板**：[实训基地任务汇总表](https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/%E4%BA%A4%E4%BB%98/%E5%AE%9E%E8%AE%AD%E5%9F%BA%E5%9C%B0%E4%BB%BB%E5%8A%A1%E6%B1%87%E6%80%BB%E8%A1%A8.md)
 - **协作指南（User Guide）**：[实训基地协作指南](https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/%E4%BA%A4%E4%BB%98/%E5%AE%9E%E8%AE%AD%E5%9F%BA%E5%9C%B0%E5%8D%8F%E4%BD%9C%E6%8C%87%E5%8D%97.md)
@@ -17,7 +17,7 @@
 4. **接取人**列（汇总表 / 本 Issue）：仅在维护者 **合并 Design PR 之后** 评论 `/accept @ID` 才写入（单独 `/claim` 不会写）。
 5. **30 天无关联 PR 更新 → 自动释放**（接取人清空，任务重开）。
 
-_接取人表上次同步：2026-09-17 08:10 UTC_
+_接取人表上次同步：2026-10-10 13:54 UTC_
 
 ## 子任务列表（与汇总表同步）
 

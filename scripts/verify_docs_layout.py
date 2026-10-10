@@ -35,7 +35,6 @@ REQUIRED_DELIVERY = [
     "审核员指南.md",
     "企业级PR流水.md",
     "任务Issue标准块.md",
-    "任务计分板.md",
     "任务仪表盘.md",
     "任务列表.md",
     "实训基地任务汇总表.md",

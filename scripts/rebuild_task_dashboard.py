@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SCORE = ROOT / "docs" / "交付" / "任务计分板.md"
+SCORE = None  # 计分板已按实训要求删除
 CLAIMS = ROOT / "docs" / "交付" / "任务认领状态.json"
 OUT = ROOT / "docs" / "交付" / "任务仪表盘.md"
 LIST = ROOT / "docs" / "交付" / "任务列表.md"
@@ -126,7 +126,7 @@ def build_md(rows: list[tuple[str, str, int, str]], claims: dict) -> str:
     lines = [
         "# 实训任务仪表盘",
         "",
-        f"> 自动生成：{now}  ·  [计分板](./任务计分板.md)  ·  [认领状态 JSON](./任务认领状态.json)  ·  [总入口 #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7)",
+        f"> 自动生成：{now}  ·  [认领状态 JSON](./任务认领状态.json)  ·  [总入口 #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7)",
         "",
         "## 积分排行榜",
         "",
@@ -296,7 +296,7 @@ def build_list_md(claims: dict) -> str:
         "# 实训任务列表（Issue 索引）",
         "",
         "维护者：[@hongwei-2026](https://github.com/hongwei-2026)  ",
-        "**基地总看板：** [实训基地任务汇总表.md](./实训基地任务汇总表.md) · 流程：[实训基地协作指南.md](./实训基地协作指南.md) · **仪表盘**：[任务仪表盘.md](./任务仪表盘.md) · 计分板：[任务计分板.md](./任务计分板.md)",
+        "**基地总看板：** [实训基地任务汇总表.md](./实训基地任务汇总表.md) · 流程：[实训基地协作指南.md](./实训基地协作指南.md) · **仪表盘**：[任务仪表盘.md](./任务仪表盘.md)",
         "",
         f"> 自动同步接取人：{now}（数据源 [任务认领状态.json](./任务认领状态.json)）  ",
         "> 接取：`/claim` → Design **Merge** → `/accept`（接取人栏才写入）→ Impl（代码+视频+截图）→ `/score`。  ",
@@ -486,7 +486,7 @@ def build_html(rows: list, claims: dict) -> str:
 
 
 def main() -> int:
-    text = SCORE.read_text(encoding="utf-8") if SCORE.exists() else ""
+    text = SCORE.read_text(encoding="utf-8") if SCORE and SCORE.exists() else ""
     rows = parse_scores(text)
     claims = load_claims()
     OUT.write_text(build_md(rows, claims), encoding="utf-8")
