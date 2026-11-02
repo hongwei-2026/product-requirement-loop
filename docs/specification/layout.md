@@ -12,7 +12,8 @@ date: 2026-10-01
 | Handbook | `docs/handbook/index.md` | 唯一入口 |
 | Specification | `docs/specification/layout.md` | 目录与命名对照 |
 | Bylaw | `docs/bylaw/index.md` | 本仓库工作边界 |
-| Platform 代码 | `project/` | 保持可运行路径，避免打乱现有启动脚本 |
+| Platform 包 | `src/product_requirement_loop/` | 对齐基地 `packages/` 工具包；`tests/` + `pyproject.toml` |
+| Platform 运行时 | `project/` | `data/`、`journals/`、`.env`、启动脚本兼容路径 |
 | 过程材料 | `docs/交付/`、`docs/阶段*` | 不是入口，需要追溯时再打开 |
 
 双九宫格只建在领域第二大脑根目录。本仓库是 Platform，不在根目录铺空的九宫格。
