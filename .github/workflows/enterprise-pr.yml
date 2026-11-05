@@ -48,7 +48,7 @@ jobs:
         with:
           script: |
             const ALLOWED_CMD = /^\/(recheck|rerun|rerun-checks)\b/i;
-            const SCORERS = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
+            const SCORERS = ['hongwei-2026', 'hl019'];
             const event = context.eventName;
             let pr = null;
             let trigger = event;
@@ -91,7 +91,7 @@ jobs:
                 if (!ok) {
                   await github.rest.issues.createComment({
                     owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number,
-                    body: '⛔ `/recheck` 仅限：PR 作者或必审人（hongwei-2026 / hl019 / Jerrybao99 / likexin105）。'
+                    body: '⛔ `/recheck` 仅限：PR 作者或必审人 @hl019（黄亮）。'
                   });
                   should = false;
                 } else {

@@ -101,8 +101,7 @@ project/.venv/Scripts/python -m pytest tests/ -q
 | 角色 | 做什么 |
 | :-- | :-- |
 | 接任务的同学 | 读任务 Issue → `/claim` → Design PR → 等 `/accept` → Impl PR → `/submitted` |
-| 审核员（PR 门禁见 CI 必审名单） | 看 Checks、视频、截图；PR 评论 `/approve` 或 `/reject` |
-| 本类文档/结构任务请优先通知 | **@hl019（黄亮）**；勿 @Guo-Zhang（张果不负责本产品任务） |
+| 必审员 @hl019（黄亮） | 看 Checks、视频、截图；PR 评论 `/approve` 或 `/reject` |
 | 管理员 @hongwei-2026 | 合并 Design、`/accept`、合并 Impl、`/score` |
 
 命令表与逐步说明见 [唯一入口](./index.md#命令)。

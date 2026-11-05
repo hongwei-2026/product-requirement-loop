@@ -29,7 +29,7 @@ jobs:
         with:
           script: |
             const MAINTAINER = 'hongwei-2026';
-            const SCORERS = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
+            const SCORERS = ['hongwei-2026', 'hl019'];
             const CLAIMS_PATH = 'docs/交付/任务认领状态.json';
             const fs = require('fs');
 
@@ -142,7 +142,7 @@ jobs:
             }
 
             // ---------- /submitted ----------
-            const REVIEWERS = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
+            const REVIEWERS = ['hl019'];
             if (lines.some(l => /^\/(submitted|done)$/i.test(l))) {
               const dataNow = loadClaims();
               const cur = dataNow.claims[key];

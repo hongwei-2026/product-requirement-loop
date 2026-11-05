@@ -23,7 +23,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const REQUIRED_ALL = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
+            const REQUIRED_ALL = ['hl019'];
             const PASS = new Set(['approve', 'lgtm', 'ack']);
             const FAIL = new Set(['reject', 'changes', 'deny']);
             const MARKER = '<!-- required-reviewers-progress -->';

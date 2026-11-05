@@ -13,7 +13,7 @@ date: 2026-10-01
 
 ## 从选题到结项
 
-任务在 [Issue #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7)。审核通知邮箱：`feizi_050920@qq.com`。管理员：@hongwei-2026。审核员：@hongwei-2026、@hl019、@Jerrybao99、@likexin105。
+任务在 [Issue #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7)。审核通知邮箱：`feizi_050920@qq.com`。管理员：@hongwei-2026（合并、`/accept`、`/score`）。必审员：**@hl019（黄亮）**。
 
 1. **选题。** 打开任务 Issue，读完目标、要求和验收。
 2. **登记。** 在该 Issue 评论，单独一行：`/claim`
@@ -28,7 +28,7 @@ date: 2026-10-01
 
 ### 每位审核员怎么做
 
-审核员是 @hongwei-2026、@hl019、@Jerrybao99、@likexin105。管理员也要审，但合并只由 @hongwei-2026 做。
+必审员是 **@hl019（黄亮）**。合并、`/accept`、`/score` 由管理员 @hongwei-2026 负责。
 
 1. 看到机器人在 Issue 里贴出的 PR 链接，点进去。
 2. 看 PR 底部 Checks 是否还在跑、有没有红。
