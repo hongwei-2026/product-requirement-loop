@@ -21,7 +21,7 @@ BASE = ROOT / "docs" / "交付" / "实训基地任务汇总表.md"
 HUB = ROOT / "docs" / "交付" / "任务总览-issue7.body.md"
 HTML = ROOT / "docs" / "dashboard" / "index.html"
 
-SEED = ["hongwei-2026", "hl019", "Jerrybao99", "likexin105"]
+SEED = ["hongwei-2026", "hl019"]
 ISSUE_BASE = "https://github.com/hongwei-2026/product-requirement-loop/issues"
 
 TASKS = [
@@ -196,7 +196,7 @@ def build_md(rows: list[tuple[str, str, int, str]], claims: dict) -> str:
         "",
         "> **一账号同时只能 1 个进行中任务。**",
         "",
-        "必审人：`hongwei-2026` · `hl019` · `Jerrybao99` · `likexin105`",
+        "必审人：`hl019`（黄亮）",
         "",
     ]
     return "\n".join(lines)
@@ -282,7 +282,7 @@ def build_base_summary_md(claims: dict) -> str:
         "## 维护与审核",
         "",
         "- 维护者：@hongwei-2026（唯一可 `/accept`）  ",
-        "- 必审人：`hongwei-2026` · `hl019` · `Jerrybao99` · `likexin105`（PR 须`/approve`）  ",
+        "- 必审人：`hl019`（黄亮，PR 须 `/approve`）  ",
         "- 同学流程：[实训基地协作指南.md](./实训基地协作指南.md) · 审核员：[审核员指南.md](./审核员指南.md)  ",
         "- 同步脚本：`scripts/rebuild_task_dashboard.py`（由 `/accept` `/cancel` `/score` 与 30 天释放流水触发）",
         "",
@@ -336,7 +336,7 @@ def build_list_md(claims: dict) -> str:
         "",
         "## 必审人 / 可记分人",
         "",
-        "`hongwei-2026` · `hl019` · `Jerrybao99` · `likexin105`",
+        "`hl019`（黄亮）",
         "",
         "PR 须`/approve`；记分评论：`/score N`",
         "",
@@ -350,7 +350,7 @@ def build_issue7_body(claims: dict) -> str:
         "# 实训任务总览（跳转入口）",
         "",
         "维护者：@hongwei-2026  ",
-        "必审人（PR 须 **`/approve`**）：@hongwei-2026 @hl019 @Jerrybao99 @likexin105  ",
+        "必审人（PR 须 **`/approve`**）：@hl019  ",
         "",
         "- **基地总看板**：[实训基地任务汇总表](https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/%E4%BA%A4%E4%BB%98/%E5%AE%9E%E8%AE%AD%E5%9F%BA%E5%9C%B0%E4%BB%BB%E5%8A%A1%E6%B1%87%E6%80%BB%E8%A1%A8.md)",
         "- **协作指南（User Guide）**：[实训基地协作指南](https://github.com/hongwei-2026/product-requirement-loop/blob/main/docs/%E4%BA%A4%E4%BB%98/%E5%AE%9E%E8%AE%AD%E5%9F%BA%E5%9C%B0%E5%8D%8F%E4%BD%9C%E6%8C%87%E5%8D%97.md)",

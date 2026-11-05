@@ -4,6 +4,24 @@
 
 [![CI](https://github.com/hongwei-2026/product-requirement-loop/actions/workflows/ci.yml/badge.svg)](https://github.com/hongwei-2026/product-requirement-loop/actions/workflows/ci.yml)
 
+
+## 仓库结构（对齐实训基地工具包）
+
+```
+src/product_requirement_loop/   # Python 包
+tests/                          # 测试
+pyproject.toml                  # 包元数据
+AGENTS.md                       # Agent 操作手册
+README.md                       # 本页
+CHANGELOG.md                    # 更新日志
+.env.example                    # 环境变量模板 → 复制到 project/.env
+project/                        # 运行数据与启动兼容（data/journals/trials）
+docs/                           # 文档（入口 docs/handbook/index.md）
+scripts/                        # 脚本与门禁
+```
+
+开发协作细则见 [docs/handbook/developer-collaboration.md](./docs/handbook/developer-collaboration.md)。
+
 ## 唯一入口
 
 同事只看 [docs/handbook/index.md](./docs/handbook/index.md)。
@@ -17,7 +35,7 @@
 ### Windows
 
 1. 双击 `setup阶段1环境.bat`（首次）  
-2. 复制 `project/.env.example` → `project/.env`，填写 Key（见示例里的 `LLM_*`）  
+2. 复制根目录 `.env.example`（或 `project/.env.example`）→ `project/.env`，填写 Key（见示例里的 `LLM_*`）  
 3. （推荐）`project\.venv\Scripts\python.exe scripts\sync_journals.py`  
 4. 双击 **`start-with-ai.bat`**（黑窗勿关）  
 5. 打开 **http://127.0.0.1:8765/** · 演示账号 `demo` / `demo1234`
@@ -27,7 +45,7 @@
 ```bash
 chmod +x setup.sh start-with-ai.sh
 ./setup.sh
-cp project/.env.example project/.env   # 填写 Key
+cp .env.example project/.env   # 填写 Key（也可用 project/.env.example）
 project/.venv/bin/python scripts/sync_journals.py
 ./start-with-ai.sh
 ```

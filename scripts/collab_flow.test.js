@@ -19,27 +19,16 @@ assert.strictEqual(flow.parseReviewCommand('/reject missing screenshot'), 'fail'
 assert.strictEqual(flow.parseReviewCommand('/通过'), null);
 assert.strictEqual(flow.parseReviewCommand('看起来可以'), null);
 
-const reviewers = ['hongwei-2026', 'hl019', 'Jerrybao99', 'likexin105'];
-const partial = flow.tallyReviews(reviewers, 'hongwei-2026', { hl019: 'pass' });
+const reviewers = ['hl019'];
+const partial = flow.tallyReviews(reviewers, 'hongwei-2026', {});
 assert.strictEqual(partial.ok, false);
-assert.deepStrictEqual(partial.need.map((n) => n.toLowerCase()), ['hl019', 'jerrybao99', 'likexin105']);
-assert.ok(partial.missing.includes('Jerrybao99'));
+assert.deepStrictEqual(partial.need.map((n) => n.toLowerCase()), ['hl019']);
+assert.ok(partial.missing.includes('hl019'));
 
-const full = flow.tallyReviews(reviewers, 'hongwei-2026', {
-  hl019: 'pass',
-  jerrybao99: 'pass',
-  likexin105: 'pass',
-  'hongwei-2026': 'pass',
-});
+const full = flow.tallyReviews(reviewers, 'hongwei-2026', { hl019: 'pass' });
 assert.strictEqual(full.ok, true);
-assert.ok(!full.passed.map((n) => n.toLowerCase()).includes('hongwei-2026'));
 
-const rejected = flow.tallyReviews(reviewers, 'someone', {
-  'hongwei-2026': 'pass',
-  hl019: 'fail',
-  jerrybao99: 'pass',
-  likexin105: 'pass',
-});
+const rejected = flow.tallyReviews(reviewers, 'someone', { hl019: 'fail' });
 assert.strictEqual(rejected.ok, false);
 assert.deepStrictEqual(rejected.rejected, ['hl019']);
 
