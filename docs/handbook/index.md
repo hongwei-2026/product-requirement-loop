@@ -13,7 +13,7 @@ date: 2026-10-01
 
 ## 从选题到结项
 
-任务在 [Issue #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7)。审核通知邮箱：`feizi_050920@qq.com`。管理员：@hongwei-2026。审核员：@hongwei-2026、@hl019、@Jerrybao99、@likexin105。
+任务在 [Issue #7](https://github.com/hongwei-2026/product-requirement-loop/issues/7)。审核通知邮箱：`feizi_050920@qq.com`。管理员：@hongwei-2026（合并、`/accept`、`/score`）。必审员：**@hl019（黄亮）**。
 
 1. **选题。** 打开任务 Issue，读完目标、要求和验收。
 2. **登记。** 在该 Issue 评论，单独一行：`/claim`
@@ -28,7 +28,7 @@ date: 2026-10-01
 
 ### 每位审核员怎么做
 
-审核员是 @hongwei-2026、@hl019、@Jerrybao99、@likexin105。管理员也要审，但合并只由 @hongwei-2026 做。
+必审员是 **@hl019（黄亮）**。合并、`/accept`、`/score` 由管理员 @hongwei-2026 负责。
 
 1. 看到机器人在 Issue 里贴出的 PR 链接，点进去。
 2. 看 PR 底部 Checks 是否还在跑、有没有红。
@@ -52,10 +52,11 @@ date: 2026-10-01
 | `/recheck` | PR | 作者或审核员 | 补材料后重跑交付检查 |
 | `/score N` | 任务 Issue | 管理员或审核员 | 合并后记分，任务结项 |
 
-## 三件要做的事
+## 四件要做的事
 
 | 你要做的事 | 打开 |
 | :-- | :-- |
+| **第一次开发 / clone 后怎么改代码** | **[开发者协作指南](./developer-collaboration.md)** |
 | 跑起来 | [仓库首页「快速开始」](../../README.md#快速开始) |
 | 验收这套产品 | [结项说明](../交付/结项说明-给审阅同事.md) |
 | 看安全边界 | [安全说明](../交付/安全说明.md) |
